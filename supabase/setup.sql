@@ -2693,7 +2693,10 @@ notify pgrst, 'reload schema';
 -- Даты рассчитываются от текущего дня, поэтому стенд всегда «свежий».
 -- =====================================================================
 
-begin;
+-- Служебная схема для промежуточных таблиц (вместо временных: SQL Editor Supabase
+-- может выполнять операторы в разных сессиях, а временные таблицы живут только в одной)
+drop schema if exists seed_tmp cascade;
+create schema seed_tmp;
 
 -- ---------- Очистка ----------
 
@@ -2717,7 +2720,7 @@ alter table public.tasks disable trigger trg_tasks_notify;
 alter table public.announcements disable trigger trg_announcements_notify;
 alter table public.hr_tickets disable trigger trg_hr_tickets_after_insert;
 
-create or replace function pg_temp.emp(p_tab text) returns uuid language sql stable as $$
+create or replace function seed_tmp.emp(p_tab text) returns uuid language sql stable as $$
   select id from public.employees where zup_id = p_tab
 $$;
 
@@ -2814,7 +2817,7 @@ update public.employees set vacation_carryover = 14 where zup_id = 'JP-0017';
 update public.employees set vacation_carryover = 10 where zup_id = 'JP-0024';
 update public.employees set vacation_carryover = 8 where zup_id in ('JP-0006', 'JP-0020');
 update public.employee_private set address = 'г. Алматы, мкр. Аксай-4 (демо)', emergency_contact = 'Жумабеков Нурлан — +7 701 000 1013'
-  where employee_id = pg_temp.emp('JP-0013');
+  where employee_id = seed_tmp.emp('JP-0013');
 update public.departments d set head_id = e.id
 from public.employees e
 where (d.zup_id, e.zup_id) in (('D00', 'JP-0001'), ('D10', 'JP-0002'), ('D20', 'JP-0005'), ('D30', 'JP-0007'),
@@ -2850,13 +2853,12 @@ from auth.users u where u.email like '%@jana.test';
 
 -- ---------- HR-заявки (история) ----------
 
-drop table if exists pg_temp.seed_requests;
-create temporary table seed_requests (
+create table seed_tmp.requests (
   tab text, type text, status text, start_date date, end_date date, amount numeric, comment text, details jsonb,
   created_at timestamptz, decision_comment text
 );
 
-insert into seed_requests values
+insert into seed_tmp.requests values
   -- Дана (работник): заявки в разных статусах
   ('JP-0013', 'vacation', 'done', current_date - 120, current_date - 107, null, 'Летний отпуск', '{}', now() - interval '150 days', null),
   ('JP-0013', 'advance', 'done', null, null, 120000, 'Оплата обучения ребёнка', '{}', now() - interval '45 days', null),
@@ -2897,7 +2899,7 @@ insert into seed_requests values
 
 -- Фоновые отпуска за ~15 месяцев (для аналитики и сезонного прогноза):
 -- лето — основной пик, конец декабря / январь, весна (Наурыз, май), немного осенью
-insert into seed_requests
+insert into seed_tmp.requests
 select e.zup_id, 'vacation', 'done', v.start_date, v.start_date + v.len - 1, null, null, '{}'::jsonb,
        (v.start_date - 20)::timestamptz + interval '10 hours', null
 from public.employees e
@@ -2925,7 +2927,7 @@ where v.enabled
            and v.start_date >= make_date(extract(year from current_date)::int, 1, 1));
 
 -- Фоновые заявки за последние 12 недель (тренд нагрузки на HR)
-insert into seed_requests
+insert into seed_tmp.requests
 select e.zup_id, case when g % 3 = 0 then 'advance' else 'certificate' end, case when g % 7 = 0 then 'rejected' else 'done' end,
        null, null, case when g % 3 = 0 then 50000 + (g % 5) * 10000 end, null,
        case when g % 3 = 0 then '{}'::jsonb else '{"purpose":"По месту требования","language":"ru","copies":1}'::jsonb end,
@@ -2937,13 +2939,13 @@ where e.zup_id not in ('JP-0013', 'JP-0015', 'JP-0018');
 
 insert into public.requests (employee_id, type, status, start_date, end_date, amount, comment, details, approver_id,
                              created_at, updated_at)
-select pg_temp.emp(s.tab), s.type, s.status, s.start_date, s.end_date, s.amount, s.comment, s.details,
+select seed_tmp.emp(s.tab), s.type, s.status, s.start_date, s.end_date, s.amount, s.comment, s.details,
        case
          when s.status = 'pending' and s.type in ('vacation', 'advance') then
-           coalesce((select manager_id from public.employees where zup_id = s.tab), pg_temp.emp('JP-0002'))
-         else pg_temp.emp('JP-0002') end,
+           coalesce((select manager_id from public.employees where zup_id = s.tab), seed_tmp.emp('JP-0002'))
+         else seed_tmp.emp('JP-0002') end,
        s.created_at, s.created_at
-from seed_requests s
+from seed_tmp.requests s
 order by s.created_at;
 
 -- История и интеграции для каждой заявки (длительность этапов зависит от согласующего;
@@ -2954,7 +2956,7 @@ alter table public.requests disable trigger trg_requests_updated_at;
 do $$
 declare
   r record;
-  v_hr uuid := pg_temp.emp('JP-0002');
+  v_hr uuid := seed_tmp.emp('JP-0002');
   v_mgr uuid;
   v_mgr_tab text;
   v_t timestamptz;
@@ -2968,8 +2970,8 @@ begin
                                   when 'JP-0012' then interval '3 hours' when 'JP-0001' then interval '30 hours'
                                   else interval '7 hours' end
                    + (abs(hashtext(r.id::text)) % 120) * interval '1 minute';
-    select decision_comment into v_dec from seed_requests s
-     where pg_temp.emp(s.tab) = r.employee_id and s.type = r.type and s.created_at = r.created_at limit 1;
+    select decision_comment into v_dec from seed_tmp.requests s
+     where seed_tmp.emp(s.tab) = r.employee_id and s.type = r.type and s.created_at = r.created_at limit 1;
 
     insert into public.request_events (request_id, action, status, actor_id, comment, created_at)
     values (r.id, 'created', 'pending', r.employee_id, r.comment, r.created_at);
@@ -3070,9 +3072,8 @@ join (values
    E'Примите претензию, зарегистрируйте её в системе и выдайте клиенту номер обращения. Не обещайте того, что не можете гарантировать.')
 ) as l(slug, sort, title, minutes, content) on l.slug = c.slug;
 
-drop table if exists pg_temp.seed_questions;
-create temporary table seed_questions (slug text, sort int, question text, options jsonb, correct int, explanation text);
-insert into seed_questions values
+create table seed_tmp.questions (slug text, sort int, question text, options jsonb, correct int, explanation text);
+insert into seed_tmp.questions values
   ('welcome', 1, 'Какие ценности лежат в основе Jana Post?',
    '["Открытость, Надёжность, Результат", "Скорость, Цена, Объём", "Инновации, Рост, Прибыль", "Лояльность, Дисциплина, Контроль"]', 0,
    'Три ценности Jana Post — Открытость, Надёжность и Результат (урок 2).'),
@@ -3127,20 +3128,19 @@ insert into seed_questions values
 
 insert into public.course_questions (course_id, sort, question, options, explanation)
 select c.id, q.sort, q.question, q.options, q.explanation
-from seed_questions q join public.courses c on c.slug = q.slug;
+from seed_tmp.questions q join public.courses c on c.slug = q.slug;
 
 insert into public.course_answer_keys (question_id, correct_index)
 select cq.id, q.correct
-from seed_questions q
+from seed_tmp.questions q
 join public.courses c on c.slug = q.slug
 join public.course_questions cq on cq.course_id = c.id and cq.sort = q.sort;
 
 -- Назначения: адаптационный курс — всем, кто пришёл в последние ~14 месяцев; ОТ — логистике; ИБ — всем
-drop table if exists pg_temp.seed_assign;
-create temporary table seed_assign (tab text, slug text, status text, progress int, score int, attempts int,
+create table seed_tmp.assign (tab text, slug text, status text, progress int, score int, attempts int,
                                     due_date date, assigned_at timestamptz, completed_at timestamptz);
 
-insert into seed_assign
+insert into seed_tmp.assign
 select e.zup_id, 'welcome',
        case when e.zup_id = 'JP-0018' then 'assigned' else 'completed' end,
        case when e.zup_id = 'JP-0018' then 0 else 100 end,
@@ -3151,7 +3151,7 @@ select e.zup_id, 'welcome',
 from public.employees e
 where (e.hire_date > current_date - 430 or e.zup_id = 'JP-0013') and e.zup_id <> 'JP-0036';
 
-insert into seed_assign
+insert into seed_tmp.assign
 select e.zup_id, 'safety',
        case when e.zup_id in ('JP-0015', 'JP-0022') then 'in_progress'
             when e.zup_id = 'JP-0018' then 'assigned'
@@ -3169,7 +3169,7 @@ from public.employees e
 join public.departments d on d.id = e.department_id
 where d.zup_id in ('D41', 'D42', 'D43', 'D44');
 
-insert into seed_assign
+insert into seed_tmp.assign
 select e.zup_id, 'infosec',
        case when e.zup_id in ('JP-0013', 'JP-0018') then 'assigned'
             -- HR и руководство запустили кампанию и прошли курс первыми
@@ -3181,7 +3181,7 @@ select e.zup_id, 'infosec',
        current_date + 11, now() - interval '3 days', null
 from public.employees e where e.zup_id <> 'JP-0034';
 
-update seed_assign set progress = case status when 'completed' then 100 when 'in_progress' then 50 else 0 end,
+update seed_tmp.assign set progress = case status when 'completed' then 100 when 'in_progress' then 50 else 0 end,
                        score = case when status = 'completed' then 80 + abs(hashtext(tab || 'x')) % 21 end,
                        attempts = case when status = 'completed' then 1 else 0 end,
                        completed_at = case when status = 'completed' then now() - interval '1 day' end
@@ -3189,11 +3189,11 @@ update seed_assign set progress = case status when 'completed' then 100 when 'in
 
 insert into public.course_assignments (course_id, employee_id, status, progress, score, attempts, due_date, assigned_by,
                                        started_at, completed_at, created_at)
-select c.id, pg_temp.emp(a.tab), a.status, a.progress, a.score, a.attempts, a.due_date,
-       case when a.slug = 'welcome' then pg_temp.emp('JP-0004') else pg_temp.emp('JP-0004') end,
+select c.id, seed_tmp.emp(a.tab), a.status, a.progress, a.score, a.attempts, a.due_date,
+       case when a.slug = 'welcome' then seed_tmp.emp('JP-0004') else seed_tmp.emp('JP-0004') end,
        case when a.status <> 'assigned' then a.assigned_at + interval '1 day' end,
        a.completed_at, a.assigned_at
-from seed_assign a join public.courses c on c.slug = a.slug;
+from seed_tmp.assign a join public.courses c on c.slug = a.slug;
 
 -- Пройденные уроки и попытки теста — согласованы с прогрессом
 insert into public.lesson_progress (employee_id, lesson_id, completed_at)
@@ -3211,7 +3211,7 @@ select ca.course_id, ca.employee_id, s.score, false, '{}'::jsonb, now() - s.ago
 from public.course_assignments ca
 join public.courses c on c.id = ca.course_id and c.slug = 'safety'
 cross join (values (40, interval '20 days'), (60, interval '9 days')) s(score, ago)
-where ca.employee_id = pg_temp.emp('JP-0022');
+where ca.employee_id = seed_tmp.emp('JP-0022');
 
 -- ---------- База знаний AI Jana ----------
 
@@ -3271,9 +3271,8 @@ insert into public.kb_articles (slug, title, title_kk, category, summary, source
    'Регламент HR и бухгалтерии по авансам.',
    'Регламент выплаты авансов (для HR, демо)', 'hr', '{ведомость,аванс,бухгалтерия,выплата}', '');
 
-drop table if exists pg_temp.seed_chunks;
-create temporary table seed_chunks (slug text, sort int, heading text, keywords text, content text);
-insert into seed_chunks values
+create table seed_tmp.chunks (slug text, sort int, heading text, keywords text, content text);
+insert into seed_tmp.chunks values
   ('vacation-annual', 1, 'Сколько дней отпуска положено', 'сколько дней положено продолжительность отпуска',
    'Ежегодный оплачиваемый трудовой отпуск — не менее 24 календарных дней (Трудовой кодекс РК). Праздничные дни, приходящиеся на период отпуска, в число дней отпуска не включаются. За первый рабочий год отпуск рассчитывается пропорционально отработанным месяцам.'),
   ('vacation-annual', 2, 'Как оформить отпуск в JanaМен', 'оформить заявку на отпуск как взять',
@@ -3345,7 +3344,7 @@ insert into seed_chunks values
 
 insert into public.kb_chunks (article_id, sort, heading, keywords, content)
 select a.id, c.sort, c.heading, c.keywords || ' ' || array_to_string(a.keywords, ' '), c.content
-from seed_chunks c join public.kb_articles a on a.slug = c.slug;
+from seed_tmp.chunks c join public.kb_articles a on a.slug = c.slug;
 
 update public.kb_articles a set content = (
   select string_agg('## ' || c.heading || E'\n\n' || c.content, E'\n\n' order by c.sort)
@@ -3354,7 +3353,7 @@ update public.kb_articles a set content = (
 -- ---------- Вопросы к AI Jana и обращения в HR (история для аналитики) ----------
 
 insert into public.ai_queries (employee_id, question, answer, status, mode, sources, created_at)
-select pg_temp.emp('JP-' || lpad((3 + (g * 7) % 31)::text, 4, '0')), q.question, q.answer, q.status, 'kb',
+select seed_tmp.emp('JP-' || lpad((3 + (g * 7) % 31)::text, 4, '0')), q.question, q.answer, q.status, 'kb',
        case when q.slug is null then '[]'::jsonb else jsonb_build_array(jsonb_build_object('slug', q.slug)) end,
        now() - (g % 14) * interval '1 day' - (g % 7) * interval '1 hour'
 from generate_series(1, 42) g
@@ -3376,52 +3375,52 @@ join (values
 ) as q(k, question, answer, status, slug) on q.k = g % 14;
 
 insert into public.hr_tickets (employee_id, question, status, answer, answered_by, created_at, answered_at) values
-  (pg_temp.emp('JP-0015'), 'Положена ли компенсация за проезд, если смена заканчивается ночью?', 'open', null, null, now() - interval '1 day', null),
-  (pg_temp.emp('JP-0026'), 'Как оформить отпуск по уходу за ребёнком и какие документы нужны?', 'open', null, null, now() - interval '5 hours', null),
-  (pg_temp.emp('JP-0030'), 'Можно ли перенести неиспользованные дни отпуска на следующий год?', 'answered',
+  (seed_tmp.emp('JP-0015'), 'Положена ли компенсация за проезд, если смена заканчивается ночью?', 'open', null, null, now() - interval '1 day', null),
+  (seed_tmp.emp('JP-0026'), 'Как оформить отпуск по уходу за ребёнком и какие документы нужны?', 'open', null, null, now() - interval '5 hours', null),
+  (seed_tmp.emp('JP-0030'), 'Можно ли перенести неиспользованные дни отпуска на следующий год?', 'answered',
    'Да, по согласованию с руководителем неиспользованные дни переносятся на следующий год. Оформите заявку на отпуск на нужные даты — остаток учтётся автоматически.',
-   pg_temp.emp('JP-0002'), now() - interval '6 days', now() - interval '5 days');
+   seed_tmp.emp('JP-0002'), now() - interval '6 days', now() - interval '5 days');
 
 -- ---------- Задачи ----------
 
 insert into public.tasks (title, description, assignee_id, created_by, priority, status, category, due_date, created_at, started_at, completed_at) values
-  ('Провести инструктаж новичка по работе с ТСД', 'Тимур Ахметов, 5-й день. Показать сканирование, пересорт и маркировку мест.', pg_temp.emp('JP-0013'), pg_temp.emp('JP-0012'), 'high', 'in_progress', 'warehouse', current_date + 2, now() - interval '3 days', now() - interval '2 days', null),
-  ('Инвентаризация зоны B-12', 'Сверить остатки с WMS, расхождения — в отчёт до конца смены.', pg_temp.emp('JP-0013'), pg_temp.emp('JP-0012'), 'medium', 'todo', 'warehouse', current_date + 5, now() - interval '1 day', null, null),
-  ('Пройти курс «Информационная безопасность»', 'Обязательный курс для всех сотрудников. Ссылка — в Jana Academy.', pg_temp.emp('JP-0013'), pg_temp.emp('JP-0004'), 'medium', 'todo', 'training', current_date + 11, now() - interval '3 days', null, null),
-  ('Отчёт по ошибкам сортировки за неделю', null, pg_temp.emp('JP-0013'), pg_temp.emp('JP-0012'), 'medium', 'done', 'warehouse', current_date - 2, now() - interval '7 days', now() - interval '6 days', now() - interval '2 days'),
-  ('Пройти курс «Добро пожаловать в Jana Post»', 'Адаптационный курс — 25 минут.', pg_temp.emp('JP-0018'), pg_temp.emp('JP-0004'), 'high', 'todo', 'training', current_date + 9, now() - interval '5 days', null, null),
-  ('Получить спецодежду и пропуск', null, pg_temp.emp('JP-0018'), pg_temp.emp('JP-0012'), 'high', 'done', 'hr', current_date - 4, now() - interval '5 days', now() - interval '5 days', now() - interval '4 days'),
-  ('Подготовить план смен на пик 11.11', 'Учесть рост объёма на 60% с 16 по 30 ноября и согласованные отпуска.', pg_temp.emp('JP-0012'), pg_temp.emp('JP-0011'), 'urgent', 'in_progress', 'logistics', current_date + 7, now() - interval '4 days', now() - interval '3 days', null),
-  ('Согласовать график отпусков склада на декабрь', null, pg_temp.emp('JP-0012'), pg_temp.emp('JP-0011'), 'medium', 'todo', 'logistics', current_date + 14, now() - interval '2 days', null, null),
-  ('Перемаркировать стеллажи зоны C', null, pg_temp.emp('JP-0015'), pg_temp.emp('JP-0012'), 'medium', 'todo', 'warehouse', current_date - 3, now() - interval '9 days', null, null),
-  ('Сдать отчёт по возвратам за сентябрь', null, pg_temp.emp('JP-0015'), pg_temp.emp('JP-0012'), 'low', 'in_progress', 'warehouse', current_date - 1, now() - interval '8 days', now() - interval '6 days', null),
-  ('Проверить исправность погрузчика №2', 'Перед ночной сменой.', pg_temp.emp('JP-0017'), pg_temp.emp('JP-0012'), 'high', 'review', 'warehouse', current_date, now() - interval '1 day', now() - interval '20 hours', null),
-  ('Принять партию из Урумчи (рейс 1015)', null, pg_temp.emp('JP-0014'), pg_temp.emp('JP-0012'), 'high', 'todo', 'logistics', current_date + 1, now() - interval '5 hours', null, null),
-  ('Обновить скрипты ответов по возвратам', null, pg_temp.emp('JP-0030'), pg_temp.emp('JP-0029'), 'medium', 'in_progress', 'client', current_date + 4, now() - interval '3 days', now() - interval '2 days', null),
-  ('Подготовить отчёт по обучению за квартал', 'Курсы, прогресс, просрочки по подразделениям.', pg_temp.emp('JP-0004'), pg_temp.emp('JP-0002'), 'medium', 'in_progress', 'hr', current_date + 6, now() - interval '2 days', now() - interval '1 day', null),
-  ('Ответить на обращения сотрудников в JanaМен', null, pg_temp.emp('JP-0003'), pg_temp.emp('JP-0002'), 'high', 'todo', 'hr', current_date + 1, now() - interval '1 day', null, null);
+  ('Провести инструктаж новичка по работе с ТСД', 'Тимур Ахметов, 5-й день. Показать сканирование, пересорт и маркировку мест.', seed_tmp.emp('JP-0013'), seed_tmp.emp('JP-0012'), 'high', 'in_progress', 'warehouse', current_date + 2, now() - interval '3 days', now() - interval '2 days', null),
+  ('Инвентаризация зоны B-12', 'Сверить остатки с WMS, расхождения — в отчёт до конца смены.', seed_tmp.emp('JP-0013'), seed_tmp.emp('JP-0012'), 'medium', 'todo', 'warehouse', current_date + 5, now() - interval '1 day', null, null),
+  ('Пройти курс «Информационная безопасность»', 'Обязательный курс для всех сотрудников. Ссылка — в Jana Academy.', seed_tmp.emp('JP-0013'), seed_tmp.emp('JP-0004'), 'medium', 'todo', 'training', current_date + 11, now() - interval '3 days', null, null),
+  ('Отчёт по ошибкам сортировки за неделю', null, seed_tmp.emp('JP-0013'), seed_tmp.emp('JP-0012'), 'medium', 'done', 'warehouse', current_date - 2, now() - interval '7 days', now() - interval '6 days', now() - interval '2 days'),
+  ('Пройти курс «Добро пожаловать в Jana Post»', 'Адаптационный курс — 25 минут.', seed_tmp.emp('JP-0018'), seed_tmp.emp('JP-0004'), 'high', 'todo', 'training', current_date + 9, now() - interval '5 days', null, null),
+  ('Получить спецодежду и пропуск', null, seed_tmp.emp('JP-0018'), seed_tmp.emp('JP-0012'), 'high', 'done', 'hr', current_date - 4, now() - interval '5 days', now() - interval '5 days', now() - interval '4 days'),
+  ('Подготовить план смен на пик 11.11', 'Учесть рост объёма на 60% с 16 по 30 ноября и согласованные отпуска.', seed_tmp.emp('JP-0012'), seed_tmp.emp('JP-0011'), 'urgent', 'in_progress', 'logistics', current_date + 7, now() - interval '4 days', now() - interval '3 days', null),
+  ('Согласовать график отпусков склада на декабрь', null, seed_tmp.emp('JP-0012'), seed_tmp.emp('JP-0011'), 'medium', 'todo', 'logistics', current_date + 14, now() - interval '2 days', null, null),
+  ('Перемаркировать стеллажи зоны C', null, seed_tmp.emp('JP-0015'), seed_tmp.emp('JP-0012'), 'medium', 'todo', 'warehouse', current_date - 3, now() - interval '9 days', null, null),
+  ('Сдать отчёт по возвратам за сентябрь', null, seed_tmp.emp('JP-0015'), seed_tmp.emp('JP-0012'), 'low', 'in_progress', 'warehouse', current_date - 1, now() - interval '8 days', now() - interval '6 days', null),
+  ('Проверить исправность погрузчика №2', 'Перед ночной сменой.', seed_tmp.emp('JP-0017'), seed_tmp.emp('JP-0012'), 'high', 'review', 'warehouse', current_date, now() - interval '1 day', now() - interval '20 hours', null),
+  ('Принять партию из Урумчи (рейс 1015)', null, seed_tmp.emp('JP-0014'), seed_tmp.emp('JP-0012'), 'high', 'todo', 'logistics', current_date + 1, now() - interval '5 hours', null, null),
+  ('Обновить скрипты ответов по возвратам', null, seed_tmp.emp('JP-0030'), seed_tmp.emp('JP-0029'), 'medium', 'in_progress', 'client', current_date + 4, now() - interval '3 days', now() - interval '2 days', null),
+  ('Подготовить отчёт по обучению за квартал', 'Курсы, прогресс, просрочки по подразделениям.', seed_tmp.emp('JP-0004'), seed_tmp.emp('JP-0002'), 'medium', 'in_progress', 'hr', current_date + 6, now() - interval '2 days', now() - interval '1 day', null),
+  ('Ответить на обращения сотрудников в JanaМен', null, seed_tmp.emp('JP-0003'), seed_tmp.emp('JP-0002'), 'high', 'todo', 'hr', current_date + 1, now() - interval '1 day', null, null);
 
 -- ---------- Объявления ----------
 
 insert into public.announcements (title, body, category, pinned, audience_department_id, author_id, created_at) values
   ('JanaМен: все HR-сервисы в одном окне',
    E'Коллеги, запускаем JanaМен — единую HR-платформу.\n\nЗдесь вы оформляете отпуск и аванс, видите статусы заявок, проходите курсы Jana Academy и задаёте вопросы AI Jana. Официальные данные подтягиваются из 1С:ЗУП.',
-   'hr', true, null, pg_temp.emp('JP-0002'), now() - interval '6 days'),
+   'hr', true, null, seed_tmp.emp('JP-0002'), now() - interval '6 days'),
   ('Подготовка к пику 11.11',
    E'С 16 по 30 ноября ожидаем рост объёма на 50–60%. Склад, доставка и ПВЗ работают по усиленному графику. Отпуска на эти даты — только по согласованию с директором по логистике.',
-   'logistics', true, null, pg_temp.emp('JP-0011'), now() - interval '3 days'),
+   'logistics', true, null, seed_tmp.emp('JP-0011'), now() - interval '3 days'),
   ('Плановая инвентаризация в субботу',
    E'В субботу с 08:00 — инвентаризация зон B и C. Старшие смен, проверьте ТСД и распечатайте листы пересчёта.',
-   'urgent', false, (select id from public.departments where zup_id = 'D41'), pg_temp.emp('JP-0012'), now() - interval '1 day'),
+   'urgent', false, (select id from public.departments where zup_id = 'D41'), seed_tmp.emp('JP-0012'), now() - interval '1 day'),
   ('25 октября — День Республики',
    E'25 октября — государственный праздник. Так как он выпадает на воскресенье, понедельник 26 октября — выходной день. Склад и ПВЗ работают по отдельному графику.',
-   'event', false, null, pg_temp.emp('JP-0003'), now() - interval '2 days'),
+   'event', false, null, seed_tmp.emp('JP-0003'), now() - interval '2 days'),
   ('Обязательный курс по информационной безопасности',
    E'Всем сотрудникам назначен курс «Информационная безопасность и персональные данные» — 20 минут. Пройдите его до конца месяца в Jana Academy.',
-   'hr', false, null, pg_temp.emp('JP-0004'), now() - interval '3 days'),
+   'hr', false, null, seed_tmp.emp('JP-0004'), now() - interval '3 days'),
   ('Открыт новый пункт выдачи в Шымкенте',
    E'ПВЗ в Шымкенте работает ежедневно с 09:00 до 21:00. Спасибо команде сети ПВЗ за быстрый запуск!',
-   'news', false, null, pg_temp.emp('JP-0025'), now() - interval '9 days');
+   'news', false, null, seed_tmp.emp('JP-0025'), now() - interval '9 days');
 
 insert into public.announcement_reads (announcement_id, employee_id, read_at)
 select a.id, e.id, a.created_at + interval '3 hours'
@@ -3432,11 +3431,11 @@ where abs(hashtext(a.id::text || e.id::text)) % 3 <> 0 and e.zup_id not in ('JP-
 -- ---------- Мониторинг HR ----------
 
 insert into public.watchlist (employee_id, added_by, reason, created_at) values
-  (pg_temp.emp('JP-0017'), pg_temp.emp('JP-0002'),
+  (seed_tmp.emp('JP-0017'), seed_tmp.emp('JP-0002'),
    'Давно без отпуска, высокая нагрузка в смене. Обсудить отпуск после пика 11.11', now() - interval '4 days'),
-  (pg_temp.emp('JP-0015'), pg_temp.emp('JP-0002'),
+  (seed_tmp.emp('JP-0015'), seed_tmp.emp('JP-0002'),
    'Просрочено обучение по охране труда, две задачи после срока', now() - interval '2 days'),
-  (pg_temp.emp('JP-0018'), pg_temp.emp('JP-0002'), 'Новичок — первая неделя', now() - interval '5 days');
+  (seed_tmp.emp('JP-0018'), seed_tmp.emp('JP-0002'), 'Новичок — первая неделя', now() - interval '5 days');
 
 -- ---------- Логистика: 120 дней операционных показателей ----------
 
@@ -3467,19 +3466,19 @@ cross join lateral (
 -- ---------- Уведомления для демо-аккаунтов ----------
 
 insert into public.notifications (employee_id, title, body, link, kind, read_at, created_at) values
-  (pg_temp.emp('JP-0013'), 'Назначен курс: Информационная безопасность и персональные данные', 'Jana Academy · пройти до ' || to_char(current_date + 11, 'DD.MM.YYYY'), '/academy/infosec', 'course', null, now() - interval '3 days'),
-  (pg_temp.emp('JP-0013'), 'Новая задача №103', 'Пройти курс «Информационная безопасность»', '/tasks', 'task', null, now() - interval '3 days'),
-  (pg_temp.emp('JP-0013'), 'Новая задача №102', 'Инвентаризация зоны B-12 · до ' || to_char(current_date + 5, 'DD.MM'), '/tasks', 'task', null, now() - interval '1 day'),
-  (pg_temp.emp('JP-0013'), 'Заявка №1004 отклонена', 'Отпуск: Пик сезона после 11.11 — перенесите, пожалуйста, на декабрь. Готов согласовать с 14.12', '/requests', 'warning', now() - interval '10 days', now() - interval '11 days'),
-  (pg_temp.emp('JP-0013'), 'Заявка оформлена', 'Справка готова — см. карточку заявки', '/requests', 'success', now() - interval '18 days', now() - interval '19 days'),
-  (pg_temp.emp('JP-0012'), 'Новая заявка: Отпуск', 'Бауыржан Утепов · ' || to_char(current_date + 21, 'DD.MM') || '–' || to_char(current_date + 34, 'DD.MM.YYYY'), '/approvals', 'request', null, now() - interval '2 days'),
-  (pg_temp.emp('JP-0012'), 'Новая заявка: Аванс', 'Олжас Кенжебаев · 80 000 ₸', '/approvals', 'request', null, now() - interval '20 hours'),
-  (pg_temp.emp('JP-0012'), 'Задача №111 на проверке', 'Мирас Жаксылыков: Проверить исправность погрузчика №2', '/tasks', 'task', null, now() - interval '3 hours'),
-  (pg_temp.emp('JP-0002'), 'Оформите заявку', 'Айдана Калиева · Отпуск — согласовано руководителем', '/approvals', 'request', null, now() - interval '6 days' + interval '3 hours'),
-  (pg_temp.emp('JP-0002'), 'Новое обращение', 'Олжас Кенжебаев: «Положена ли компенсация за проезд, если смена заканчивается ночью?»', '/tickets', 'ticket', null, now() - interval '1 day'),
-  (pg_temp.emp('JP-0002'), 'Новое обращение', 'Сабина Мусина: «Как оформить отпуск по уходу за ребёнком?»', '/tickets', 'ticket', null, now() - interval '5 hours'),
-  (pg_temp.emp('JP-0018'), 'Добро пожаловать в Jana Post! 👋', 'Начните с курса «Добро пожаловать в Jana Post» в Jana Academy', '/academy/welcome', 'course', null, now() - interval '5 days'),
-  (pg_temp.emp('JP-0018'), 'Назначен курс: Охрана труда на складе и в ПВЗ', 'Jana Academy · пройти до ' || to_char(current_date + 7, 'DD.MM.YYYY'), '/academy/safety', 'course', null, now() - interval '5 days');
+  (seed_tmp.emp('JP-0013'), 'Назначен курс: Информационная безопасность и персональные данные', 'Jana Academy · пройти до ' || to_char(current_date + 11, 'DD.MM.YYYY'), '/academy/infosec', 'course', null, now() - interval '3 days'),
+  (seed_tmp.emp('JP-0013'), 'Новая задача №103', 'Пройти курс «Информационная безопасность»', '/tasks', 'task', null, now() - interval '3 days'),
+  (seed_tmp.emp('JP-0013'), 'Новая задача №102', 'Инвентаризация зоны B-12 · до ' || to_char(current_date + 5, 'DD.MM'), '/tasks', 'task', null, now() - interval '1 day'),
+  (seed_tmp.emp('JP-0013'), 'Заявка №1004 отклонена', 'Отпуск: Пик сезона после 11.11 — перенесите, пожалуйста, на декабрь. Готов согласовать с 14.12', '/requests', 'warning', now() - interval '10 days', now() - interval '11 days'),
+  (seed_tmp.emp('JP-0013'), 'Заявка оформлена', 'Справка готова — см. карточку заявки', '/requests', 'success', now() - interval '18 days', now() - interval '19 days'),
+  (seed_tmp.emp('JP-0012'), 'Новая заявка: Отпуск', 'Бауыржан Утепов · ' || to_char(current_date + 21, 'DD.MM') || '–' || to_char(current_date + 34, 'DD.MM.YYYY'), '/approvals', 'request', null, now() - interval '2 days'),
+  (seed_tmp.emp('JP-0012'), 'Новая заявка: Аванс', 'Олжас Кенжебаев · 80 000 ₸', '/approvals', 'request', null, now() - interval '20 hours'),
+  (seed_tmp.emp('JP-0012'), 'Задача №111 на проверке', 'Мирас Жаксылыков: Проверить исправность погрузчика №2', '/tasks', 'task', null, now() - interval '3 hours'),
+  (seed_tmp.emp('JP-0002'), 'Оформите заявку', 'Айдана Калиева · Отпуск — согласовано руководителем', '/approvals', 'request', null, now() - interval '6 days' + interval '3 hours'),
+  (seed_tmp.emp('JP-0002'), 'Новое обращение', 'Олжас Кенжебаев: «Положена ли компенсация за проезд, если смена заканчивается ночью?»', '/tickets', 'ticket', null, now() - interval '1 day'),
+  (seed_tmp.emp('JP-0002'), 'Новое обращение', 'Сабина Мусина: «Как оформить отпуск по уходу за ребёнком?»', '/tickets', 'ticket', null, now() - interval '5 hours'),
+  (seed_tmp.emp('JP-0018'), 'Добро пожаловать в Jana Post! 👋', 'Начните с курса «Добро пожаловать в Jana Post» в Jana Academy', '/academy/welcome', 'course', null, now() - interval '5 days'),
+  (seed_tmp.emp('JP-0018'), 'Назначен курс: Охрана труда на складе и в ПВЗ', 'Jana Academy · пройти до ' || to_char(current_date + 7, 'DD.MM.YYYY'), '/academy/safety', 'course', null, now() - interval '5 days');
 
 -- ---------- Включаем триггеры обратно ----------
 
@@ -3492,8 +3491,7 @@ alter table public.hr_tickets enable trigger trg_hr_tickets_after_insert;
 -- Журнал аудита начинаем с чистого листа
 truncate table public.audit_log restart identity;
 
-drop table if exists pg_temp.seed_requests, pg_temp.seed_questions, pg_temp.seed_assign, pg_temp.seed_chunks;
+drop schema if exists seed_tmp cascade;
 
-commit;
 
 notify pgrst, 'reload schema';

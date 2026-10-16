@@ -863,16 +863,20 @@ end $$;
 
 -- ---------- Привязка аккаунта к карточке сотрудника по email ----------
 
+-- Учётная запись привязывается к карточке сотрудника из 1С:ЗУП по рабочей почте и только
+-- после её подтверждения: иначе регистрация с чужим адресом позволила бы «занять» карточку.
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
-  update public.employees set user_id = new.id
-  where lower(email) = lower(new.email) and user_id is null;
+  if new.email_confirmed_at is not null then
+    update public.employees set user_id = new.id
+    where lower(email) = lower(new.email) and user_id is null;
+  end if;
   return new;
 end $$;
 
 drop trigger if exists on_auth_user_created on auth.users;
-create trigger on_auth_user_created after insert on auth.users
+create trigger on_auth_user_created after insert or update of email_confirmed_at on auth.users
   for each row execute function public.handle_new_user();
 
 -- ---------- Отпуск: календарь и баланс ----------
@@ -885,8 +889,10 @@ returns numeric language sql stable set search_path = public as $$
     where not exists (select 1 from public.holidays h where h.day = d::date)) end
 $$;
 
+-- entitled = положено за год (пропорционально для принятых в этом году) + перенос с прошлого года
+drop function if exists public.vacation_balance(uuid, integer);
 create or replace function public.vacation_balance(p_employee uuid default null, p_year integer default null)
-returns table (year integer, entitled numeric, used numeric, reserved numeric, available numeric)
+returns table (year integer, entitled numeric, used numeric, reserved numeric, available numeric, carryover numeric)
 language plpgsql stable security definer set search_path = public as $$
 declare
   v_emp public.employees;
@@ -909,8 +915,8 @@ begin
   end if;
 
   year := v_year;
-  entitled := round(v_emp.vacation_days_per_year * v_factor, 1)
-              + case when v_year = extract(year from current_date) then v_emp.vacation_carryover else 0 end;
+  carryover := case when v_year = extract(year from current_date) then v_emp.vacation_carryover else 0 end;
+  entitled := round(v_emp.vacation_days_per_year * v_factor, 1) + carryover;
   select coalesce(sum(r.days), 0) into used from public.requests r
    where r.employee_id = v_target and r.type = 'vacation' and r.status = 'done'
      and extract(year from r.start_date) = v_year;
@@ -1436,7 +1442,8 @@ begin
       'manager', public.employee_name(e.manager_id),
       'hire_date', e.hire_date),
     'vacation', jsonb_build_object('year', v_balance.year, 'entitled', v_balance.entitled, 'used', v_balance.used,
-                                   'reserved', v_balance.reserved, 'available', v_balance.available),
+                                   'reserved', v_balance.reserved, 'available', v_balance.available,
+                                   'carryover_from_last_year', v_balance.carryover),
     'requests', coalesce((select jsonb_agg(jsonb_build_object(
         'number', r.number, 'type', public.request_type_label(r.type), 'status', r.status,
         'start_date', r.start_date, 'end_date', r.end_date, 'days', r.days, 'amount', r.amount,
@@ -2939,7 +2946,8 @@ select pg_temp.emp(s.tab), s.type, s.status, s.start_date, s.end_date, s.amount,
 from seed_requests s
 order by s.created_at;
 
--- История и интеграции для каждой заявки (длительность этапов зависит от согласующего).
+-- История и интеграции для каждой заявки (длительность этапов зависит от согласующего;
+-- ни одно событие не попадает в будущее).
 -- Триггер updated_at на время загрузки истории выключаем, чтобы сохранить исторические даты.
 alter table public.requests disable trigger trg_requests_updated_at;
 
@@ -2968,20 +2976,21 @@ begin
     v_t := r.created_at;
 
     if r.type in ('vacation', 'advance') and v_mgr is not null and r.status in ('approved', 'processing', 'done', 'rejected') then
-      v_t := v_t + v_mgr_delay;
+      v_t := least(v_t + v_mgr_delay, now() - interval '15 minutes');
       insert into public.request_events (request_id, action, status, actor_id, comment, created_at)
       values (r.id, case when r.status = 'rejected' then 'rejected' else 'approved' end,
               case when r.status = 'rejected' then 'rejected' else 'approved' end,
               v_mgr, case when r.status = 'rejected' then v_dec end, v_t);
     elsif r.status = 'rejected' then
-      v_t := v_t + interval '5 hours';
+      v_t := least(v_t + interval '5 hours', now() - interval '15 minutes');
       insert into public.request_events (request_id, action, status, actor_id, comment, created_at)
       values (r.id, 'rejected', 'rejected', v_hr, v_dec, v_t);
     end if;
 
     if r.status in ('done', 'processing') then
-      v_t := v_t + case when r.type = 'certificate' then interval '4 hours' else interval '9 hours' end
-                 + (abs(hashtext(r.id::text || 'hr')) % 600) * interval '1 minute';
+      v_t := least(v_t + case when r.type = 'certificate' then interval '4 hours' else interval '9 hours' end
+                       + (abs(hashtext(r.id::text || 'hr')) % 600) * interval '1 minute',
+                   now() - interval '15 minutes');
       insert into public.request_events (request_id, action, status, actor_id, comment, created_at)
       values (r.id, 'processed', 'processing', v_hr,
               case when r.type = 'certificate' then 'Передано в Documentolog' else 'Передано в 1С:ЗУП' end, v_t);
@@ -2995,7 +3004,7 @@ begin
         v_t := v_t + interval '4 minutes';
       end if;
     elsif r.status = 'cancelled' then
-      v_t := v_t + interval '1 day';
+      v_t := least(v_t + interval '1 day', now() - interval '15 minutes');
       insert into public.request_events (request_id, action, status, actor_id, comment, created_at)
       values (r.id, 'cancelled', 'cancelled', r.employee_id, 'Планы изменились', v_t);
     end if;
@@ -3163,6 +3172,8 @@ where d.zup_id in ('D41', 'D42', 'D43', 'D44');
 insert into seed_assign
 select e.zup_id, 'infosec',
        case when e.zup_id in ('JP-0013', 'JP-0018') then 'assigned'
+            -- HR и руководство запустили кампанию и прошли курс первыми
+            when e.zup_id in ('JP-0001', 'JP-0002', 'JP-0004') then 'completed'
             when abs(hashtext(e.zup_id || 'i')) % 4 = 0 then 'in_progress'
             when abs(hashtext(e.zup_id || 'i')) % 4 = 1 then 'assigned'
             else 'completed' end,

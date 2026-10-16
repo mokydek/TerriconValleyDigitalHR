@@ -5,6 +5,7 @@ import {
   CartesianGrid,
   Cell,
   ComposedChart,
+  LabelList,
   Legend,
   Line,
   LineChart,
@@ -88,17 +89,18 @@ export function VacationMonthlyChart({ data }: { data: HrCharts['vacation_monthl
 export function LearningByDeptChart({ data }: { data: HrCharts['learning_by_department'] }) {
   const rows = [...data].sort((a, b) => a.pct - b.pct)
   return (
-    <ResponsiveContainer width="100%" height={Math.max(200, rows.length * 30 + 20)}>
-      <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 24, left: 8, bottom: 0 }}>
+    <ResponsiveContainer width="100%" height={Math.max(200, rows.length * 30 + 36)}>
+      <BarChart data={rows} layout="vertical" margin={{ top: 20, right: 40, left: 8, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#e3e9e4" horizontal={false} />
         <XAxis type="number" domain={[0, 100]} tick={axis} tickLine={false} axisLine={false} unit="%" />
         <YAxis type="category" dataKey="department" width={150} tick={{ ...axis, fontSize: 11.5 }} tickLine={false} axisLine={false} />
         <Tooltip {...tooltipStyle} formatter={(v, _n, item) => [`${v}% (${item.payload.completed}/${item.payload.assigned})`, 'Пройдено обязательных']} cursor={{ fill: '#eef8ee' }} />
         <ReferenceLine x={80} stroke={CHART_COLORS.amber} strokeDasharray="4 4" label={{ value: 'цель 80%', fontSize: 11, fill: CHART_COLORS.amber, position: 'top' }} />
-        <Bar dataKey="pct" radius={[0, 6, 6, 0]} barSize={16}>
+        <Bar dataKey="pct" radius={[0, 6, 6, 0]} barSize={16} minPointSize={3}>
           {rows.map((r) => (
             <Cell key={r.department} fill={r.pct < 60 ? CHART_COLORS.rose : r.pct < 80 ? CHART_COLORS.amber : CHART_COLORS.brand} />
           ))}
+          <LabelList dataKey="pct" position="right" formatter={(v) => `${v}%`} style={{ fontSize: 11, fill: '#5b6b60' }} />
         </Bar>
       </BarChart>
     </ResponsiveContainer>
@@ -107,13 +109,15 @@ export function LearningByDeptChart({ data }: { data: HrCharts['learning_by_depa
 
 export function HeadcountChart({ data }: { data: HrCharts['headcount_by_department'] }) {
   return (
-    <ResponsiveContainer width="100%" height={240}>
-      <BarChart data={data} margin={{ top: 8, right: 8, left: -18, bottom: 40 }}>
-        {grid}
-        <XAxis dataKey="department" tick={{ ...axis, fontSize: 10.5 }} tickLine={false} axisLine={false} interval={0} angle={-30} textAnchor="end" />
-        <YAxis allowDecimals={false} tick={axis} tickLine={false} axisLine={false} />
+    <ResponsiveContainer width="100%" height={Math.max(200, data.length * 28 + 24)}>
+      <BarChart data={data} layout="vertical" margin={{ top: 4, right: 32, left: 8, bottom: 0 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="#e3e9e4" horizontal={false} />
+        <XAxis type="number" allowDecimals={false} tick={axis} tickLine={false} axisLine={false} />
+        <YAxis type="category" dataKey="department" width={150} tick={{ ...axis, fontSize: 11.5 }} tickLine={false} axisLine={false} />
         <Tooltip {...tooltipStyle} formatter={(v) => [`${v} чел.`, 'Численность']} cursor={{ fill: '#eef8ee' }} />
-        <Bar dataKey="count" fill={CHART_COLORS.brand} radius={[6, 6, 0, 0]} />
+        <Bar dataKey="count" fill={CHART_COLORS.brand} radius={[0, 6, 6, 0]} barSize={14} minPointSize={3}>
+          <LabelList dataKey="count" position="right" style={{ fontSize: 11, fill: '#5b6b60' }} />
+        </Bar>
       </BarChart>
     </ResponsiveContainer>
   )

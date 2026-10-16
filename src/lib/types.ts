@@ -57,6 +57,8 @@ export interface VacationBalance {
   used: number
   reserved: number
   available: number
+  /** перенос неиспользованных дней с прошлого года (уже входит в entitled) */
+  carryover: number
 }
 
 export type RequestType = 'vacation' | 'advance' | 'certificate' | 'data_change'

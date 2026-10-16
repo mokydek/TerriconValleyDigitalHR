@@ -8,3 +8,8 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv
 }
+
+/** Конфигурация во время выполнения из /config.js (используется Docker-сборкой) */
+interface Window {
+  __JANAMEN__?: { supabaseUrl?: string; anonKey?: string; realtime?: boolean }
+}

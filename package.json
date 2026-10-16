@@ -13,7 +13,8 @@
     "preview": "vite preview",
     "typecheck": "tsc -b",
     "db:setup-sql": "node scripts/build-setup-sql.mjs",
-    "test:e2e": "playwright test"
+    "test:e2e": "node tests/e2e-walkthrough.mjs",
+    "test:api": "node tests/api-smoke.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.135.0",

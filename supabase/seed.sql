@@ -264,7 +264,8 @@ select pg_temp.emp(s.tab), s.type, s.status, s.start_date, s.end_date, s.amount,
 from seed_requests s
 order by s.created_at;
 
--- История и интеграции для каждой заявки (длительность этапов зависит от согласующего).
+-- История и интеграции для каждой заявки (длительность этапов зависит от согласующего;
+-- ни одно событие не попадает в будущее).
 -- Триггер updated_at на время загрузки истории выключаем, чтобы сохранить исторические даты.
 alter table public.requests disable trigger trg_requests_updated_at;
 
@@ -293,20 +294,21 @@ begin
     v_t := r.created_at;
 
     if r.type in ('vacation', 'advance') and v_mgr is not null and r.status in ('approved', 'processing', 'done', 'rejected') then
-      v_t := v_t + v_mgr_delay;
+      v_t := least(v_t + v_mgr_delay, now() - interval '15 minutes');
       insert into public.request_events (request_id, action, status, actor_id, comment, created_at)
       values (r.id, case when r.status = 'rejected' then 'rejected' else 'approved' end,
               case when r.status = 'rejected' then 'rejected' else 'approved' end,
               v_mgr, case when r.status = 'rejected' then v_dec end, v_t);
     elsif r.status = 'rejected' then
-      v_t := v_t + interval '5 hours';
+      v_t := least(v_t + interval '5 hours', now() - interval '15 minutes');
       insert into public.request_events (request_id, action, status, actor_id, comment, created_at)
       values (r.id, 'rejected', 'rejected', v_hr, v_dec, v_t);
     end if;
 
     if r.status in ('done', 'processing') then
-      v_t := v_t + case when r.type = 'certificate' then interval '4 hours' else interval '9 hours' end
-                 + (abs(hashtext(r.id::text || 'hr')) % 600) * interval '1 minute';
+      v_t := least(v_t + case when r.type = 'certificate' then interval '4 hours' else interval '9 hours' end
+                       + (abs(hashtext(r.id::text || 'hr')) % 600) * interval '1 minute',
+                   now() - interval '15 minutes');
       insert into public.request_events (request_id, action, status, actor_id, comment, created_at)
       values (r.id, 'processed', 'processing', v_hr,
               case when r.type = 'certificate' then 'Передано в Documentolog' else 'Передано в 1С:ЗУП' end, v_t);
@@ -320,7 +322,7 @@ begin
         v_t := v_t + interval '4 minutes';
       end if;
     elsif r.status = 'cancelled' then
-      v_t := v_t + interval '1 day';
+      v_t := least(v_t + interval '1 day', now() - interval '15 minutes');
       insert into public.request_events (request_id, action, status, actor_id, comment, created_at)
       values (r.id, 'cancelled', 'cancelled', r.employee_id, 'Планы изменились', v_t);
     end if;
@@ -488,6 +490,8 @@ where d.zup_id in ('D41', 'D42', 'D43', 'D44');
 insert into seed_assign
 select e.zup_id, 'infosec',
        case when e.zup_id in ('JP-0013', 'JP-0018') then 'assigned'
+            -- HR и руководство запустили кампанию и прошли курс первыми
+            when e.zup_id in ('JP-0001', 'JP-0002', 'JP-0004') then 'completed'
             when abs(hashtext(e.zup_id || 'i')) % 4 = 0 then 'in_progress'
             when abs(hashtext(e.zup_id || 'i')) % 4 = 1 then 'assigned'
             else 'completed' end,

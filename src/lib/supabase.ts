@@ -1,9 +1,13 @@
 import { createClient } from '@supabase/supabase-js'
 
-const url = import.meta.env.VITE_SUPABASE_URL as string | undefined
-const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
+// Значения из /config.js (Docker) имеют приоритет над переменными сборки (Vercel, dev)
+const runtime = window.__JANAMEN__ ?? {}
+const url = runtime.supabaseUrl || (import.meta.env.VITE_SUPABASE_URL as string | undefined)
+const key = runtime.anonKey || (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined)
 
 export const supabaseConfigured = Boolean(url && key)
+/** Realtime есть в Supabase Cloud; в локальном Docker-стеке уведомления обновляются опросом */
+export const realtimeEnabled = runtime.realtime !== false
 
 export const supabase = createClient(url ?? 'http://localhost:54321', key ?? 'missing-key', {
   auth: { persistSession: true, autoRefreshToken: true, storageKey: 'janamen-auth' },

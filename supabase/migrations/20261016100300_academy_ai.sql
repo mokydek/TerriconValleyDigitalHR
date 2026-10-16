@@ -229,7 +229,8 @@ begin
       'manager', public.employee_name(e.manager_id),
       'hire_date', e.hire_date),
     'vacation', jsonb_build_object('year', v_balance.year, 'entitled', v_balance.entitled, 'used', v_balance.used,
-                                   'reserved', v_balance.reserved, 'available', v_balance.available),
+                                   'reserved', v_balance.reserved, 'available', v_balance.available,
+                                   'carryover_from_last_year', v_balance.carryover),
     'requests', coalesce((select jsonb_agg(jsonb_build_object(
         'number', r.number, 'type', public.request_type_label(r.type), 'status', r.status,
         'start_date', r.start_date, 'end_date', r.end_date, 'days', r.days, 'amount', r.amount,

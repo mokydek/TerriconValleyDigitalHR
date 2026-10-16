@@ -4,7 +4,7 @@ import { useAuth } from '@/lib/auth'
 import { useI18n } from '@/lib/i18n'
 import { useAnnouncements, useMarkNotificationRead, useMyAssignments, useMyRequests, useNotifications, useTasks, useVacationBalance } from '@/lib/api'
 import { ANNOUNCEMENT_CATEGORIES, PRIORITY_META } from '@/lib/constants'
-import { days, fmtDate, fullName, timeAgo } from '@/lib/format'
+import { days, entitledText, fmtDate, fullName, timeAgo } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { Avatar, Badge, Card, CardHeader, Empty, Progress, ProgressRing, Skeleton } from '@/components/ui'
 import { requestSummary, StatusBadge, TypeLabel } from '@/components/requests/RequestParts'
@@ -38,7 +38,7 @@ export function ProfileCard() {
               {balance.isLoading ? <Skeleton className="mt-1 h-7 w-24" /> : <div className="text-2xl font-bold text-ink" data-testid="vacation-available">{days(b?.available)}</div>}
               {b && (
                 <div className="text-xs text-muted">
-                  {t('vac.entitled')}: {days(b.entitled)} · {t('vac.reserved')}: {days(b.reserved)}
+                  {t('vac.entitled')}: {entitledText(b)} · {t('vac.reserved')}: {days(b.reserved)}
                 </div>
               )}
             </div>

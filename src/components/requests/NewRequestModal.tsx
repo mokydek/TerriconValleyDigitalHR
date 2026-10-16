@@ -8,7 +8,7 @@ import { useI18n, type I18nKey } from '@/lib/i18n'
 import { must, supabase } from '@/lib/supabase'
 import { useCreateRequest, useVacationBalance } from '@/lib/api'
 import { CERT_PURPOSES, DATA_FIELDS, REQUEST_TYPE_META, REQUEST_TYPES } from '@/lib/constants'
-import { days, fmtDate, isoDate, money } from '@/lib/format'
+import { days, entitledText, fmtDate, isoDate, money } from '@/lib/format'
 import type { HrRequest, RequestType } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { Button, Field, Modal } from '@/components/ui'
@@ -185,7 +185,7 @@ export function NewRequestModal({
                 <div className="text-2xl font-bold text-brand-800">{days(balance.data.available)}</div>
               </div>
               <div className="text-right text-xs text-brand-800/80">
-                положено {days(balance.data.entitled)}
+                положено {entitledText(balance.data)}
                 <br />
                 оформлено {days(balance.data.used)} · в работе {days(balance.data.reserved)}
               </div>

@@ -168,10 +168,10 @@ function TeamApprovals() {
 
 function TeamToday() {
   const { data, isLoading } = useQuery({
-    queryKey: ['team-absences-week'],
+    queryKey: ['team-absences-30d'],
     queryFn: async () => {
       const from = new Date()
-      const to = new Date(Date.now() + 14 * 86400_000)
+      const to = new Date(Date.now() + 30 * 86400_000)
       return (await must(
         supabase.rpc('team_absences', { p_from: from.toISOString().slice(0, 10), p_to: to.toISOString().slice(0, 10) }),
       )) as { request_id: string; employee_id: string; full_name: string; job_title: string; start_date: string; end_date: string; status: string }[]
@@ -181,7 +181,7 @@ function TeamToday() {
   const list = (data ?? []).filter((x) => x.employee_id !== me?.id)
   return (
     <Card>
-      <CardHeader icon={<CalendarDays className="h-[18px] w-[18px]" />} title="Отпуска команды" subtitle="Ближайшие 2 недели" />
+      <CardHeader icon={<CalendarDays className="h-[18px] w-[18px]" />} title="Отпуска команды" subtitle="Ближайшие 30 дней" />
       <ul className="space-y-1 px-2 pb-3">
         {isLoading && <Skeleton className="mx-3 h-10" />}
         {!isLoading && list.length === 0 && <p className="px-3 py-4 text-center text-sm text-muted">Никто не уходит в отпуск</p>}

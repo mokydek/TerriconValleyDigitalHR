@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { must, supabase } from './supabase'
+import { must, realtimeEnabled, supabase } from './supabase'
 import { useAuth } from './auth'
 import type {
   Announcement,
@@ -240,7 +240,7 @@ export function useNotifications() {
 
   // Realtime: новые уведомления появляются без перезагрузки (если Realtime включён в проекте)
   useEffect(() => {
-    if (!me) return
+    if (!me || !realtimeEnabled) return
     const channel = supabase
       .channel(`notifications-${me.id}`)
       .on(

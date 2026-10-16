@@ -66,7 +66,7 @@ export default function LoginPage() {
         </svg>
         <div className="relative">
           <div className="text-[32px] leading-none font-extrabold tracking-tight">
-            JAŃA <span className="text-brand-300">POST</span>
+            JANA <span className="text-brand-300">POST</span>
           </div>
           <div className="mt-1 text-sm text-white/60">× Terricon Valley Hackathon · Digital HR</div>
         </div>

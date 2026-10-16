@@ -89,6 +89,13 @@ export function days(n: number | null | undefined): string {
   return `${num(v, 1)} ${plural(Math.floor(v), ['день', 'дня', 'дней'])}`
 }
 
+/** «24 дня + 7 перенос»: положено за год с учётом переноса с прошлого года */
+export function entitledText(b: { entitled: number; carryover?: number | null }): string {
+  const c = Number(b.carryover ?? 0)
+  if (c <= 0) return days(b.entitled)
+  return `${days(b.entitled - c)} + ${num(c, 1)} ${getLang() === 'kk' ? 'ауыстырылған' : 'перенос'}`
+}
+
 export function fullName(e?: { first_name?: string; last_name?: string } | null, lastFirst = false): string {
   if (!e) return '—'
   return lastFirst ? `${e.last_name ?? ''} ${e.first_name ?? ''}`.trim() : `${e.first_name ?? ''} ${e.last_name ?? ''}`.trim()

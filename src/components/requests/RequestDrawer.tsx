@@ -3,7 +3,7 @@ import { RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/auth'
 import { useCancelRequest, useDecideRequest, useRequestEvents, useRunIntegrationWorker, useVacationBalance } from '@/lib/api'
-import { days, fmtDate, fmtDateTime, fullName, money } from '@/lib/format'
+import { days, entitledText, fmtDate, fmtDateTime, fullName, money } from '@/lib/format'
 import type { HrRequest } from '@/lib/types'
 import { sleep } from '@/lib/utils'
 import { Button, Drawer, Skeleton } from '@/components/ui'
@@ -164,7 +164,7 @@ export function RequestDrawer({ request, onClose }: { request: HrRequest | null;
           </div>
           {!isMine && r.type === 'vacation' && balance.data && (
             <div className="mt-3 rounded-xl bg-brand-50 px-3.5 py-2.5 text-sm text-brand-800">
-              Остаток отпуска сотрудника: <b>{days(balance.data.available)}</b> (с учётом этой заявки), положено {days(balance.data.entitled)}
+              Остаток отпуска сотрудника: <b>{days(balance.data.available)}</b> (с учётом этой заявки), положено {entitledText(balance.data)}
             </div>
           )}
         </section>

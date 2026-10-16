@@ -1,0 +1,117 @@
+# JanaМен — полный локальный стек одной командой:
+#   docker compose up --build      →  http://localhost:8080
+# Postgres + Supabase Auth (GoTrue) + PostgREST + веб-шлюз (SPA, /api/ai-jana).
+# Секреты генерируются при первом запуске в томе `secrets`; в репозитории их нет.
+# AI Jana с LLM: ANTHROPIC_API_KEY=... docker compose up (без ключа — режим базы знаний).
+name: janamen
+
+services:
+  secrets:
+    image: node:22-alpine
+    command: ["node", "/docker/secrets.mjs"]
+    volumes:
+      - secrets:/secrets
+      - ./docker/secrets.mjs:/docker/secrets.mjs:ro
+
+  db:
+    image: postgres:16-alpine
+    depends_on:
+      secrets: { condition: service_completed_successfully }
+    environment:
+      POSTGRES_PASSWORD_FILE: /secrets/db_password
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - secrets:/secrets:ro
+      - ./docker/db:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -h 127.0.0.1"]
+      interval: 2s
+      timeout: 3s
+      retries: 60
+    restart: unless-stopped
+
+  auth:
+    image: supabase/gotrue:v2.177.0
+    depends_on:
+      db: { condition: service_healthy }
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        export GOTRUE_JWT_SECRET="$$(cat /secrets/jwt_secret)"
+        GOTRUE_DB_DATABASE_URL="postgres://supabase_auth_admin:$$(cat /secrets/db_password)@db:5432/postgres?search_path=auth"
+        && exec auth
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      PORT: "9999"
+      API_EXTERNAL_URL: http://localhost:8080/auth/v1
+      GOTRUE_SITE_URL: http://localhost:8080
+      GOTRUE_URI_ALLOW_LIST: "*"
+      GOTRUE_DB_DRIVER: postgres
+      DB_NAMESPACE: auth
+      GOTRUE_JWT_EXP: "3600"
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_JWT_ADMIN_ROLES: service_role
+      # учётные записи создаёт HR по данным 1С:ЗУП — самостоятельная регистрация выключена
+      GOTRUE_DISABLE_SIGNUP: "true"
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
+      GOTRUE_EXTERNAL_PHONE_ENABLED: "false"
+      GOTRUE_MAILER_AUTOCONFIRM: "false"
+      GOTRUE_LOG_LEVEL: warn
+    volumes:
+      - secrets:/secrets:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:9999/health"]
+      interval: 3s
+      timeout: 3s
+      retries: 60
+    restart: unless-stopped
+
+  init:
+    image: postgres:16-alpine
+    depends_on:
+      auth: { condition: service_healthy }
+    entrypoint: ["/bin/sh", "/docker/init.sh"]
+    environment:
+      SEED: ${SEED:-once}
+    volumes:
+      - secrets:/secrets:ro
+      - ./supabase:/supabase:ro
+      - ./docker/init.sh:/docker/init.sh:ro
+
+  rest:
+    image: postgrest/postgrest:v12.2.12
+    depends_on:
+      init: { condition: service_completed_successfully }
+    environment:
+      PGRST_DB_URI: "@/secrets/pgrst_db_uri"
+      PGRST_JWT_SECRET: "@/secrets/jwt_secret"
+      PGRST_DB_SCHEMAS: public
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_DB_EXTRA_SEARCH_PATH: public, extensions
+      PGRST_DB_MAX_ROWS: "1000"
+    volumes:
+      - secrets:/secrets:ro
+    restart: unless-stopped
+
+  web:
+    build: .
+    depends_on:
+      rest: { condition: service_started }
+      auth: { condition: service_healthy }
+    ports:
+      - "${PORT:-8080}:8080"
+    environment:
+      AUTH_URL: http://auth:9999
+      REST_URL: http://rest:3000
+      JWT_SECRET_FILE: /secrets/jwt_secret
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-opus-5-5}
+      ANTHROPIC_EFFORT: ${ANTHROPIC_EFFORT:-low}
+    volumes:
+      - secrets:/secrets:ro
+    restart: unless-stopped
+
+volumes:
+  db-data:
+  secrets:

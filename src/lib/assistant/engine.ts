@@ -52,8 +52,8 @@ const analyticsSource = (): AiSource => ({ kind: 'analytics', title: `Анали
 
 /* ---------- Защита: чужие персональные данные ---------- */
 
-const SENSITIVE = /(зарплат|заработн|оклад|\bзп\b|получает|иин|адрес|дат[аы] рождени|день рождени|паспорт|удостоверени|больничн|диагноз|болеет|телефон|премия|штраф|кредит)/
-const OTHERS = /(у (моего |моей |нашего |нашей )?(руководител|начальник|коллег|директор|сотрудник|друг|сосед)|других сотрудник|чуж|коллеги\b|всех сотрудник|кто сколько)/
+const SENSITIVE = /(зарплат|заработн|оклад|(?<![а-я])зп(?![а-я])|получает|иин|адрес|дат[аы] рождени|день рождени|паспорт|удостоверени|больничн|диагноз|болеет|телефон|премия|штраф|кредит)/
+const OTHERS = /(у (моего |моей |нашего |нашей )?(руководител|начальник|коллег|директор|сотрудник|друг|сосед)|других сотрудник|чуж|коллеги(?![а-я])|всех сотрудник|кто сколько)/
 const NAME_REF = /(?:у|про|о|об)\s+([А-ЯЁӘҒҚҢӨҰҮҺІ][а-яёәғқңөұүһі]{2,})/
 
 function asksForOthersData(raw: string, q: string, myFirstName: string): boolean {
@@ -67,19 +67,19 @@ function asksForOthersData(raw: string, q: string, myFirstName: string): boolean
 
 function parsePeriod(q: string): { from: Date; to: Date; label: string } {
   const now = new Date()
-  if (/следующ\w* недел|след\.? недел|на неделе после/.test(q)) {
+  if (/следующ[а-я]* недел|след\.? недел|на неделе после/.test(q)) {
     const start = startOfWeek(addDays(now, 7), { weekStartsOn: 1 })
     return { from: start, to: endOfWeek(start, { weekStartsOn: 1 }), label: 'на следующей неделе' }
   }
-  if (/эт\w* недел|текущ\w* недел/.test(q)) {
+  if (/эт[а-я]* недел|текущ[а-я]* недел/.test(q)) {
     return { from: startOfWeek(now, { weekStartsOn: 1 }), to: endOfWeek(now, { weekStartsOn: 1 }), label: 'на этой неделе' }
   }
   if (/завтра/.test(q)) return { from: addDays(now, 1), to: addDays(now, 1), label: 'завтра' }
-  if (/следующ\w* месяц/.test(q)) {
+  if (/следующ[а-я]* месяц/.test(q)) {
     const start = startOfMonth(addDays(endOfMonth(now), 1))
     return { from: start, to: endOfMonth(start), label: 'в следующем месяце' }
   }
-  if (/эт\w* месяц/.test(q)) return { from: startOfMonth(now), to: endOfMonth(now), label: 'в этом месяце' }
+  if (/эт[а-я]* месяц/.test(q)) return { from: startOfMonth(now), to: endOfMonth(now), label: 'в этом месяце' }
   if (/сегодня|сейчас|в данный момент/.test(q)) return { from: now, to: now, label: 'сегодня' }
   return { from: now, to: addDays(now, 7), label: 'в ближайшие 7 дней' }
 }
@@ -95,11 +95,11 @@ async function analytics(kind: string, params: Record<string, unknown>) {
 async function tryAnalytics(q: string, role: Role): Promise<AiAnswer | null> {
   const isOnVacation = /(кто|сколько).*(в отпуске|отдыха|отсутству|уходит в отпуск|будет в отпуске|уйдет в отпуск)/.test(q)
   const isVacationOver = /(у кого|кто|сколько).*(больше|более|свыше|накопил|накоплен|много).*(дн|отпуск)/.test(q)
-  const isCourseDept = /(как\w* (отдел|подразделени)|в как\w* (отдел|подразделени)|по отделам|по подразделениям).*(хуже|лучше|меньше|больше|отста|прош|проход|обучен|курс|охран)|(охран|безопасност|курс|обучени).*(отдел|подразделени)/.test(q)
+  const isCourseDept = /(как[а-я]* (отдел|подразделени)|в как[а-я]* (отдел|подразделени)|по отделам|по подразделениям).*(хуже|лучше|меньше|больше|отста|прош|проход|обучен|курс|охран)|(охран|безопасност|курс|обучени).*(отдел|подразделени)/.test(q)
   const isRequestsInWork = /(сколько|какие|покажи).*(заявк).*(в работе|висят|висит|на согласовании|ждут|завис|не оформлен)/.test(q)
   const isOverdue = /(просроч).*(курс|обучени)|(кто).*(не прош[её]л|не сдал).*(курс|обучени|тест)/.test(q)
   const isHeadcount = /(сколько|численность).*(сотрудник|человек|штат)|численност/.test(q)
-  const isNewcomers = /(новичк|новые сотрудник|кто (недавно )?(пришел|вышел на работу)|принят\w* недавно)/.test(q)
+  const isNewcomers = /(новичк|новые сотрудник|кто (недавно )?(пришел|вышел на работу)|принят[а-я]* недавно)/.test(q)
 
   if (!(isOnVacation || isVacationOver || isCourseDept || isRequestsInWork || isOverdue || isHeadcount || isNewcomers)) return null
 
@@ -132,9 +132,9 @@ async function tryAnalytics(q: string, role: Role): Promise<AiAnswer | null> {
   }
 
   if (isCourseDept || (isOverdue && /отдел|подразделени/.test(q))) {
-    const course = /охран|безопасност на склад|техник\w* безопасн|\bот\b/.test(q)
+    const course = /охран|безопасност на склад|техник[а-я]* безопасн|(?<![а-я])от(?![а-я])/.test(q)
       ? 'safety'
-      : /информацион|\bиб\b|персональн/.test(q)
+      : /информацион|(?<![а-я])иб(?![а-я])|персональн/.test(q)
         ? 'infosec'
         : /адаптац|добро пожаловать|онбординг/.test(q)
           ? 'welcome'
@@ -231,7 +231,7 @@ async function tryAnalytics(q: string, role: Role): Promise<AiAnswer | null> {
 
 interface AssistantContext {
   profile: { full_name: string; company: string; position: string; department: string | null; manager: string | null; hire_date: string }
-  vacation: { year: number; entitled: number; used: number; reserved: number; available: number }
+  vacation: { year: number; entitled: number; used: number; reserved: number; available: number; carryover_from_last_year?: number }
   requests: { number: number; type: string; status: string; start_date: string | null; end_date: string | null; amount: number | null; created_at: string }[]
   courses: { title: string; status: string; progress: number; score: number | null; due_date: string | null }[]
   open_tasks: number
@@ -256,7 +256,7 @@ async function tryPersonal(q: string): Promise<AiAnswer | null> {
     const v = ctx.vacation
     return {
       status: 'personal',
-      text: `У вас доступно **${num(v.available, 1)} дн.** отпуска на ${v.year} год: положено ${num(v.entitled, 1)}, уже оформлено ${num(v.used, 1)}, на согласовании ${num(v.reserved, 1)}. Праздничные дни в отпуск не засчитываются.`,
+      text: `У вас доступно **${num(v.available, 1)} дн.** отпуска на ${v.year} год: положено ${num(v.entitled - (v.carryover_from_last_year ?? 0), 1)}${v.carryover_from_last_year ? ` + ${num(v.carryover_from_last_year, 1)} перенесено с прошлого года` : ''}, уже оформлено ${num(v.used, 1)}, на согласовании ${num(v.reserved, 1)}. Праздничные дни в отпуск не засчитываются.`,
       sources: [PROFILE_SOURCE],
       mode: 'kb',
       actions: [{ label: 'Оформить отпуск', to: '/requests?new=vacation' }],

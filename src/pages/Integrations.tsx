@@ -127,7 +127,7 @@ export default function IntegrationsPage() {
                 <tr key={e.id} className="border-b border-line/70 last:border-0">
                   <td className="px-5 py-2.5 whitespace-nowrap text-muted">{fmtDateTime(e.created_at)}</td>
                   <td className="px-5 py-2.5 font-medium">{e.system === '1c_zup' ? '1С:ЗУП' : 'Documentolog'}</td>
-                  <td className="px-5 py-2.5">{e.direction === 'inbound' ? '← входящее' : '→ исходящее'}</td>
+                  <td className="px-5 py-2.5 whitespace-nowrap">{e.direction === 'inbound' ? '← входящее' : '→ исходящее'}</td>
                   <td className="px-5 py-2.5">{ENTITY[e.entity] ?? e.entity}</td>
                   <td className="px-5 py-2.5 text-ink-soft">{e.response?.document ?? e.external_id ?? '—'}</td>
                   <td className="px-5 py-2.5">

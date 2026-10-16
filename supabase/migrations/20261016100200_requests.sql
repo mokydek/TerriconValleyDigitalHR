@@ -47,16 +47,20 @@ end $$;
 
 -- ---------- Привязка аккаунта к карточке сотрудника по email ----------
 
+-- Учётная запись привязывается к карточке сотрудника из 1С:ЗУП по рабочей почте и только
+-- после её подтверждения: иначе регистрация с чужим адресом позволила бы «занять» карточку.
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
-  update public.employees set user_id = new.id
-  where lower(email) = lower(new.email) and user_id is null;
+  if new.email_confirmed_at is not null then
+    update public.employees set user_id = new.id
+    where lower(email) = lower(new.email) and user_id is null;
+  end if;
   return new;
 end $$;
 
 drop trigger if exists on_auth_user_created on auth.users;
-create trigger on_auth_user_created after insert on auth.users
+create trigger on_auth_user_created after insert or update of email_confirmed_at on auth.users
   for each row execute function public.handle_new_user();
 
 -- ---------- Отпуск: календарь и баланс ----------
@@ -69,8 +73,10 @@ returns numeric language sql stable set search_path = public as $$
     where not exists (select 1 from public.holidays h where h.day = d::date)) end
 $$;
 
+-- entitled = положено за год (пропорционально для принятых в этом году) + перенос с прошлого года
+drop function if exists public.vacation_balance(uuid, integer);
 create or replace function public.vacation_balance(p_employee uuid default null, p_year integer default null)
-returns table (year integer, entitled numeric, used numeric, reserved numeric, available numeric)
+returns table (year integer, entitled numeric, used numeric, reserved numeric, available numeric, carryover numeric)
 language plpgsql stable security definer set search_path = public as $$
 declare
   v_emp public.employees;
@@ -93,8 +99,8 @@ begin
   end if;
 
   year := v_year;
-  entitled := round(v_emp.vacation_days_per_year * v_factor, 1)
-              + case when v_year = extract(year from current_date) then v_emp.vacation_carryover else 0 end;
+  carryover := case when v_year = extract(year from current_date) then v_emp.vacation_carryover else 0 end;
+  entitled := round(v_emp.vacation_days_per_year * v_factor, 1) + carryover;
   select coalesce(sum(r.days), 0) into used from public.requests r
    where r.employee_id = v_target and r.type = 'vacation' and r.status = 'done'
      and extract(year from r.start_date) = v_year;

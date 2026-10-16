@@ -56,25 +56,41 @@
           window.__janamenReload()
           return true
         }
+        var lastError = ''
         window.addEventListener(
           'error',
           function (event) {
-            if (started()) return
             var el = event.target
-            if (el && el !== window && (el.tagName === 'SCRIPT' || el.tagName === 'LINK')) {
+            var asset = el && el !== window && (el.tagName === 'SCRIPT' || el.tagName === 'LINK')
+            if (!asset) lastError = event.message || ''
+            if (started()) return
+            if (asset) {
               var src = el.src || el.href || ''
               if (src.indexOf('/assets/') === -1) return
               if (!reloadOnce()) show('Не удалось загрузить JanaМен', 'Обновите страницу. Файл: ' + src.split('/').pop())
               return
             }
-            show('Не удалось запустить JanaМен', 'Обновите страницу или откройте ссылку в другом браузере. ' + (event.message || ''))
+            show('Не удалось запустить JanaМен', 'Обновите страницу или откройте ссылку в другом браузере. ' + lastError)
           },
           true,
         )
         window.addEventListener('unhandledrejection', function (event) {
-          if (started()) return
           var reason = event.reason
+          if (started()) return
           show('Не удалось запустить JanaМен', 'Обновите страницу. ' + ((reason && reason.message) || reason || ''))
+        })
+        // Последний рубеж: если приложение упало целиком и React очистил страницу — возвращаем экран
+        // с текстом ошибки и кнопкой, а не оставляем пустой фон
+        document.addEventListener('DOMContentLoaded', function () {
+          var root = document.getElementById('root')
+          var boot = document.getElementById('boot')
+          if (!root || !boot || !window.MutationObserver) return
+          var template = boot.cloneNode(true)
+          new MutationObserver(function () {
+            if (root.childElementCount > 0) return
+            root.appendChild(template.cloneNode(true))
+            show('Произошла ошибка', 'Обновите страницу. ' + lastError)
+          }).observe(root, { childList: true })
         })
         setTimeout(function () {
           if (!started()) show('Загрузка идёт дольше обычного', 'Проверьте интернет. Если ничего не меняется — обновите страницу.', 'slow')

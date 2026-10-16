@@ -107,7 +107,7 @@ async function runEngine(engine) {
           .waitForFunction(() => (document.querySelector('main')?.textContent ?? '').trim().length > 0, null, { timeout: 20_000 })
           .catch(() => {})
         await page.waitForTimeout(1000)
-        const crashed = await page.getByText('Не удалось открыть раздел').count()
+        const crashed = await page.getByText(/Не удалось открыть раздел|Произошла ошибка|Не удалось запустить/).count()
         const text = (await page.locator('main').innerText().catch(() => '')).slice(0, 80).replace(/\s+/g, ' ')
         out(!crashed && text.length > 0, `[${engine}] ${role} ${route}${mobile ? ' (телефон)' : ''}`, crashed ? 'экран ошибки' : text || `пусто · заглушка: «${await bootText(page).catch(() => '')}»`)
       }

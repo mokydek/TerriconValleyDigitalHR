@@ -61,19 +61,22 @@ const queryClient = new QueryClient({
   },
 })
 
+// Внешний ErrorBoundary ловит сбои вне страниц (провайдеры, уведомления): вместо пустого экрана — сообщение
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <I18nProvider>
-      <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <AuthProvider>
-            <ErrorBoundary>
-              <App />
-            </ErrorBoundary>
-            <Toaster position="top-center" richColors closeButton toastOptions={{ duration: 4000 }} />
-          </AuthProvider>
-        </BrowserRouter>
-      </QueryClientProvider>
-    </I18nProvider>
+    <ErrorBoundary>
+      <I18nProvider>
+        <QueryClientProvider client={queryClient}>
+          <BrowserRouter>
+            <AuthProvider>
+              <ErrorBoundary>
+                <App />
+              </ErrorBoundary>
+              <Toaster position="top-center" richColors closeButton toastOptions={{ duration: 4000 }} />
+            </AuthProvider>
+          </BrowserRouter>
+        </QueryClientProvider>
+      </I18nProvider>
+    </ErrorBoundary>
   </StrictMode>,
 )

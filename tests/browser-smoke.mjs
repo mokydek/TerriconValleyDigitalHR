@@ -40,6 +40,32 @@ async function run() {
   console.log(summary)
 }
 
+/**
+ * Шире ли страница экрана телефона: iPhone в этом случае уменьшает её целиком и справа остаётся пустое место.
+ * Проверяет и ширину документа, и элементы, вылезающие за правый край (кроме прокручиваемых областей).
+ */
+function widerThanScreen() {
+  const vw = window.innerWidth
+  const sw = document.documentElement.scrollWidth
+  let worst = null
+  for (const el of document.querySelectorAll('main *')) {
+    const r = el.getBoundingClientRect()
+    if (r.width === 0 || r.right <= vw + 1) continue
+    let p = el.parentElement
+    let scrolls = false
+    while (p && p.tagName !== 'MAIN') {
+      if (/auto|scroll|hidden|clip/.test(getComputedStyle(p).overflowX)) {
+        scrolls = true
+        break
+      }
+      p = p.parentElement
+    }
+    if (!scrolls && (!worst || r.right > worst.right)) worst = { right: Math.round(r.right), el: el.tagName.toLowerCase() + '.' + String(el.className).slice(0, 60) }
+  }
+  if (sw <= vw + 1 && !worst) return null
+  return `документ ${sw} px при экране ${vw} px${worst ? ` · за краем: ${worst.el} (до ${worst.right} px)` : ''}`
+}
+
 /** Текст заглушки загрузки из index.html, если приложение ещё не запустилось */
 const bootText = (page) => page.evaluate(() => document.getElementById('boot')?.innerText.replace(/\s+/g, ' ').trim() ?? '')
 
@@ -110,6 +136,10 @@ async function runEngine(engine) {
         const crashed = await page.getByText(/Не удалось открыть раздел|Произошла ошибка|Не удалось запустить/).count()
         const text = (await page.locator('main').innerText().catch(() => '')).slice(0, 80).replace(/\s+/g, ' ')
         out(!crashed && text.length > 0, `[${engine}] ${role} ${route}${mobile ? ' (телефон)' : ''}`, crashed ? 'экран ошибки' : text || `пусто · заглушка: «${await bootText(page).catch(() => '')}»`)
+        if (mobile) {
+          const wide = await page.evaluate(widerThanScreen)
+          if (wide) out(false, `[${engine}] ${role} ${route}: шире экрана`, wide)
+        }
       }
       out(problems.length === 0, `[${engine}] ${role}: ошибки JS и запросов`, problems.slice(0, 5).join(' ; '))
       if (aborted) lines.push(`NOTE | [${engine}] ${role}: запросов, прерванных переходом между страницами, — ${aborted}`)

@@ -330,7 +330,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </div>
           </div>
         </header>
-        <main key={location.pathname} className="mx-auto max-w-[1400px] px-4 pt-6 pb-28 sm:px-6 lg:pb-12 animate-fade-in">
+        <main key={location.pathname} className="mx-auto max-w-[1400px] overflow-x-clip px-4 pt-6 pb-28 sm:px-6 lg:pb-12 animate-fade-in">
           {children}
         </main>
       </div>

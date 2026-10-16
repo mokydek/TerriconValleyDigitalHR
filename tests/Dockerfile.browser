@@ -1,0 +1,8 @@
+# Браузерная проверка развёрнутого стенда (tests/browser-smoke.mjs) в официальном образе Playwright.
+#   docker build -f tests/Dockerfile.browser -t janamen-browser-check .
+#   docker run --rm -e E2E_BASE_URL=https://<стенд> janamen-browser-check
+FROM mcr.microsoft.com/playwright:v1.56.1-noble
+WORKDIR /check
+RUN npm init -y >/dev/null && npm install --no-audit --no-fund playwright@1.56.1
+COPY tests/browser-smoke.mjs ./tests/browser-smoke.mjs
+CMD ["node", "tests/browser-smoke.mjs"]

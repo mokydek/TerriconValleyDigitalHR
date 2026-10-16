@@ -40,10 +40,14 @@ async function run() {
       )
       const page = await ctx.newPage()
       const problems = []
+      const deepLink404 = []
       let realtime = 'нет'
       page.on('pageerror', (e) => problems.push(`JS: ${e.message}`))
       page.on('response', (r) => {
-        if (r.status() >= 400 && !r.url().includes('/api/ai-jana') && !r.url().endsWith('/favicon.ico')) problems.push(`HTTP ${r.status()} ${r.url().slice(0, 140)}`)
+        if (r.status() < 400 || r.url().includes('/api/ai-jana') || r.url().endsWith('/favicon.ico')) return
+        // хостинг без правил переписывания отдаёт маршрут SPA с кодом 404, но страница работает
+        if (r.request().resourceType() === 'document' && r.url().startsWith(BASE)) deepLink404.push(new URL(r.url()).pathname)
+        else problems.push(`HTTP ${r.status()} ${r.url().slice(0, 140)}`)
       })
       page.on('websocket', (ws) => {
         if (ws.url().includes('/realtime/')) {
@@ -62,6 +66,7 @@ async function run() {
         out(!crashed && text.length > 0, `${role} ${route}${mobile ? ' (телефон)' : ''}`, crashed ? 'экран ошибки' : text)
       }
       out(problems.length === 0, `${role}: ошибки JS и запросов`, problems.slice(0, 5).join(' ; '))
+      if (deepLink404.length) lines.push(`NOTE | ${role}: прямые ссылки отдаются с кодом 404 (страница при этом работает): ${[...new Set(deepLink404)].join(', ')}`)
       out(realtime === 'подключено', `${role}: Realtime`, realtime)
       await ctx.close()
     }

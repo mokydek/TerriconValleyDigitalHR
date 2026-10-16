@@ -80,8 +80,8 @@
           show('Не удалось запустить JanaМен', 'Обновите страницу. ' + ((reason && reason.message) || reason || ''))
         })
         // Последний рубеж: если приложение упало целиком и React очистил страницу — возвращаем экран
-        // с текстом ошибки и кнопкой, а не оставляем пустой фон
-        document.addEventListener('DOMContentLoaded', function () {
+        // с текстом ошибки и кнопкой, а не оставляем пустой фон (вызывается сразу после разметки #root)
+        window.__janamenWatchRoot = function () {
           var root = document.getElementById('root')
           var boot = document.getElementById('boot')
           if (!root || !boot || !window.MutationObserver) return
@@ -91,7 +91,7 @@
             root.appendChild(template.cloneNode(true))
             show('Произошла ошибка', 'Обновите страницу. ' + lastError)
           }).observe(root, { childList: true })
-        })
+        }
         setTimeout(function () {
           if (!started()) show('Загрузка идёт дольше обычного', 'Проверьте интернет. Если ничего не меняется — обновите страницу.', 'slow')
         }, 15000)
@@ -119,6 +119,9 @@
         <button type="button" onclick="window.__janamenReload()">Обновить страницу</button>
       </div>
     </div>
+    <script>
+      window.__janamenWatchRoot()
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

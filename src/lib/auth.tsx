@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { useQueryClient } from '@tanstack/react-query'
-import { supabase } from './supabase'
+import { errorMessage, supabase } from './supabase'
 import type { Employee, Role } from './types'
 
 export const EMPLOYEE_SELECT =
@@ -16,6 +16,8 @@ interface AuthCtx {
   loading: boolean
   /** вошли, но карточка сотрудника не найдена */
   orphan: boolean
+  /** не удалось загрузить карточку сотрудника (нет связи с сервером) */
+  loadError: string | null
   signIn: (email: string, password: string) => Promise<void>
   signOut: () => Promise<void>
   reloadMe: () => Promise<void>
@@ -29,27 +31,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [me, setMe] = useState<Employee | null>(null)
   const [loading, setLoading] = useState(true)
   const [orphan, setOrphan] = useState(false)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   const loadMe = useCallback(async (s: Session | null) => {
     if (!s) {
       setMe(null)
       setOrphan(false)
+      setLoadError(null)
       return
     }
     const { data, error } = await supabase.from('employees').select(EMPLOYEE_SELECT).eq('user_id', s.user.id).maybeSingle()
-    if (error) console.error(error)
+    if (error) {
+      // сбой связи — это не «карточка не найдена»: показываем ошибку с повтором
+      console.error(error)
+      setLoadError(errorMessage(error))
+      return
+    }
+    setLoadError(null)
     setMe((data as Employee) ?? null)
     setOrphan(!data)
   }, [])
 
   useEffect(() => {
     let active = true
-    supabase.auth.getSession().then(async ({ data }) => {
-      if (!active) return
-      setSession(data.session)
-      await loadMe(data.session)
-      setLoading(false)
-    })
+    supabase.auth
+      .getSession()
+      .then(async ({ data }) => {
+        if (!active) return
+        setSession(data.session)
+        await loadMe(data.session)
+      })
+      .catch((error: unknown) => {
+        console.error(error)
+        if (active) setLoadError(errorMessage(error))
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
     const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s)
       if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'USER_UPDATED') {
@@ -88,11 +106,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isManager: role === 'manager' || role === 'hr',
       loading,
       orphan: Boolean(session) && orphan,
+      loadError,
       signIn,
       signOut,
       reloadMe: () => loadMe(session),
     }
-  }, [session, me, loading, orphan, signIn, signOut, loadMe])
+  }, [session, me, loading, orphan, loadError, signIn, signOut, loadMe])
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

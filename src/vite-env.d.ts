@@ -12,4 +12,6 @@ interface ImportMeta {
 /** Конфигурация во время выполнения из /config.js (используется Docker-сборкой) */
 interface Window {
   __JANAMEN__?: { supabaseUrl?: string; anonKey?: string; realtime?: boolean }
+  /** перезагрузка мимо кэша CDN — определена в index.html */
+  __janamenReload?: () => void
 }

@@ -1,12 +1,13 @@
-import { lazy, Suspense, type ReactNode } from 'react'
+import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { useAuth } from '@/lib/auth'
 import { supabaseConfigured } from '@/lib/supabase'
+import { reloadFresh } from '@/lib/reload'
 import type { Role } from '@/lib/types'
 import { AppShell } from '@/components/layout/AppShell'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { AssistantProvider } from '@/components/assistant/AssistantChat'
-import { Button, PageLoader } from '@/components/ui'
+import { Button, PageLoader, Spinner } from '@/components/ui'
 import LoginPage from '@/pages/Login'
 
 const HomePage = lazy(() => import('@/pages/Home'))
@@ -54,6 +55,71 @@ function NotConfigured() {
   )
 }
 
+/** Сбросить сохранённый вход (если старая сессия мешает запуску) и открыть страницу входа */
+function resetSignIn() {
+  try {
+    for (const key of Object.keys(localStorage)) if (key.startsWith('janamen-auth')) localStorage.removeItem(key)
+  } catch {
+    /* хранилище недоступно */
+  }
+  window.location.replace('/')
+}
+
+/** Запуск: пока проверяется вход. Если сервер долго не отвечает — объясняем, что делать, а не крутим спиннер вечно */
+function StartupLoader() {
+  const [slow, setSlow] = useState(false)
+  useEffect(() => {
+    const timer = window.setTimeout(() => setSlow(true), 10_000)
+    return () => window.clearTimeout(timer)
+  }, [])
+  return (
+    <div className="grid min-h-dvh place-items-center p-6 text-center">
+      <div className="max-w-sm">
+        <Spinner className="mx-auto h-7 w-7" />
+        {slow && (
+          <>
+            <p className="mt-5 font-semibold">Сервер отвечает дольше обычного</p>
+            <p className="mt-2 text-sm text-muted">Проверьте интернет и обновите страницу. Если не помогает — войдите заново.</p>
+            <div className="mt-4 flex justify-center gap-2">
+              <Button onClick={reloadFresh}>Обновить</Button>
+              <Button variant="outline" onClick={resetSignIn}>
+                Войти заново
+              </Button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function LoadProblem({ message }: { message: string }) {
+  const { reloadMe } = useAuth()
+  const [busy, setBusy] = useState(false)
+  return (
+    <div className="grid min-h-dvh place-items-center p-6">
+      <div className="card max-w-md p-8 text-center">
+        <h1 className="text-xl font-bold">Не удалось загрузить данные</h1>
+        <p className="mt-3 text-sm text-muted">{message}</p>
+        <div className="mt-5 flex justify-center gap-2">
+          <Button
+            loading={busy}
+            onClick={() => {
+              setBusy(true)
+              void reloadMe().finally(() => setBusy(false))
+            }}
+          >
+            Повторить
+          </Button>
+          <Button variant="outline" onClick={resetSignIn}>
+            Войти заново
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function Orphan() {
   const { signOut, session } = useAuth()
   return (
@@ -72,11 +138,11 @@ function Orphan() {
 }
 
 export default function App() {
-  const { session, me, loading, orphan } = useAuth()
+  const { session, me, loading, orphan, loadError } = useAuth()
   const location = useLocation()
 
   if (!supabaseConfigured) return <NotConfigured />
-  if (loading) return <PageLoader />
+  if (loading) return <StartupLoader />
   if (!session) {
     return (
       <Routes>
@@ -84,8 +150,9 @@ export default function App() {
       </Routes>
     )
   }
+  if (!me && loadError) return <LoadProblem message={loadError} />
   if (orphan) return <Orphan />
-  if (!me) return <PageLoader />
+  if (!me) return <StartupLoader />
 
   return (
     <AssistantProvider>

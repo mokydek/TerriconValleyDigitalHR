@@ -40,9 +40,13 @@ async function run() {
   console.log(summary)
 }
 
+/** Текст заглушки загрузки из index.html, если приложение ещё не запустилось */
+const bootText = (page) => page.evaluate(() => document.getElementById('boot')?.innerText.replace(/\s+/g, ' ').trim() ?? '')
+
 async function runEngine(engine) {
   const browser = await pw[engine].launch(engine === 'chromium' && process.env.PLAYWRIGHT_CHROMIUM_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH } : {})
-  const iphone = pw.devices['iPhone 15 Pro'] ?? { viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true }
+  // профиль iPhone с масштабом 1: на слабой машине программная отрисовка в 3x искажает время, а не поведение
+  const iphone = { ...(pw.devices['iPhone 15 Pro'] ?? { viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true }), deviceScaleFactor: 1 }
   try {
     for (const [role, routes] of Object.entries(ROUTES)) {
       const mobile = role === 'employee'
@@ -56,8 +60,12 @@ async function runEngine(engine) {
       const page = await ctx.newPage()
       const problems = []
       const deepLink404 = []
+      let aborted = 0
+      let navigatedAt = 0
       let realtime = 'нет'
       page.on('pageerror', (e) => {
+        // WebKit сообщает о запросах, прерванных переходом на другую страницу, как об ошибке доступа
+        if (/access control checks/.test(e.message) && Date.now() - navigatedAt < 5000) return void aborted++
         problems.push(`JS: ${e.message}`)
         console.log(`[${engine}] pageerror: ${e.message}`)
       })
@@ -76,24 +84,35 @@ async function runEngine(engine) {
           ws.on('socketerror', (e) => (realtime = `ошибка: ${e}`))
         }
       })
+      const started = Date.now()
       await page.goto(BASE)
       try {
-        await page.getByTestId(`demo-${role}`).click({ timeout: 20_000 })
-        await page.waitForSelector('main', { timeout: 20_000 })
+        // приложение запустилось, когда React заменил заглушку #boot страницей входа
+        await page.getByTestId(`demo-${role}`).waitFor({ timeout: 60_000 })
+        lines.push(`INFO | [${engine}] ${role}: страница входа через ${((Date.now() - started) / 1000).toFixed(1)} с`)
+        await page.getByTestId(`demo-${role}`).click({ timeout: 30_000 })
+        await page.waitForSelector('main', { timeout: 30_000 })
       } catch (error) {
-        const html = (await page.content()).slice(0, 300).replace(/\s+/g, ' ')
-        out(false, `[${engine}] ${role}: вход`, `${error.message.split('\n')[0]} · ${problems.slice(0, 3).join(' ; ')} · ${html}`)
+        const boot = await bootText(page).catch(() => '')
+        const body = (await page.evaluate(() => document.body.innerText).catch(() => '')).slice(0, 200).replace(/\s+/g, ' ')
+        out(false, `[${engine}] ${role}: вход`, `${error.message.split('\n')[0]} · заглушка: «${boot}» · экран: «${body}» · ${problems.slice(0, 3).join(' ; ')}`)
         await ctx.close()
         continue
       }
       for (const route of routes) {
+        navigatedAt = Date.now()
         await page.goto(BASE + route)
-        await page.waitForTimeout(2500)
+        // ждём, пока раздел покажет содержимое (на слабой машине WebKit заметно медленнее Chromium)
+        await page
+          .waitForFunction(() => (document.querySelector('main')?.textContent ?? '').trim().length > 0, null, { timeout: 20_000 })
+          .catch(() => {})
+        await page.waitForTimeout(1000)
         const crashed = await page.getByText('Не удалось открыть раздел').count()
         const text = (await page.locator('main').innerText().catch(() => '')).slice(0, 80).replace(/\s+/g, ' ')
-        out(!crashed && text.length > 0, `[${engine}] ${role} ${route}${mobile ? ' (телефон)' : ''}`, crashed ? 'экран ошибки' : text)
+        out(!crashed && text.length > 0, `[${engine}] ${role} ${route}${mobile ? ' (телефон)' : ''}`, crashed ? 'экран ошибки' : text || `пусто · заглушка: «${await bootText(page).catch(() => '')}»`)
       }
       out(problems.length === 0, `[${engine}] ${role}: ошибки JS и запросов`, problems.slice(0, 5).join(' ; '))
+      if (aborted) lines.push(`NOTE | [${engine}] ${role}: запросов, прерванных переходом между страницами, — ${aborted}`)
       if (deepLink404.length) lines.push(`NOTE | ${role}: прямые ссылки отдаются с кодом 404 (страница при этом работает): ${[...new Set(deepLink404)].join(', ')}`)
       out(realtime === 'подключено', `[${engine}] ${role}: Realtime`, realtime)
       await ctx.close()

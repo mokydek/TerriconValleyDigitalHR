@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
+import { reloadFresh } from '@/lib/reload'
 
 const CHUNK_ERROR = /dynamically imported module|Importing a module script failed|Loading chunk/i
 export const RELOAD_FLAG = 'janamen-chunk-reload'
@@ -26,7 +27,7 @@ export class ErrorBoundary extends Component<Props, { error: Error | null }> {
       try {
         if (!sessionStorage.getItem(RELOAD_FLAG)) {
           sessionStorage.setItem(RELOAD_FLAG, '1')
-          window.location.reload()
+          reloadFresh()
         }
       } catch {
         /* хранилище недоступно — показываем сообщение */
@@ -54,7 +55,7 @@ export class ErrorBoundary extends Component<Props, { error: Error | null }> {
             } catch {
               /* ignore */
             }
-            window.location.reload()
+            reloadFresh()
           }}
         >
           Обновить

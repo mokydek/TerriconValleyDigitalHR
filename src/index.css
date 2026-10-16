@@ -1,0 +1,104 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  /* Фирменные цвета Jana Post */
+  --color-brand-50: #eef8ee;
+  --color-brand-100: #d6efd5;
+  --color-brand-200: #ade0aa;
+  --color-brand-300: #7dcc79;
+  --color-brand-400: #4eb34a;
+  --color-brand-500: #2a9d26;
+  --color-brand-600: #168f12;
+  --color-brand-700: #12740f;
+  --color-brand-800: #105c0e;
+  --color-brand-900: #0d4a0c;
+
+  --color-ink: #17221a;
+  --color-ink-soft: #4a564d;
+  --color-muted: #6b776e;
+  --color-line: #e3e9e4;
+  --color-surface: #ffffff;
+  --color-canvas: #f4f7f4;
+
+  --shadow-card: 0 1px 2px rgb(23 34 26 / 0.04), 0 1px 3px rgb(23 34 26 / 0.06);
+  --shadow-pop: 0 10px 30px rgb(23 34 26 / 0.12), 0 2px 6px rgb(23 34 26 / 0.06);
+
+  --animate-fade-in: fade-in 0.18s ease-out;
+  --animate-slide-in: slide-in 0.22s ease-out;
+  --animate-pop: pop 0.25s ease-out;
+
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes slide-in {
+    from { transform: translateX(24px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  @keyframes pop {
+    0% { transform: scale(0.96); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    @apply bg-canvas text-ink antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+  ::selection {
+    background: var(--color-brand-100);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-brand-500);
+    outline-offset: 2px;
+  }
+  input[type='date']::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.6;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl border border-line bg-surface shadow-[var(--shadow-card)];
+  }
+  .label {
+    @apply mb-1.5 block text-sm font-medium text-ink-soft;
+  }
+  .field {
+    @apply w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-[15px] text-ink outline-none transition placeholder:text-muted/70 focus:border-brand-500 focus:ring-4 focus:ring-brand-100 disabled:bg-canvas disabled:text-muted;
+  }
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: #cfd8d1 transparent;
+  }
+  .prose-jana {
+    @apply text-[15px] leading-relaxed text-ink-soft;
+  }
+  .prose-jana h1,
+  .prose-jana h2,
+  .prose-jana h3 {
+    @apply mt-5 mb-2 font-semibold text-ink first:mt-0;
+  }
+  .prose-jana h2 { @apply text-lg; }
+  .prose-jana h3 { @apply text-base; }
+  .prose-jana p { @apply my-2.5; }
+  .prose-jana ul { @apply my-2.5 list-disc space-y-1 pl-5; }
+  .prose-jana ol { @apply my-2.5 list-decimal space-y-1 pl-5; }
+  .prose-jana strong { @apply font-semibold text-ink; }
+  .prose-jana a { @apply font-medium text-brand-700 underline underline-offset-2; }
+}
+
+/* Печать документов (справка, приказ) */
+@media print {
+  body { background: white; }
+  .no-print { display: none !important; }
+  .print-sheet { box-shadow: none !important; border: none !important; margin: 0 !important; }
+}

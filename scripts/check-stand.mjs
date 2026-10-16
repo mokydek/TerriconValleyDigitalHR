@@ -110,10 +110,11 @@ const info = (line) => {
 async function web(site) {
   for (const p of ['/', '/requests', '/academy/infosec', '/config.js']) {
     try {
-      const res = await fetch(site + p, { redirect: 'manual' })
+      const res = await fetch(site + p)
       const body = await res.text()
       const spa = body.includes('<div id="root">')
-      out(res.status === 200 && (p === '/config.js' || spa), `страница ${p}`, `${res.status} · ${res.headers.get('content-type')} · ${spa ? 'SPA' : body.slice(0, 60).replace(/\s+/g, ' ')}`)
+      const moved = res.url !== site + p ? ` → ${new URL(res.url).pathname}` : ''
+      out(res.status === 200 && (p === '/config.js' || spa), `страница ${p}`, `${res.status}${moved} · ${res.headers.get('content-type')} · ${spa ? 'SPA' : body.slice(0, 60).replace(/\s+/g, ' ')}`)
     } catch (error) {
       out(false, `страница ${p}`, error.message)
     }

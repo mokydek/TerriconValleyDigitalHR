@@ -46,7 +46,7 @@ export default function ProfilePage() {
         }
       />
 
-      <div className="grid gap-4 lg:grid-cols-[1.5fr_1fr]">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.5fr_1fr]">
         <div className="space-y-4">
           <Card className="p-5">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center">

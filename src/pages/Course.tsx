@@ -269,7 +269,7 @@ export default function CoursePage() {
                   <p className="mt-3 text-muted">
                     с результатом <b className="text-brand-700">{data.assignment?.score ?? '—'}%</b> · {fmtDate(data.assignment?.completed_at ?? new Date())}
                   </p>
-                  <div className="mt-8 text-xs text-muted">ТОО «Jana Post» · JanaМен · запись в профиле сотрудника</div>
+                  <div className="mt-8 text-xs text-muted">ТОО «Jana Post» · JanaMen · запись в профиле сотрудника</div>
                 </div>
               </div>
               <div className="no-print mt-4 flex justify-center gap-2">

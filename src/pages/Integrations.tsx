@@ -26,9 +26,9 @@ export default function IntegrationsPage() {
     <div>
       <PageHeader
         title="Интеграции"
-        subtitle="Где и как JanaМен подключается к 1С:ЗУП и Documentolog. В прототипе внешние системы — mock-адаптеры с тем же контрактом событий."
+        subtitle="Где и как JanaMen подключается к 1С:ЗУП и Documentolog. В прототипе внешние системы — mock-адаптеры с тем же контрактом событий."
       />
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader
             icon={<Database className="h-[18px] w-[18px]" />}
@@ -39,7 +39,7 @@ export default function IntegrationsPage() {
           <div className="space-y-4 px-5 pb-5">
             <ul className="space-y-1.5 text-sm text-ink-soft">
               <li className="flex gap-2">
-                <ArrowDownLeft className="mt-0.5 h-4 w-4 shrink-0 text-sky-600" /> Входящий поток: сотрудники, должности, подразделения, руководители, даты приёма, оклад — только чтение в JanaМен.
+                <ArrowDownLeft className="mt-0.5 h-4 w-4 shrink-0 text-sky-600" /> Входящий поток: сотрудники, должности, подразделения, руководители, даты приёма, оклад — только чтение в JanaMen.
               </li>
               <li className="flex gap-2">
                 <ArrowUpRight className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" /> Исходящий поток: приказ об отпуске, ведомость аванса, запрос на изменение данных — после оформления заявки HR.
@@ -99,7 +99,7 @@ export default function IntegrationsPage() {
             action={<Badge className="bg-amber-50 text-amber-800 ring-amber-200">mock API</Badge>}
           />
           <div className="space-y-3 px-5 pb-5 text-sm text-ink-soft">
-            <p>Когда HR оформляет заявку, JanaМен регистрирует документ в Documentolog и запускает маршрут: подписание HR → ознакомление работника. Номер документа сохраняется в карточке заявки.</p>
+            <p>Когда HR оформляет заявку, JanaMen регистрирует документ в Documentolog и запускает маршрут: подписание HR → ознакомление работника. Номер документа сохраняется в карточке заявки.</p>
             <p>Электронная подпись и хранение оригиналов — на стороне Documentolog (в рамках MVP не требуются).</p>
             <Button variant="outline" icon={<RefreshCw className="h-4 w-4" />} loading={worker.isPending} onClick={() => worker.mutate()}>
               Обработать очередь событий

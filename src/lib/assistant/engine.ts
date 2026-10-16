@@ -47,8 +47,8 @@ function norm(s: string) {
   return s.toLowerCase().replace(/ё/g, 'е').replace(/\s+/g, ' ').trim()
 }
 
-const PROFILE_SOURCE: AiSource = { kind: 'profile', title: 'Личный кабинет JanaМен · данные 1С:ЗУП' }
-const analyticsSource = (): AiSource => ({ kind: 'analytics', title: `Аналитика JanaМен на ${fmtDate(new Date(), 'dd.MM.yyyy')}` })
+const PROFILE_SOURCE: AiSource = { kind: 'profile', title: 'Личный кабинет JanaMen · данные 1С:ЗУП' }
+const analyticsSource = (): AiSource => ({ kind: 'analytics', title: `Аналитика JanaMen на ${fmtDate(new Date(), 'dd.MM.yyyy')}` })
 
 /* ---------- Защита: чужие персональные данные ---------- */
 
@@ -358,7 +358,7 @@ export async function answerLocally(question: string, opts: { role: Role; firstN
     return {
       status: 'smalltalk',
       text:
-        'Здравствуйте! Я AI Jana — HR-помощник JanaМен. Подскажу, как оформить отпуск, аванс или справку, сколько у вас дней отпуска и статус заявок, что пройти в Jana Academy. Отвечаю только по базе знаний HR и всегда показываю источник.' +
+        'Здравствуйте! Я AI Jana — HR-помощник JanaMen. Подскажу, как оформить отпуск, аванс или справку, сколько у вас дней отпуска и статус заявок, что пройти в Jana Academy. Отвечаю только по базе знаний HR и всегда показываю источник.' +
         (opts.role !== 'employee' ? ' Ещё могу показать цифры по вашей команде: кто в отпуске, у кого накопился отпуск, как идёт обучение.' : ''),
       sources: [{ kind: 'kb', title: 'Как работает AI Jana', slug: 'ai-jana', heading: 'Откуда AI Jana берёт ответы', source_title: 'Политика использования AI Jana (демо)' }],
       mode: 'kb',
@@ -368,7 +368,7 @@ export async function answerLocally(question: string, opts: { role: Role; firstN
   if (asksForOthersData(question, q, opts.firstName)) {
     return {
       status: 'refused',
-      text: 'Я не раскрываю персональные данные других сотрудников — зарплату, ИИН, адрес, сведения о здоровье. Это защищено политикой конфиденциальности и правами доступа JanaМен.',
+      text: 'Я не раскрываю персональные данные других сотрудников — зарплату, ИИН, адрес, сведения о здоровье. Это защищено политикой конфиденциальности и правами доступа JanaMen.',
       sources: [{ kind: 'kb', title: 'Как работает AI Jana', slug: 'ai-jana', heading: 'Чего AI Jana не делает', source_title: 'Политика использования AI Jana (демо)' }],
       mode: 'kb',
     }

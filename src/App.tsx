@@ -46,7 +46,7 @@ function NotConfigured() {
   return (
     <div className="grid min-h-dvh place-items-center p-6">
       <div className="card max-w-lg p-8">
-        <h1 className="text-xl font-bold">JanaМен: не настроено подключение к Supabase</h1>
+        <h1 className="text-xl font-bold">JanaMen: не настроено подключение к Supabase</h1>
         <p className="mt-3 text-muted">
           Задайте переменные окружения <code>VITE_SUPABASE_URL</code> и <code>VITE_SUPABASE_ANON_KEY</code> (см. <code>.env.example</code>) и перезапустите сборку.
         </p>

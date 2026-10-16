@@ -1,5 +1,5 @@
 -- =====================================================================
--- JanaМен — 7/7. Интеграции с 1С:ЗУП и Documentolog (mock) + права на RPC
+-- JanaMen — 7/7. Интеграции с 1С:ЗУП и Documentolog (mock) + права на RPC
 --
 -- Архитектура: transactional outbox. Бизнес-операция (оформление заявки) пишет
 -- событие в integration_events в той же транзакции; адаптер доставляет его во
@@ -43,7 +43,7 @@ create table if not exists mock_zup.employees (
 
 create sequence if not exists public.mock_external_seq start 1240;
 
--- Синхронизация 1С:ЗУП → JanaМен (официальные данные только читаются из мастер-системы)
+-- Синхронизация 1С:ЗУП → JanaMen (официальные данные только читаются из мастер-системы)
 create or replace function public.sync_from_zup()
 returns jsonb language plpgsql security definer set search_path = public as $$
 declare

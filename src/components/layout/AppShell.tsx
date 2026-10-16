@@ -91,7 +91,7 @@ export function Logo({ className }: { className?: string }) {
       </div>
       <div className="leading-none">
         <div className="text-[17px] font-extrabold tracking-tight text-ink">
-          JANA<span className="text-brand-600">Мен</span>
+          Jana<span className="text-brand-600">Men</span>
         </div>
         <div className="mt-1 text-[10px] font-semibold tracking-[0.18em] text-muted uppercase">Jana Post HR</div>
       </div>

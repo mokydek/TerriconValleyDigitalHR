@@ -1,4 +1,4 @@
-# JanaМен — полный локальный стек одной командой:
+# JanaMen — полный локальный стек одной командой:
 #   docker compose up --build      →  http://localhost:8080
 # Postgres + Supabase Auth (GoTrue) + PostgREST + веб-шлюз (SPA, /api/ai-jana).
 # Секреты генерируются при первом запуске в томе `secrets`; в репозитории их нет.

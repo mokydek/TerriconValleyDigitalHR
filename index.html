@@ -7,8 +7,8 @@
     <script src="/config.js"></script>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="theme-color" content="#168F12" />
-    <meta name="description" content="JanaМен — единая цифровая HR-платформа Jana Post: профиль, заявки, обучение и AI-помощник в одном окне." />
-    <title>JanaМен — HR-платформа Jana Post</title>
+    <meta name="description" content="JanaMen — единая цифровая HR-платформа Jana Post: профиль, заявки, обучение и AI-помощник в одном окне." />
+    <title>JanaMen — HR-платформа Jana Post</title>
     <style>
       body { margin: 0; background: #f4f7f4; }
       #boot { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 24px; box-sizing: border-box; text-align: center; color: #17221a; font: 15px/1.45 -apple-system, system-ui, 'Segoe UI', Roboto, sans-serif; }
@@ -67,17 +67,17 @@
             if (asset) {
               var src = el.src || el.href || ''
               if (src.indexOf('/assets/') === -1) return
-              if (!reloadOnce()) show('Не удалось загрузить JanaМен', 'Обновите страницу. Файл: ' + src.split('/').pop())
+              if (!reloadOnce()) show('Не удалось загрузить JanaMen', 'Обновите страницу. Файл: ' + src.split('/').pop())
               return
             }
-            show('Не удалось запустить JanaМен', 'Обновите страницу или откройте ссылку в другом браузере. ' + lastError)
+            show('Не удалось запустить JanaMen', 'Обновите страницу или откройте ссылку в другом браузере. ' + lastError)
           },
           true,
         )
         window.addEventListener('unhandledrejection', function (event) {
           var reason = event.reason
           if (started()) return
-          show('Не удалось запустить JanaМен', 'Обновите страницу. ' + ((reason && reason.message) || reason || ''))
+          show('Не удалось запустить JanaMen', 'Обновите страницу. ' + ((reason && reason.message) || reason || ''))
         })
         // Последний рубеж: если приложение упало целиком и React очистил страницу — возвращаем экран
         // с текстом ошибки и кнопкой, а не оставляем пустой фон (вызывается сразу после разметки #root)
@@ -113,7 +113,7 @@
         <svg width="56" height="56" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#168F12" /><path d="M22 18h8v20c0 6-4 10-10 10h-2v-7h1c2 0 3-1 3-3V18z" fill="#fff" /><circle cx="42" cy="40" r="7" fill="#fff" /></svg>
         <div class="spin"></div>
         <div>
-          <b id="boot-title">Загрузка JanaМен…</b>
+          <b id="boot-title">Загрузка JanaMen…</b>
           <small id="boot-detail"></small>
         </div>
         <button type="button" onclick="window.__janamenReload()">Обновить страницу</button>

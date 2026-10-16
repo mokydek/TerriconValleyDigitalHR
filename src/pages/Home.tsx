@@ -1,15 +1,22 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useState, type ReactNode } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   ArrowRight,
   BadgeCheck,
+  Bell,
+  BellRing,
   Bot,
   CalendarDays,
+  ClipboardList,
   Clock3,
+  Eye,
   FileText,
   GraduationCap,
   HeartPulse,
   Inbox,
+  LayoutGrid,
+  LineChart,
+  Megaphone,
   MessageCircleQuestion,
   Palmtree,
   Sparkles,
@@ -19,18 +26,49 @@ import {
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/auth'
 import { useI18n } from '@/lib/i18n'
-import { useDecideRequest, useHrCharts, useHrDashboard, useMyAssignments, useRefreshWatchAlerts, useTickets, useWorkRequests } from '@/lib/api'
+import {
+  useAnnouncements,
+  useAttentionZone,
+  useDecideRequest,
+  useHrCharts,
+  useHrDashboard,
+  useMyAssignments,
+  useMyRequests,
+  useNotifications,
+  usePeople,
+  useRefreshWatchAlerts,
+  useTasks,
+  useTickets,
+  useWorkRequests,
+} from '@/lib/api'
 import { fmtDate, fullName, num, todayLabel } from '@/lib/format'
 import { useQuery } from '@tanstack/react-query'
 import { must, supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
-import { Avatar, Button, Card, CardHeader, Empty, ErrorBox, Kpi, Skeleton } from '@/components/ui'
+import { Avatar, Button, Card, CardHeader, Empty, ErrorBox, Kpi, Skeleton, Tabs } from '@/components/ui'
 import { MyLearningCard, MyRequestsCard, MyTasksCard, NewsCard, NotificationsCard, ProfileCard } from '@/components/home/Widgets'
 import { RequestDrawer } from '@/components/requests/RequestDrawer'
 import { requestSummary, TypeLabel, WaitingTimer } from '@/components/requests/RequestParts'
 import { AttentionZone, WatchlistCard } from '@/components/hr/HrBlocks'
 import { ForecastBadge, HeadcountChart, LearningByDeptChart, RequestsWeeklyChart, VacationMonthlyChart } from '@/components/charts/HrCharts'
 import type { HrRequest } from '@/lib/types'
+
+/** Активная вкладка главной хранится в адресе (?tab=), вкладка по умолчанию — без параметра */
+function useTabParam<T extends string>(tabs: readonly T[], fallback: T): [T, (next: T) => void] {
+  const [params, setParams] = useSearchParams()
+  const raw = params.get('tab') as T | null
+  const tab = raw && tabs.includes(raw) ? raw : fallback
+  return [tab, (next: T) => setParams(next === fallback ? {} : { tab: next }, { replace: true })]
+}
+
+function TabLabel({ icon, children }: { icon: ReactNode; children: ReactNode }) {
+  return (
+    <>
+      {icon}
+      {children}
+    </>
+  )
+}
 
 function greeting(t: ReturnType<typeof useI18n>['t']) {
   const h = new Date().getHours()
@@ -47,16 +85,17 @@ function QuickServices() {
     { label: t('home.qAsk'), icon: <Sparkles className="h-5 w-5" />, to: '/assistant', tone: 'bg-amber-50 text-amber-700' },
   ]
   return (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+    // на телефоне — одна компактная строка из четырёх кнопок, чтобы главная помещалась без прокрутки
+    <div className="grid grid-cols-4 gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-4">
       {items.map((it) => (
         <button
           key={it.label}
           onClick={() => navigate(it.to)}
-          className="card group flex items-center gap-3 p-4 text-left transition hover:-translate-y-0.5 hover:border-brand-300"
+          className="card group flex min-w-0 flex-col items-center gap-1.5 px-1 py-3 text-center transition hover:-translate-y-0.5 hover:border-brand-300 sm:flex-row sm:gap-3 sm:p-4 sm:text-left"
           data-testid={`quick-${it.to.split('=')[1] ?? 'ai'}`}
         >
-          <span className={cn('grid h-11 w-11 shrink-0 place-items-center rounded-xl', it.tone)}>{it.icon}</span>
-          <span className="text-[14.5px] leading-tight font-semibold text-ink">{it.label}</span>
+          <span className={cn('grid h-10 w-10 shrink-0 place-items-center rounded-xl sm:h-11 sm:w-11', it.tone)}>{it.icon}</span>
+          <span className="text-[12px] leading-tight font-semibold text-ink sm:text-[14.5px]">{it.label}</span>
         </button>
       ))}
     </div>
@@ -73,7 +112,7 @@ function WelcomeBanner() {
       <div className="text-4xl">👋</div>
       <div className="flex-1">
         <div className="text-lg font-semibold">Добро пожаловать в Jana Post, {me.first_name}!</div>
-        <div className="text-sm text-white/85">Начните с адаптационного курса — 25 минут о компании, ценностях и о том, как работает JanaМен.</div>
+        <div className="text-sm text-white/85">Начните с адаптационного курса — 25 минут о компании, ценностях и о том, как работает JanaMen.</div>
       </div>
       <Link to="/academy/welcome" className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-brand-700 hover:bg-brand-50">
         Начать курс <ArrowRight className="h-4 w-4" />
@@ -222,11 +261,40 @@ function TeamKpis() {
 
 /* ================= HR: «Пульс компании» ================= */
 
+const PULSE_TABS = ['attention', 'watchlist', 'charts'] as const
+type PulseTab = (typeof PULSE_TABS)[number]
+
+function PulseCharts() {
+  const charts = useHrCharts()
+  return (
+    <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+      <Card>
+        <CardHeader title="Заявки по неделям" subtitle="Последние 12 недель" />
+        <div className="px-3 pb-4">{charts.data ? <RequestsWeeklyChart data={charts.data.requests_weekly} /> : <Skeleton className="mx-2 h-[240px]" />}</div>
+      </Card>
+      <Card>
+        <CardHeader title="Отпуска по месяцам" subtitle="Дни отпуска: факт за год и прогноз на 3 месяца (тренд × сезонность)" action={<ForecastBadge />} />
+        <div className="px-3 pb-4">{charts.data ? <VacationMonthlyChart data={charts.data.vacation_monthly} /> : <Skeleton className="mx-2 h-[240px]" />}</div>
+      </Card>
+      <Card>
+        <CardHeader title="Обучение по отделам" subtitle="% пройденных обязательных курсов" />
+        <div className="px-3 pb-4">{charts.data ? <LearningByDeptChart data={charts.data.learning_by_department} /> : <Skeleton className="mx-2 h-[240px]" />}</div>
+      </Card>
+      <Card>
+        <CardHeader title="Численность по подразделениям" subtitle="Данные 1С:ЗУП" />
+        <div className="px-3 pb-4">{charts.data ? <HeadcountChart data={charts.data.headcount_by_department} /> : <Skeleton className="mx-2 h-[240px]" />}</div>
+      </Card>
+    </div>
+  )
+}
+
 function HrPulse() {
   const dash = useHrDashboard()
-  const charts = useHrCharts()
   const tickets = useTickets('all')
   const work = useWorkRequests(0)
+  const attention = useAttentionZone()
+  const people = usePeople()
+  const [tab, setTab] = useTabParam<PulseTab>(PULSE_TABS, 'attention')
   useRefreshWatchAlerts(true)
   const openTickets = (tickets.data ?? []).filter((t) => t.status === 'open').length
   const atHr = (work.data ?? []).filter((r) => r.status === 'approved' || (r.status === 'pending' && r.approver?.role === 'hr')).length
@@ -240,7 +308,7 @@ function HrPulse() {
           <h1 className="mt-1 flex items-center gap-2 text-2xl font-bold tracking-tight sm:text-[28px]">
             <HeartPulse className="h-7 w-7 text-brand-600" /> Пульс компании
           </h1>
-          <p className="mt-1 text-[15px] text-muted">Тот же JanaМен, но с обзором на всю компанию</p>
+          <p className="mt-1 text-[15px] text-muted">Тот же JanaMen, но с обзором на всю компанию</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link to="/approvals">
@@ -272,39 +340,56 @@ function HrPulse() {
         )}
       </div>
 
-      <div className="mt-6 grid gap-4 xl:grid-cols-2">
-        <Card>
-          <CardHeader title="Заявки по неделям" subtitle="Последние 12 недель" />
-          <div className="px-3 pb-4">{charts.data ? <RequestsWeeklyChart data={charts.data.requests_weekly} /> : <Skeleton className="mx-2 h-[240px]" />}</div>
-        </Card>
-        <Card>
-          <CardHeader title="Отпуска по месяцам" subtitle="Дни отпуска: факт за год и прогноз на 3 месяца (тренд × сезонность)" action={<ForecastBadge />} />
-          <div className="px-3 pb-4">{charts.data ? <VacationMonthlyChart data={charts.data.vacation_monthly} /> : <Skeleton className="mx-2 h-[240px]" />}</div>
-        </Card>
-        <Card>
-          <CardHeader title="Обучение по отделам" subtitle="% пройденных обязательных курсов" />
-          <div className="px-3 pb-4">{charts.data ? <LearningByDeptChart data={charts.data.learning_by_department} /> : <Skeleton className="mx-2 h-[240px]" />}</div>
-        </Card>
-        <Card>
-          <CardHeader title="Численность по подразделениям" subtitle="Данные 1С:ЗУП" />
-          <div className="px-3 pb-4">{charts.data ? <HeadcountChart data={charts.data.headcount_by_department} /> : <Skeleton className="mx-2 h-[240px]" />}</div>
-        </Card>
-      </div>
-
-      <div className="mt-6 grid gap-4 xl:grid-cols-[1.4fr_1fr]">
-        <AttentionZone />
-        <WatchlistCard />
-      </div>
+      <Tabs<PulseTab>
+        value={tab}
+        onChange={setTab}
+        className="mt-6 mb-4"
+        items={[
+          { value: 'attention', label: <TabLabel icon={<BellRing className="h-4 w-4" />}>Зона внимания</TabLabel>, count: attention.data?.length },
+          { value: 'watchlist', label: <TabLabel icon={<Eye className="h-4 w-4" />}>Слежу</TabLabel>, count: (people.data ?? []).filter((p) => p.followed).length },
+          { value: 'charts', label: <TabLabel icon={<LineChart className="h-4 w-4" />}>Графики и прогнозы</TabLabel> },
+        ]}
+      />
+      {tab === 'attention' && <AttentionZone />}
+      {tab === 'watchlist' && (
+        <div className="max-w-3xl">
+          <WatchlistCard />
+        </div>
+      )}
+      {tab === 'charts' && <PulseCharts />}
     </div>
   )
 }
 
-/* ================= Страница ================= */
+/* ================= Работник и руководитель ================= */
 
-export default function HomePage() {
-  const { role } = useAuth()
+const WORK_TABS = ['team', 'overview', 'tasks', 'learning', 'news', 'notifications'] as const
+type WorkTab = (typeof WORK_TABS)[number]
+
+function WorkerHome({ manager, teamPending = 0 }: { manager?: boolean; teamPending?: number }) {
+  const { t } = useI18n()
   const [openRequest, setOpenRequest] = useState<string | null>(null)
-  if (role === 'hr') return <HrPulse />
+  const [tab, setTab] = useTabParam<WorkTab>(manager ? WORK_TABS : WORK_TABS.slice(1), manager ? 'team' : 'overview')
+  // те же запросы, что у карточек вкладок, — данные берутся из общего кэша
+  const requests = useMyRequests()
+  const tasks = useTasks('mine')
+  const learning = useMyAssignments()
+  const news = useAnnouncements(10)
+  const notifications = useNotifications()
+  const icon = 'h-4 w-4'
+
+  const items: { value: WorkTab; label: ReactNode; count?: number }[] = [
+    ...(manager ? [{ value: 'team' as const, label: <TabLabel icon={<Users className={icon} />}>{t('home.tabTeam')}</TabLabel>, count: teamPending }] : []),
+    {
+      value: 'overview',
+      label: <TabLabel icon={<LayoutGrid className={icon} />}>{t('home.tabOverview')}</TabLabel>,
+      count: (requests.data ?? []).filter((r) => r.status === 'pending' || r.status === 'approved' || r.status === 'processing').length,
+    },
+    { value: 'tasks', label: <TabLabel icon={<ClipboardList className={icon} />}>{t('home.tabTasks')}</TabLabel>, count: (tasks.data ?? []).filter((x) => x.status !== 'done').length },
+    { value: 'learning', label: <TabLabel icon={<GraduationCap className={icon} />}>{t('home.tabLearning')}</TabLabel>, count: (learning.data ?? []).filter((a) => a.status !== 'completed').length },
+    { value: 'news', label: <TabLabel icon={<Megaphone className={icon} />}>{t('home.tabNews')}</TabLabel>, count: (news.data ?? []).filter((a) => !a.read).length },
+    { value: 'notifications', label: <TabLabel icon={<Bell className={icon} />}>{t('home.tabNotifications')}</TabLabel>, count: (notifications.data ?? []).filter((n) => !n.read_at).length },
+  ]
 
   return (
     <div>
@@ -312,31 +397,53 @@ export default function HomePage() {
       <WelcomeBanner />
       <QuickServices />
 
-      {role === 'manager' && (
-        <div className="mt-6 space-y-4">
+      <Tabs<WorkTab> value={tab} onChange={setTab} items={items} className="mt-6 mb-4" />
+
+      {tab === 'team' && (
+        <div className="space-y-4">
           <TeamKpis />
-          <div className="grid gap-4 xl:grid-cols-[1.5fr_1fr]">
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.5fr_1fr]">
             <TeamApprovals />
             <TeamToday />
           </div>
         </div>
       )}
-
-      <div className="mt-6 grid gap-4 lg:grid-cols-[1.6fr_1fr]">
-        <div className="space-y-4">
-          <MyRequestsCard onOpen={setOpenRequest} />
-          <MyTasksCard />
-          <NewsCard />
+      {tab === 'overview' && (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.5fr_1fr]">
+          {/* на телефоне сначала профиль и остаток отпуска */}
+          <div className="min-w-0 lg:order-2">
+            <ProfileCard />
+          </div>
+          <div className="min-w-0 lg:order-1">
+            <MyRequestsCard onOpen={setOpenRequest} />
+          </div>
         </div>
-        <div className="space-y-4">
-          <ProfileCard />
-          <MyLearningCard />
-          <NotificationsCard />
-        </div>
+      )}
+      <div className="max-w-3xl">
+        {tab === 'tasks' && <MyTasksCard />}
+        {tab === 'learning' && <MyLearningCard />}
+        {tab === 'news' && <NewsCard limit={6} />}
+        {tab === 'notifications' && <NotificationsCard />}
       </div>
       <MyRequestDrawer id={openRequest} onClose={() => setOpenRequest(null)} />
     </div>
   )
+}
+
+function ManagerHome() {
+  const { me } = useAuth()
+  const work = useWorkRequests(0)
+  const pending = (work.data ?? []).filter((r) => r.status === 'pending' && r.approver_id === me?.id).length
+  return <WorkerHome manager teamPending={pending} />
+}
+
+/* ================= Страница ================= */
+
+export default function HomePage() {
+  const { role } = useAuth()
+  if (role === 'hr') return <HrPulse />
+  if (role === 'manager') return <ManagerHome />
+  return <WorkerHome />
 }
 
 function MyRequestDrawer({ id, onClose }: { id: string | null; onClose: () => void }) {

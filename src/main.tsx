@@ -42,7 +42,7 @@ document.addEventListener('visibilitychange', () => {
     .then((html) => {
       const latest = /<script[^>]+src="(\/assets\/[^"]+\.js)"/.exec(html)?.[1]
       if (latest && latest !== runningEntry) {
-        toast('Вышла новая версия JanaМен', {
+        toast('Вышла новая версия JanaMen', {
           id: 'new-version',
           duration: Infinity,
           action: { label: 'Обновить', onClick: reloadFresh },

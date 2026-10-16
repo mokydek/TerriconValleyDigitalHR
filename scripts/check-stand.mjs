@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Проверка развёрнутого стенда JanaМен «только чтение»: входит под каждым тестовым
+ * Проверка развёрнутого стенда JanaMen «только чтение»: входит под каждым тестовым
  * аккаунтом и читает данные через публичный API Supabase — ничего не меняет.
  *
  *   SUPABASE_URL=https://<ref>.supabase.co SUPABASE_ANON_KEY=<anon> npm run check:stand

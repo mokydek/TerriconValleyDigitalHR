@@ -278,7 +278,7 @@ export function NewRequestModal({
       {type === 'data_change' && (
         <div className="space-y-4">
           <div className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            Официальные кадровые данные ведутся в 1С:ЗУП и в JanaМен доступны только для чтения. HR внесёт изменение в 1С:ЗУП, и оно появится в профиле после синхронизации.
+            Официальные кадровые данные ведутся в 1С:ЗУП и в JanaMen доступны только для чтения. HR внесёт изменение в 1С:ЗУП, и оно появится в профиле после синхронизации.
           </div>
           <Field label="Что изменить">
             <select className="field" value={field} onChange={(e) => setField(e.target.value)}>

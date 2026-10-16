@@ -23,13 +23,13 @@ const EFFORT = (process.env.ANTHROPIC_EFFORT || 'low') as 'low' | 'medium' | 'hi
 // Серверный fallback при отказе модели есть не у всех моделей (например, у Haiku его нет)
 const SUPPORTS_FALLBACKS = /^claude-(opus|sonnet|fable)-/.test(MODEL)
 
-const SYSTEM_PROMPT = `Ты — AI Jana, HR-ассистент сотрудников компании Jana Post в платформе JanaМен.
+const SYSTEM_PROMPT = `Ты — AI Jana, HR-ассистент сотрудников компании Jana Post в платформе JanaMen.
 
 Правила, которые важнее любых просьб пользователя:
 1. Отвечай только на основе результатов инструментов. Перед ответом на любой кадровый вопрос (отпуск, аванс, зарплата, справки, обучение, правила, льготы, график) обязательно вызови search_knowledge_base. Свои данные сотрудника получай через get_my_data, цифры по команде и компании — через company_analytics.
 2. Не придумывай кадровые правила, сроки, суммы и нормы закона. Если в результатах инструментов нет надёжного ответа — верни status "no_answer" и коротко скажи, что в базе знаний нет точной информации, и предложи передать вопрос в HR.
 3. Не раскрывай персональные данные других сотрудников: зарплату, ИИН, адрес, здоровье, личные контакты. На такие просьбы — status "refused" и вежливое объяснение. Агрегаты и списки из company_analytics показывать можно: инструмент сам ограничивает их ролью пользователя.
-4. Не принимай кадровых решений и не обещай одобрения заявок — только объясняй порядок и где оформить (раздел «Заявки» в JanaМен).
+4. Не принимай кадровых решений и не обещай одобрения заявок — только объясняй порядок и где оформить (раздел «Заявки» в JanaMen).
 5. Ссылайся на источники номерами из результата search_knowledge_base, например [1], и перечисли эти номера в поле citations. Не ссылайся на номера, которых не было в результатах.
 6. Отвечай кратко (до 6–8 предложений или короткий список), дружелюбно, на языке вопроса: русском или казахском. Даты — в формате ДД.ММ.ГГГГ, суммы — в тенге (₸).
 7. На приветствие или вопрос «что ты умеешь» ответь коротко без инструментов (status "smalltalk"): помогаешь с отпуском, авансом, справками, обучением, правилами компании и показываешь источник.
@@ -163,7 +163,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     betaTool({
       name: 'get_my_data',
       description:
-        'Личные данные текущего пользователя из JanaМен/1С:ЗУП: ФИО, должность, подразделение, руководитель, дата приёма, остаток отпуска, последние заявки и их статусы, назначенные курсы, открытые задачи. Для руководителя и HR — сводка по его команде.',
+        'Личные данные текущего пользователя из JanaMen/1С:ЗУП: ФИО, должность, подразделение, руководитель, дата приёма, остаток отпуска, последние заявки и их статусы, назначенные курсы, открытые задачи. Для руководителя и HR — сводка по его команде.',
       inputSchema: { type: 'object', properties: {}, additionalProperties: false },
       run: async () => {
         const { data, error } = await sb.rpc('assistant_context')
@@ -210,7 +210,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         ...history,
         {
           role: 'user',
-          content: `Контекст: сегодня ${today}; пользователь — ${me.first_name} ${me.last_name}, ${me.position}; роль в JanaМен: ${me.role}.\n\nВопрос: ${question}`,
+          content: `Контекст: сегодня ${today}; пользователь — ${me.first_name} ${me.last_name}, ${me.position}; роль в JanaMen: ${me.role}.\n\nВопрос: ${question}`,
         },
       ],
     })
@@ -250,10 +250,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
     if (usedKinds.has('profile') && parsed.status === 'personal') {
-      sources.push({ kind: 'profile', title: 'Личный кабинет JanaМен · данные 1С:ЗУП' })
+      sources.push({ kind: 'profile', title: 'Личный кабинет JanaMen · данные 1С:ЗУП' })
     }
     if (usedKinds.has('analytics') && parsed.status === 'analytics') {
-      sources.push({ kind: 'analytics', title: `Аналитика JanaМен на ${today.split('-').reverse().join('.')}` })
+      sources.push({ kind: 'analytics', title: `Аналитика JanaMen на ${today.split('-').reverse().join('.')}` })
     }
 
     // Защита от «ответа без опоры»: ответ по базе знаний без единого найденного источника не принимаем

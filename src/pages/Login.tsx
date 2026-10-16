@@ -72,7 +72,7 @@ export default function LoginPage() {
         </div>
         <div className="relative max-w-xl">
           <h1 className="text-5xl leading-[1.05] font-extrabold tracking-tight">
-            JANA<span className="text-brand-300">Мен</span>
+            Jana<span className="text-brand-300">Men</span>
           </h1>
           <p className="mt-4 text-xl text-white/85">Одна платформа для сотрудника: профиль, заявки, обучение и HR-помощь — в одном окне.</p>
           <ol className="mt-10 grid grid-cols-5 gap-3">
@@ -103,7 +103,7 @@ export default function LoginPage() {
         <div className="mx-auto w-full max-w-md">
           <div className="mb-8 flex items-center justify-between">
             <div className="text-2xl font-extrabold tracking-tight lg:hidden">
-              JANA<span className="text-brand-600">Мен</span>
+              Jana<span className="text-brand-600">Men</span>
             </div>
             <div className="ml-auto inline-flex rounded-lg bg-white p-0.5 text-xs font-semibold ring-1 ring-line">
               {(['ru', 'kk'] as const).map((l) => (

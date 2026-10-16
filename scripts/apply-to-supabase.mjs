@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Применяет схему JanaМен (supabase/migrations) и демо-данные (supabase/seed.sql)
+ * Применяет схему JanaMen (supabase/migrations) и демо-данные (supabase/seed.sql)
  * к базе Supabase напрямую по протоколу Postgres — альтернатива SQL Editor и `supabase db push`.
  *
  *   SUPABASE_DB_URL="postgresql://postgres.<ref>:<пароль>@<хост-пулера>:5432/postgres" npm run db:apply

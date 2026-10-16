@@ -1,4 +1,4 @@
-# JanaМен — образ веб-приложения для локального стека (docker compose up).
+# JanaMen — образ веб-приложения для локального стека (docker compose up).
 # В облачной версии ту же роль выполняют Vercel (SPA + /api/ai-jana) и Supabase.
 
 # 1. Сборка SPA и серверной функции AI Jana

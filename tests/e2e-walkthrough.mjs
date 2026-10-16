@@ -1,5 +1,5 @@
 /**
- * Сквозной прогон JanaМен в браузере по сценариям кейса: работник → руководитель → HR,
+ * Сквозной прогон JanaMen в браузере по сценариям кейса: работник → руководитель → HR,
  * плюс мобильная версия. Делает скриншоты каждого шага в test-results/screenshots.
  *
  *   npm i --no-save playwright && npx playwright install chromium
@@ -156,13 +156,13 @@ try {
   await logout()
   await loginAs('hr')
   await page.waitForTimeout(3000)
-  await shot('16-hr-pulse')
-  await page.mouse.wheel(0, 560)
-  await page.waitForTimeout(800)
+  await shot('16-hr-pulse') // KPI и вкладка «Зона внимания»
+  await page.getByRole('tab', { name: /Графики/ }).click()
+  await page.waitForTimeout(2000)
   await shot('17-hr-pulse-charts')
-  await page.mouse.wheel(0, 2000)
+  await page.getByRole('tab', { name: /Слежу/ }).click()
   await page.waitForTimeout(800)
-  await shot('18-hr-attention')
+  await shot('18-hr-watchlist')
   await page.goto(BASE + '/approvals')
   await page.waitForTimeout(2000)
   await shot('19-hr-kanban')

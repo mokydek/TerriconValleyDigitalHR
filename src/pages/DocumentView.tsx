@@ -91,7 +91,7 @@ export default function DocumentViewPage() {
                   {e.department ? `, ${e.department.name}` : ''} (таб. № {e.zup_id}), ежегодный оплачиваемый трудовой отпуск продолжительностью {days(data.days)} с{' '}
                   {fmtDate(data.start_date, 'dd.MM.yyyy')} по {fmtDate(data.end_date, 'dd.MM.yyyy')}.
                 </p>
-                <p>Основание: заявление работника № {data.number}, согласованное руководителем в JanaМен.</p>
+                <p>Основание: заявление работника № {data.number}, согласованное руководителем в JanaMen.</p>
                 {system === 'documentolog' && <p>С приказом ознакомлен(а) электронно в Documentolog.</p>}
               </>
             ) : data.type === 'advance' ? (

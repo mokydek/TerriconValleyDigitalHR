@@ -1,4 +1,4 @@
-// JanaМен — шлюз локального Docker-стека (роль Kong + хостинга Vercel в облачной версии).
+// JanaMen — шлюз локального Docker-стека (роль Kong + хостинга Vercel в облачной версии).
 //
 //   /              собранный SPA (dist) с fallback на index.html
 //   /config.js     конфигурация во время выполнения: адрес API и анонимный ключ
@@ -144,5 +144,5 @@ const server = http.createServer((req, res) => {
   return serveStatic(req, res, pathname)
 })
 
-server.listen(PORT, () => console.log(`JanaМен: http://localhost:${PORT}`))
+server.listen(PORT, () => console.log(`JanaMen: http://localhost:${PORT}`))
 for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => server.close(() => process.exit(0)))

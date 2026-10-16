@@ -13,6 +13,7 @@
     "preview": "vite preview",
     "typecheck": "tsc -b",
     "db:setup-sql": "node scripts/build-setup-sql.mjs",
+    "db:apply": "node scripts/apply-to-supabase.mjs",
     "test:e2e": "node tests/e2e-walkthrough.mjs",
     "test:api": "node tests/api-smoke.mjs"
   },
@@ -40,6 +41,7 @@
     "@types/react-dom": "19.3.0",
     "@vercel/node": "24.0.2",
     "@vitejs/plugin-react": "5.2.0",
+    "pg": "8.23.1",
     "tailwindcss": "4.3.3",
     "typescript": "5.9.3",
     "vite": "7.3.7"

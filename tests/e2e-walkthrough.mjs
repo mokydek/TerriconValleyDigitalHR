@@ -33,7 +33,11 @@ try {
     // /api/ai-jana без ключа отвечает 503 (или 404 в vite dev) — клиент штатно переходит в режим базы знаний
     if (r.status() >= 400 && !r.url().includes('/api/ai-jana')) errors.push(`HTTP ${r.status()} ${r.request().method()} ${r.url()}`)
   })
-  const shot = (name) => page.screenshot({ path: path.join(OUT, name + '.png'), fullPage: false })
+  const shot = async (name) => {
+    // экран ErrorBoundary = упавший раздел, даже если ошибка перехвачена
+    if (await page.getByText('Не удалось открыть раздел').count()) errors.push(`ErrorBoundary на шаге ${name}: ${await page.locator('main').innerText()}`)
+    await page.screenshot({ path: path.join(OUT, name + '.png'), fullPage: false })
+  }
 
   async function loginAs(id) {
     await page.goto(BASE)

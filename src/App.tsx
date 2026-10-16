@@ -1,9 +1,10 @@
 import { lazy, Suspense, type ReactNode } from 'react'
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { useAuth } from '@/lib/auth'
 import { supabaseConfigured } from '@/lib/supabase'
 import type { Role } from '@/lib/types'
 import { AppShell } from '@/components/layout/AppShell'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { AssistantProvider } from '@/components/assistant/AssistantChat'
 import { Button, PageLoader } from '@/components/ui'
 import LoginPage from '@/pages/Login'
@@ -72,6 +73,7 @@ function Orphan() {
 
 export default function App() {
   const { session, me, loading, orphan } = useAuth()
+  const location = useLocation()
 
   if (!supabaseConfigured) return <NotConfigured />
   if (loading) return <PageLoader />
@@ -88,6 +90,7 @@ export default function App() {
   return (
     <AssistantProvider>
       <AppShell>
+        <ErrorBoundary resetKey={location.pathname}>
         <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/" element={<HomePage />} />
@@ -162,6 +165,7 @@ export default function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
+        </ErrorBoundary>
       </AppShell>
     </AssistantProvider>
   )

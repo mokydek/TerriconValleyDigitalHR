@@ -24,7 +24,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '@/lib/auth'
 import { useI18n, type I18nKey } from '@/lib/i18n'
-import { useMarkAllRead, useMarkNotificationRead, useNotifications } from '@/lib/api'
+import { useMarkAllRead, useMarkNotificationRead, useNotifications, useRealtimeNotifications } from '@/lib/api'
 import { fullName, timeAgo } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { Avatar, Badge } from '@/components/ui'
@@ -288,6 +288,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { me, role } = useAuth()
   const { t } = useI18n()
   const location = useLocation()
+  useRealtimeNotifications()
   return (
     <div className="min-h-dvh">
       {/* Desktop sidebar */}

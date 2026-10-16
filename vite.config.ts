@@ -10,5 +10,7 @@ export default defineConfig({
   },
   build: {
     chunkSizeWarningLimit: 1500,
+    // Поддержка телефонов постарше (Safari 14+ — iPhone 6s/7 на iOS 15): esbuild понижает синтаксис
+    target: ['es2020', 'safari14', 'chrome87', 'edge88', 'firefox78'],
   },
 })

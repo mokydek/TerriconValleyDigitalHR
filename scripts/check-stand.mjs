@@ -22,6 +22,59 @@ const out = (ok, name, detail = '') => {
   console.log(line)
 }
 
+// Те же запросы со связями, что делает интерфейс (src/lib/api.ts, src/lib/auth.tsx)
+const EMPLOYEE_SELECT =
+  '*, department:departments!employees_department_fk(id,name), location:locations!employees_location_fk(id,name,city,country), manager:manager(id,first_name,last_name,position,email,phone)'
+const REQUEST_SELECT =
+  '*, employee:employees!requests_employee_fk(id,first_name,last_name,position,manager_id,department_id,department:departments!employees_department_fk(name)), approver:employees!requests_approver_fk(id,first_name,last_name,role)'
+const TASK_SELECT =
+  '*, assignee:employees!tasks_assignee_fk(id,first_name,last_name,position), creator:employees!tasks_creator_fk(id,first_name,last_name,position)'
+
+async function appQueries(sb, me, role, email) {
+  const today = new Date().toISOString().slice(0, 10)
+  const in30 = new Date(Date.now() + 30 * 86400_000).toISOString().slice(0, 10)
+  const checks = [
+    ['профиль со связями', () => sb.from('employees').select(EMPLOYEE_SELECT).eq('id', me.id).maybeSingle()],
+    ['заявки со связями', () => sb.from('requests').select(REQUEST_SELECT).order('created_at', { ascending: false }).limit(50)],
+    ['история заявки', async () => {
+      const { data } = await sb.from('requests').select('id').limit(1)
+      return data?.[0] ? sb.from('request_events').select('*, actor:employees!request_events_actor_fk(first_name,last_name,position)').eq('request_id', data[0].id) : { data: [], error: null }
+    }],
+    ['обучение', () => sb.from('course_assignments').select('*, course:courses(*)').eq('employee_id', me.id)],
+    ['курсы и уроки', () => sb.from('course_lessons').select('course_id')],
+    ['задачи', () => sb.from('tasks').select(TASK_SELECT).limit(50)],
+    ['объявления', () => sb.from('announcements').select('*, author:employees!announcements_author_fk(first_name,last_name,position), department:departments!announcements_department_fk(name)')],
+    ['уведомления', () => sb.from('notifications').select('*').eq('employee_id', me.id).limit(60)],
+    ['праздники', () => sb.from('holidays').select('day,name')],
+    ['база знаний', () => sb.from('kb_articles').select('*')],
+    ['контекст AI Jana', () => sb.rpc('assistant_context')],
+  ]
+  if (role !== 'employee') {
+    checks.push(
+      ['отсутствия команды', () => sb.rpc('team_absences', { p_from: today, p_to: in30 })],
+      ['сотрудники (таблица)', () => sb.rpc('people_overview')],
+      ['графики', () => sb.rpc('hr_charts')],
+      ['зона внимания', () => sb.rpc('attention_zone')],
+    )
+  }
+  if (role === 'hr') {
+    checks.push(
+      ['обращения в HR', () => sb.from('hr_tickets').select('*, employee:employees!hr_tickets_employee_fk(first_name,last_name,position,department:departments!employees_department_fk(name))')],
+      ['интеграции: изменения 1С', () => sb.rpc('zup_pending_changes')],
+      ['логистика', () => sb.rpc('logistics_overview', { p_days: 30, p_horizon: 45 })],
+      ['время этапов', () => sb.rpc('request_stage_times')],
+      ['вопросы AI Jana', () => sb.rpc('ai_insights')],
+      ['журнал интеграций', () => sb.from('integration_events').select('*').order('created_at', { ascending: false }).limit(20)],
+    )
+  }
+  const failedNames = []
+  for (const [name, run] of checks) {
+    const { error } = await run()
+    if (error) failedNames.push(`${name}: ${error.message}`)
+  }
+  out(failedNames.length === 0, `запросы интерфейса ${email} (${checks.length})`, failedNames.join(' ; '))
+}
+
 async function asUser(email, role) {
   const sb = createClient(URL, KEY, { auth: { persistSession: false, autoRefreshToken: false } })
   const { data: auth, error } = await sb.auth.signInWithPassword({ email, password: PASSWORD })
@@ -38,6 +91,7 @@ async function asUser(email, role) {
     const { data: dash, error: dashErr } = await sb.rpc('hr_dashboard')
     out(!dashErr && dash?.headcount > 0, 'аналитика HR', dashErr?.message ?? `численность ${dash?.headcount}`)
   }
+  await appQueries(sb, me, role, email)
   if (role === 'employee' && email.startsWith('employee')) {
     const { data: kb, error: kbErr } = await sb.rpc('kb_search', { p_query: 'Как оформить аванс?' })
     out(!kbErr && kb?.[0]?.slug === 'advance', 'AI Jana: поиск по базе знаний', kbErr?.message ?? `${kb?.[0]?.title} → «${kb?.[0]?.heading}»`)

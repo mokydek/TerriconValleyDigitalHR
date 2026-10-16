@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
 import { Award, Check, CheckCircle2, ChevronRight, Clock, Lock, Printer, RotateCcw, XCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/auth'
@@ -148,7 +147,7 @@ export default function CoursePage() {
               </div>
               <h2 className="mt-1 text-xl font-bold">{lessons[view.index].title}</h2>
               <div className="prose-jana mt-4">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{lessons[view.index].content}</ReactMarkdown>
+                <ReactMarkdown>{lessons[view.index].content}</ReactMarkdown>
               </div>
               <div className="mt-8 flex flex-col-reverse gap-2 border-t border-line pt-5 sm:flex-row sm:justify-between">
                 <Button variant="ghost" disabled={view.index === 0} onClick={() => setView({ kind: 'lesson', index: view.index - 1 })}>

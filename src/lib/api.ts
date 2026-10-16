@@ -227,8 +227,7 @@ export function useRunIntegrationWorker() {
 
 export function useNotifications() {
   const { me } = useAuth()
-  const qc = useQueryClient()
-  const query = useQuery({
+  return useQuery({
     queryKey: ['notifications', me?.id],
     enabled: Boolean(me),
     refetchInterval: 45_000,
@@ -237,28 +236,41 @@ export function useNotifications() {
         supabase.from('notifications').select('*').eq('employee_id', me!.id).order('created_at', { ascending: false }).limit(60),
       ) as Promise<Notification[]>,
   })
+}
 
-  // Realtime: новые уведомления появляются без перезагрузки (если Realtime включён в проекте)
+/**
+ * Realtime: новые уведомления появляются без перезагрузки (если Realtime включён в проекте).
+ * Подписка одна на всё приложение (вызывается в AppShell): несколько подписок на один канал
+ * Supabase объединяет, и повторное .on() после subscribe() бросает исключение.
+ */
+export function useRealtimeNotifications() {
+  const { me } = useAuth()
+  const qc = useQueryClient()
   useEffect(() => {
     if (!me || !realtimeEnabled) return
-    const channel = supabase
-      .channel(`notifications-${me.id}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'notifications', filter: `employee_id=eq.${me.id}` },
-        () => {
-          void qc.invalidateQueries({ queryKey: ['notifications'] })
-          void qc.invalidateQueries({ queryKey: ['requests'] })
-          void qc.invalidateQueries({ queryKey: ['assignments'] })
-        },
-      )
-      .subscribe()
+    let channel: ReturnType<typeof supabase.channel> | null = null
+    try {
+      // уникальное имя канала: после размонтирования старый канал удаляется асинхронно
+      channel = supabase
+        .channel(`notifications-${me.id}-${Math.random().toString(36).slice(2, 10)}`)
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'notifications', filter: `employee_id=eq.${me.id}` },
+          () => {
+            void qc.invalidateQueries({ queryKey: ['notifications'] })
+            void qc.invalidateQueries({ queryKey: ['requests'] })
+            void qc.invalidateQueries({ queryKey: ['assignments'] })
+          },
+        )
+        .subscribe()
+    } catch (error) {
+      // Realtime — улучшение, а не обязательная часть: без него уведомления обновляются опросом
+      console.warn('Realtime недоступен', error)
+    }
     return () => {
-      void supabase.removeChannel(channel)
+      if (channel) void supabase.removeChannel(channel)
     }
   }, [me, qc])
-
-  return query
 }
 
 export function useMarkNotificationRead() {

@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
 import { BookOpen, FileText, Lock, Search, Sparkles } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
 import { useKbArticle, useKbArticles } from '@/lib/api'
@@ -114,7 +113,7 @@ function Article({ slug }: { slug: string }) {
                 data-heading={heading}
                 className={cn('prose-jana rounded-2xl px-4 py-1 transition', highlighted && 'bg-amber-50 ring-2 ring-amber-200')}
               >
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{sec}</ReactMarkdown>
+                <ReactMarkdown>{sec}</ReactMarkdown>
               </div>
             )
           })}

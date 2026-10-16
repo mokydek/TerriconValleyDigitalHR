@@ -114,7 +114,14 @@ async function web(site) {
       const body = await res.text()
       const spa = body.includes('<div id="root">')
       const moved = res.url !== site + p ? ` → ${new URL(res.url).pathname}` : ''
-      out(res.status === 200 && (p === '/config.js' || spa), `страница ${p}`, `${res.status}${moved} · ${res.headers.get('content-type')} · ${spa ? 'SPA' : body.slice(0, 60).replace(/\s+/g, ' ')}`)
+      out(res.status === 200 && (p === '/config.js' || spa), `страница ${p}`, `${res.status}${moved} · ${res.headers.get('content-type')} · cache-control: ${res.headers.get('cache-control')} · ${spa ? 'SPA' : body.slice(0, 60).replace(/\s+/g, ' ')}`)
+      if (p === '/' && spa) {
+        // основной скрипт и стили, на которые ссылается текущий index.html
+        for (const asset of body.match(/\/assets\/[^"']+\.(js|css)/g) ?? []) {
+          const r = await fetch(site + asset)
+          out(r.ok, `ресурс ${asset}`, `${r.status} · ${r.headers.get('content-type')} · cache-control: ${r.headers.get('cache-control')}`)
+        }
+      }
     } catch (error) {
       out(false, `страница ${p}`, error.message)
     }

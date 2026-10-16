@@ -7,9 +7,9 @@
  */
 import http from 'node:http'
 
-let chromium
+let pw
 try {
-  ;({ chromium } = await import('playwright'))
+  pw = await import('playwright')
 } catch {
   console.error('Нужен пакет playwright')
   process.exit(2)
@@ -30,19 +30,40 @@ const out = (ok, name, detail = '') => {
   console.log(line)
 }
 
+// BROWSERS=chromium,webkit — WebKit = движок Safari; в нём работник проверяется на профиле iPhone
+const BROWSERS = (process.env.BROWSERS ?? 'chromium').split(',').map((b) => b.trim()).filter(Boolean)
+
 async function run() {
-  const browser = await chromium.launch(process.env.PLAYWRIGHT_CHROMIUM_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH } : {})
+  for (const engine of BROWSERS) await runEngine(engine)
+  const summary = failed === 0 ? 'ИТОГ: в браузере всё работает' : `ИТОГ: ошибок — ${failed}`
+  lines.push(summary)
+  console.log(summary)
+}
+
+async function runEngine(engine) {
+  const browser = await pw[engine].launch(engine === 'chromium' && process.env.PLAYWRIGHT_CHROMIUM_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH } : {})
+  const iphone = pw.devices['iPhone 15 Pro'] ?? { viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true }
   try {
     for (const [role, routes] of Object.entries(ROUTES)) {
       const mobile = role === 'employee'
       const ctx = await browser.newContext(
-        mobile ? { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'ru-RU' } : { viewport: { width: 1440, height: 900 }, locale: 'ru-RU' },
+        mobile
+          ? engine === 'webkit'
+            ? { ...iphone, locale: 'ru-RU' }
+            : { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'ru-RU' }
+          : { viewport: { width: 1440, height: 900 }, locale: 'ru-RU' },
       )
       const page = await ctx.newPage()
       const problems = []
       const deepLink404 = []
       let realtime = 'нет'
-      page.on('pageerror', (e) => problems.push(`JS: ${e.message}`))
+      page.on('pageerror', (e) => {
+        problems.push(`JS: ${e.message}`)
+        console.log(`[${engine}] pageerror: ${e.message}`)
+      })
+      page.on('console', (m) => {
+        if (m.type() === 'error') console.log(`[${engine}] console.error: ${m.text().slice(0, 300)}`)
+      })
       page.on('response', (r) => {
         if (r.status() < 400 || r.url().includes('/api/ai-jana') || r.url().endsWith('/favicon.ico')) return
         // хостинг без правил переписывания отдаёт маршрут SPA с кодом 404, но страница работает
@@ -56,26 +77,30 @@ async function run() {
         }
       })
       await page.goto(BASE)
-      await page.getByTestId(`demo-${role}`).click()
-      await page.waitForSelector('main', { timeout: 20_000 })
+      try {
+        await page.getByTestId(`demo-${role}`).click({ timeout: 20_000 })
+        await page.waitForSelector('main', { timeout: 20_000 })
+      } catch (error) {
+        const html = (await page.content()).slice(0, 300).replace(/\s+/g, ' ')
+        out(false, `[${engine}] ${role}: вход`, `${error.message.split('\n')[0]} · ${problems.slice(0, 3).join(' ; ')} · ${html}`)
+        await ctx.close()
+        continue
+      }
       for (const route of routes) {
         await page.goto(BASE + route)
         await page.waitForTimeout(2500)
         const crashed = await page.getByText('Не удалось открыть раздел').count()
         const text = (await page.locator('main').innerText().catch(() => '')).slice(0, 80).replace(/\s+/g, ' ')
-        out(!crashed && text.length > 0, `${role} ${route}${mobile ? ' (телефон)' : ''}`, crashed ? 'экран ошибки' : text)
+        out(!crashed && text.length > 0, `[${engine}] ${role} ${route}${mobile ? ' (телефон)' : ''}`, crashed ? 'экран ошибки' : text)
       }
-      out(problems.length === 0, `${role}: ошибки JS и запросов`, problems.slice(0, 5).join(' ; '))
+      out(problems.length === 0, `[${engine}] ${role}: ошибки JS и запросов`, problems.slice(0, 5).join(' ; '))
       if (deepLink404.length) lines.push(`NOTE | ${role}: прямые ссылки отдаются с кодом 404 (страница при этом работает): ${[...new Set(deepLink404)].join(', ')}`)
-      out(realtime === 'подключено', `${role}: Realtime`, realtime)
+      out(realtime === 'подключено', `[${engine}] ${role}: Realtime`, realtime)
       await ctx.close()
     }
   } finally {
     await browser.close()
   }
-  const summary = failed === 0 ? 'ИТОГ: в браузере всё работает' : `ИТОГ: ошибок — ${failed}`
-  lines.push(summary)
-  console.log(summary)
 }
 
 try {

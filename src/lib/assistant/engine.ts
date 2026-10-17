@@ -4,11 +4,31 @@
  * (база знаний, собственные данные пользователя, аналитика по роли) и всегда
  * показывает источник. Если надёжного ответа нет — честно говорит об этом.
  * Все данные запрашиваются с токеном пользователя, поэтому RLS не даёт увидеть чужое.
+ * Вопросы распознаются на всех языках интерфейса (intents.ts), ответ пишется на языке интерфейса.
+ * Статьи базы знаний и значения из базы (названия курсов, подразделений) остаются на русском.
  */
 import { addDays, endOfMonth, endOfWeek, startOfMonth, startOfWeek } from 'date-fns'
 import { supabase } from '@/lib/supabase'
+import { getLang, t, type I18nKey } from '@/lib/i18n'
 import { fmtDate, fmtRange, isoDate, money, num } from '@/lib/format'
 import type { KbHit, Role } from '@/lib/types'
+import {
+  aiJanaSource,
+  analyticsIntent,
+  articleAction,
+  asksForOthersData,
+  courseCode,
+  isGreeting,
+  kbTopicQuery,
+  mentionsDepartment,
+  NO_DEPARTMENT,
+  periodKind,
+  personalIntent,
+  prepare,
+  requestTypeCode,
+  vacationThreshold,
+  type Query,
+} from './intents'
 
 export interface AiSource {
   kind: 'kb' | 'profile' | 'analytics'
@@ -32,56 +52,60 @@ export interface AiAnswer {
   actions?: AiAction[]
 }
 
-const STATUS_RU: Record<string, string> = {
-  pending: 'на согласовании у руководителя',
-  approved: 'согласована, ждёт оформления HR',
-  processing: 'передана в 1С:ЗУП, оформляется',
-  done: 'оформлена',
-  rejected: 'отклонена',
-  cancelled: 'отменена',
+/* ---------- Подписи на языке интерфейса ---------- */
+
+const REQUEST_STATUSES = new Set(['pending', 'approved', 'processing', 'done', 'rejected', 'cancelled'])
+const requestStatus = (s: string) => (REQUEST_STATUSES.has(s) ? t(`status.${s}` as I18nKey) : s)
+
+/** Тип заявки приходит из базы по-русски (request_type_label) */
+function requestType(label: string) {
+  const code = requestTypeCode(label)
+  return code ? t(`type.${code}`) : label
 }
 
-const COURSE_STATUS: Record<string, string> = { assigned: 'не начат', in_progress: 'в процессе', completed: 'пройден' }
+const COURSE_STATUS: Record<string, I18nKey> = { assigned: 'academy.colNotStarted', in_progress: 'academy.colInProgress', completed: 'academy.completed' }
+const courseStatus = (s: string) => (COURSE_STATUS[s] ? t(COURSE_STATUS[s]) : s)
 
-function norm(s: string) {
-  return s.toLowerCase().replace(/ё/g, 'е').replace(/\s+/g, ' ').trim()
+const department = (d: string | null) => (!d ? '–' : d === NO_DEPARTMENT ? t('srv.an.noDepartment') : d)
+
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
+
+const profileSource = (): AiSource => ({ kind: 'profile', title: t('jana.src.profile') })
+const analyticsSource = (): AiSource => ({ kind: 'analytics', title: t('jana.src.analytics', { date: fmtDate(new Date(), 'dd.MM.yyyy') }) })
+
+const ACTIONS: Record<'vacation' | 'advance' | 'certificate', { label: I18nKey; to: string }> = {
+  vacation: { label: 'home.qVacation', to: '/requests?new=vacation' },
+  advance: { label: 'home.qAdvance', to: '/requests?new=advance' },
+  certificate: { label: 'home.qCertificate', to: '/requests?new=certificate' },
 }
-
-const PROFILE_SOURCE: AiSource = { kind: 'profile', title: 'Личный кабинет JanaMen · данные 1С:ЗУП' }
-const analyticsSource = (): AiSource => ({ kind: 'analytics', title: `Аналитика JanaMen на ${fmtDate(new Date(), 'dd.MM.yyyy')}` })
-
-/* ---------- Защита: чужие персональные данные ---------- */
-
-const SENSITIVE = /(зарплат|заработн|оклад|(^|[^а-я])зп(?![а-я])|получает|иин|адрес|дат[аы] рождени|день рождени|паспорт|удостоверени|больничн|диагноз|болеет|телефон|премия|штраф|кредит)/
-const OTHERS = /(у (моего |моей |нашего |нашей )?(руководител|начальник|коллег|директор|сотрудник|друг|сосед)|других сотрудник|чуж|коллеги(?![а-я])|всех сотрудник|кто сколько)/
-const NAME_REF = /(?:у|про|о|об)\s+([А-ЯЁӘҒҚҢӨҰҮҺІ][а-яёәғқңөұүһі]{2,})/
-
-function asksForOthersData(raw: string, q: string, myFirstName: string): boolean {
-  if (!SENSITIVE.test(q)) return false
-  if (OTHERS.test(q)) return true
-  const m = raw.match(NAME_REF)
-  return Boolean(m && m[1].toLowerCase() !== myFirstName.toLowerCase())
-}
+const action = (kind: keyof typeof ACTIONS): AiAction => ({ label: t(ACTIONS[kind].label), to: ACTIONS[kind].to })
 
 /* ---------- Период из фразы ---------- */
 
-function parsePeriod(q: string): { from: Date; to: Date; label: string } {
+function parsePeriod(x: Query): { from: Date; to: Date; label: string } {
   const now = new Date()
-  if (/следующ[а-я]* недел|след\.? недел|на неделе после/.test(q)) {
-    const start = startOfWeek(addDays(now, 7), { weekStartsOn: 1 })
-    return { from: start, to: endOfWeek(start, { weekStartsOn: 1 }), label: 'на следующей неделе' }
+  const kind = periodKind(x)
+  const label = t(`jana.period.${kind}`)
+  switch (kind) {
+    case 'nextWeek': {
+      const start = startOfWeek(addDays(now, 7), { weekStartsOn: 1 })
+      return { from: start, to: endOfWeek(start, { weekStartsOn: 1 }), label }
+    }
+    case 'thisWeek':
+      return { from: startOfWeek(now, { weekStartsOn: 1 }), to: endOfWeek(now, { weekStartsOn: 1 }), label }
+    case 'tomorrow':
+      return { from: addDays(now, 1), to: addDays(now, 1), label }
+    case 'nextMonth': {
+      const start = startOfMonth(addDays(endOfMonth(now), 1))
+      return { from: start, to: endOfMonth(start), label }
+    }
+    case 'thisMonth':
+      return { from: startOfMonth(now), to: endOfMonth(now), label }
+    case 'today':
+      return { from: now, to: now, label }
+    default:
+      return { from: now, to: addDays(now, 7), label }
   }
-  if (/эт[а-я]* недел|текущ[а-я]* недел/.test(q)) {
-    return { from: startOfWeek(now, { weekStartsOn: 1 }), to: endOfWeek(now, { weekStartsOn: 1 }), label: 'на этой неделе' }
-  }
-  if (/завтра/.test(q)) return { from: addDays(now, 1), to: addDays(now, 1), label: 'завтра' }
-  if (/следующ[а-я]* месяц/.test(q)) {
-    const start = startOfMonth(addDays(endOfMonth(now), 1))
-    return { from: start, to: endOfMonth(start), label: 'в следующем месяце' }
-  }
-  if (/эт[а-я]* месяц/.test(q)) return { from: startOfMonth(now), to: endOfMonth(now), label: 'в этом месяце' }
-  if (/сегодня|сейчас|в данный момент/.test(q)) return { from: now, to: now, label: 'сегодня' }
-  return { from: now, to: addDays(now, 7), label: 'в ближайшие 7 дней' }
 }
 
 /* ---------- Аналитика по роли ---------- */
@@ -92,83 +116,81 @@ async function analytics(kind: string, params: Record<string, unknown>) {
   return data as { scope: 'company' | 'team'; rows: Record<string, unknown>[] }
 }
 
-async function tryAnalytics(q: string, role: Role): Promise<AiAnswer | null> {
-  const isOnVacation = /(кто|сколько).*(в отпуске|отдыха|отсутству|уходит в отпуск|будет в отпуске|уйдет в отпуск)/.test(q)
-  const isVacationOver = /(у кого|кто|сколько).*(больше|более|свыше|накопил|накоплен|много).*(дн|отпуск)/.test(q)
-  const isCourseDept = /(как[а-я]* (отдел|подразделени)|в как[а-я]* (отдел|подразделени)|по отделам|по подразделениям).*(хуже|лучше|меньше|больше|отста|прош|проход|обучен|курс|охран)|(охран|безопасност|курс|обучени).*(отдел|подразделени)/.test(q)
-  const isRequestsInWork = /(сколько|какие|покажи).*(заявк).*(в работе|висят|висит|на согласовании|ждут|завис|не оформлен)/.test(q)
-  const isOverdue = /(просроч).*(курс|обучени)|(кто).*(не прош[её]л|не сдал).*(курс|обучени|тест)/.test(q)
-  const isHeadcount = /(сколько|численность).*(сотрудник|человек|штат)|численност/.test(q)
-  const isNewcomers = /(новичк|новые сотрудник|кто (недавно )?(пришел|вышел на работу)|принят[а-я]* недавно)/.test(q)
+/** В переводах фраза может начинаться с подставленного периода или охвата: первая буква заглавная */
+async function tryAnalytics(x: Query, role: Role): Promise<AiAnswer | null> {
+  const a = await analyticsAnswer(x, role)
+  return a && { ...a, text: cap(a.text) }
+}
 
-  if (!(isOnVacation || isVacationOver || isCourseDept || isRequestsInWork || isOverdue || isHeadcount || isNewcomers)) return null
+async function analyticsAnswer(x: Query, role: Role): Promise<AiAnswer | null> {
+  const intent = analyticsIntent(x)
+  if (!intent) return null
 
   if (role === 'employee') {
-    return {
-      status: 'refused',
-      text: 'Сводные данные по сотрудникам доступны руководителю и HR. Могу рассказать о ваших данных, например об остатке отпуска или статусе заявок.',
-      sources: [],
-      mode: 'kb',
-    }
+    return { status: 'refused', text: t('jana.analyticsDenied'), sources: [], mode: 'kb' }
   }
 
-  const scopeLabel = role === 'hr' ? 'по компании' : 'по вашей команде'
+  const scope = t(role === 'hr' ? 'jana.scope.company' : 'jana.scope.team')
 
-  if (isVacationOver) {
-    const m = q.match(/(\d+)\s*(дн|ден)/)
-    const threshold = m ? Number(m[1]) : 30
+  if (intent.vacationOver) {
+    const threshold = vacationThreshold(x) ?? 30
     const data = await analytics('vacation_over', { threshold })
     const rows = data.rows as { name: string; department: string; available: number }[]
     return {
       status: 'analytics',
-      text: rows.length
-        ? `Остаток отпуска больше ${threshold} дн. ${scopeLabel}: ${rows.length} чел. Лучше заранее запланировать им отпуск, чтобы снизить риск выгорания.`
-        : `Сотрудников с остатком больше ${threshold} дней ${scopeLabel} нет.`,
-      table: rows.length ? { columns: ['Сотрудник', 'Подразделение', 'Остаток, дн.'], rows: rows.map((r) => [r.name, r.department ?? '–', num(r.available, 1)]) } : undefined,
+      text: rows.length ? t('jana.vacationOver', { threshold, scope, n: rows.length }) : t('jana.vacationOverNone', { threshold, scope }),
+      table: rows.length
+        ? {
+            columns: [t('req.employee'), t('academy.colDepartment'), t('jana.col.balance')],
+            rows: rows.map((r) => [r.name, department(r.department), num(r.available, 1)]),
+          }
+        : undefined,
       sources: [analyticsSource()],
       mode: 'kb',
-      actions: role === 'hr' ? [{ label: 'Открыть «Зону внимания»', to: '/' }] : undefined,
+      actions: role === 'hr' ? [{ label: t('jana.act.attention'), to: '/' }] : undefined,
     }
   }
 
-  if (isCourseDept || (isOverdue && /отдел|подразделени/.test(q))) {
-    const course = /охран|безопасност на склад|техник[а-я]* безопасн|(^|[^а-я])от(?![а-я])/.test(q)
-      ? 'safety'
-      : /информацион|(^|[^а-я])иб(?![а-я])|персональн/.test(q)
-        ? 'infosec'
-        : /адаптац|добро пожаловать|онбординг/.test(q)
-          ? 'welcome'
-          : ''
+  if (intent.courseDept || (intent.overdue && mentionsDepartment(x))) {
+    const course = courseCode(x)
     const data = await analytics('course_by_department', { course })
     const rows = data.rows as { department: string; course: string; assigned: number; completed: number; pct: number; overdue: number }[]
-    if (!rows.length) return { status: 'analytics', text: 'По этому курсу пока нет назначений.', sources: [analyticsSource()], mode: 'kb' }
+    if (!rows.length) return { status: 'analytics', text: t('jana.courseNone'), sources: [analyticsSource()], mode: 'kb' }
     const worst = rows[0]
     return {
       status: 'analytics',
-      text: `Хуже всего ${course ? `курс «${worst.course}» ` : 'обязательное обучение '}проходит «${worst.department}»: ${worst.completed} из ${worst.assigned} (${worst.pct}%)${worst.overdue ? `, просрочено ${worst.overdue}` : ''}. Ниже все подразделения ${scopeLabel}.`,
+      text: t('jana.courseWorst', {
+        what: course ? t('jana.courseWhat', { course: worst.course }) : t('jana.courseWhatAll'),
+        department: department(worst.department),
+        completed: worst.completed,
+        assigned: worst.assigned,
+        pct: worst.pct,
+        overdue: worst.overdue ? t('jana.courseOverdue', { n: worst.overdue }) : '',
+        scope,
+      }),
       table: {
-        columns: ['Подразделение', 'Курс', 'Пройдено', '%', 'Просрочено'],
-        rows: rows.map((r) => [r.department, r.course, `${r.completed}/${r.assigned}`, `${r.pct}%`, r.overdue]),
+        columns: [t('academy.colDepartment'), t('academy.course'), t('academy.colDone'), '%', t('academy.colOverdue')],
+        rows: rows.map((r) => [department(r.department), r.course, `${r.completed}/${r.assigned}`, `${r.pct}%`, r.overdue]),
       },
       sources: [analyticsSource()],
       mode: 'kb',
-      actions: [{ label: 'Аналитика обучения', to: '/analytics?tab=learning' }],
+      actions: [{ label: t('jana.act.learning'), to: '/analytics?tab=learning' }],
     }
   }
 
-  if (isOnVacation) {
-    const period = parsePeriod(q)
+  if (intent.onVacation) {
+    const period = parsePeriod(x)
     const data = await analytics('on_vacation', { from: isoDate(period.from), to: isoDate(period.to) })
     const rows = data.rows as { name: string; department: string; start_date: string; end_date: string; status: string }[]
     return {
       status: 'analytics',
       text: rows.length
-        ? `${period.label[0].toUpperCase() + period.label.slice(1)} (${fmtRange(isoDate(period.from), isoDate(period.to))}) ${scopeLabel} в отпуске ${rows.length} чел.`
-        : `${period.label[0].toUpperCase() + period.label.slice(1)} ${scopeLabel} никто не в отпуске.`,
+        ? t('jana.onVacation', { period: period.label, range: fmtRange(isoDate(period.from), isoDate(period.to)), scope, n: rows.length })
+        : t('jana.onVacationNone', { period: period.label, scope }),
       table: rows.length
         ? {
-            columns: ['Сотрудник', 'Подразделение', 'Период', 'Статус'],
-            rows: rows.map((r) => [r.name, r.department ?? '–', fmtRange(r.start_date, r.end_date), STATUS_RU[r.status] ?? r.status]),
+            columns: [t('req.employee'), t('academy.colDepartment'), t('req.period'), t('req.colStatus')],
+            rows: rows.map((r) => [r.name, department(r.department), fmtRange(r.start_date, r.end_date), requestStatus(r.status)]),
           }
         : undefined,
       sources: [analyticsSource()],
@@ -176,40 +198,52 @@ async function tryAnalytics(q: string, role: Role): Promise<AiAnswer | null> {
     }
   }
 
-  if (isOverdue) {
+  if (intent.overdue) {
     const data = await analytics('overdue_courses', {})
     const rows = data.rows as { name: string; course: string; due_date: string; progress: number }[]
     return {
       status: 'analytics',
-      text: rows.length ? `Просроченное обучение ${scopeLabel}: ${rows.length}.` : `Просроченного обучения ${scopeLabel} нет. 👏`,
-      table: rows.length ? { columns: ['Сотрудник', 'Курс', 'Срок', 'Прогресс'], rows: rows.map((r) => [r.name, r.course, fmtDate(r.due_date), `${r.progress}%`]) } : undefined,
+      text: rows.length ? t('jana.overdue', { scope, n: rows.length }) : t('jana.overdueNone', { scope }),
+      table: rows.length
+        ? {
+            columns: [t('req.employee'), t('academy.course'), t('jana.col.due'), t('jana.col.progress')],
+            rows: rows.map((r) => [r.name, r.course, fmtDate(r.due_date), `${r.progress}%`]),
+          }
+        : undefined,
       sources: [analyticsSource()],
       mode: 'kb',
     }
   }
 
-  if (isRequestsInWork) {
+  if (intent.requestsInWork) {
     const data = await analytics('requests_in_work', {})
     const rows = data.rows as { number: number; type: string; employee: string; status: string; approver: string | null; hours: number }[]
     return {
       status: 'analytics',
-      text: rows.length ? `В работе ${rows.length} заявок ${scopeLabel}. Самая старая ждёт ${Math.round(Math.max(...rows.map((r) => r.hours)) / 24)} дн.` : `Заявок в работе ${scopeLabel} нет.`,
+      text: rows.length
+        ? t('jana.inWork', { n: rows.length, scope, days: Math.round(Math.max(...rows.map((r) => r.hours)) / 24) })
+        : t('jana.inWorkNone', { scope }),
       table: rows.length
-        ? { columns: ['№', 'Тип', 'Сотрудник', 'Этап', 'Ждёт, ч'], rows: rows.map((r) => [r.number, r.type, r.employee, STATUS_RU[r.status] ?? r.status, r.hours]) }
+        ? {
+            columns: [t('req.colNo'), t('req.colType'), t('req.employee'), t('jana.col.stage'), t('jana.col.waitHours')],
+            rows: rows.map((r) => [r.number, requestType(r.type), r.employee, requestStatus(r.status), r.hours]),
+          }
         : undefined,
       sources: [analyticsSource()],
       mode: 'kb',
-      actions: [{ label: 'Открыть заявки', to: '/approvals' }],
+      actions: [{ label: t('jana.act.approvals'), to: '/approvals' }],
     }
   }
 
-  if (isNewcomers) {
+  if (intent.newcomers) {
     const data = await analytics('newcomers', {})
     const rows = data.rows as { name: string; position: string; hire_date: string }[]
     return {
       status: 'analytics',
-      text: rows.length ? `Новичков за последние 90 дней ${scopeLabel}: ${rows.length}.` : `Новых сотрудников за 90 дней ${scopeLabel} нет.`,
-      table: rows.length ? { columns: ['Сотрудник', 'Должность', 'Дата приёма'], rows: rows.map((r) => [r.name, r.position, fmtDate(r.hire_date)]) } : undefined,
+      text: rows.length ? t('jana.newcomers', { scope, n: rows.length }) : t('jana.newcomersNone', { scope }),
+      table: rows.length
+        ? { columns: [t('req.employee'), t('profile.position'), t('profile.hireDate')], rows: rows.map((r) => [r.name, r.position, fmtDate(r.hire_date)]) }
+        : undefined,
       sources: [analyticsSource()],
       mode: 'kb',
     }
@@ -220,8 +254,8 @@ async function tryAnalytics(q: string, role: Role): Promise<AiAnswer | null> {
   const total = rows.reduce((s, r) => s + Number(r.count), 0)
   return {
     status: 'analytics',
-    text: `Численность ${scopeLabel}: ${total} чел.`,
-    table: { columns: ['Подразделение', 'Человек'], rows: rows.map((r) => [r.department, r.count]) },
+    text: t('jana.headcount', { scope, n: total }),
+    table: { columns: [t('academy.colDepartment'), t('analytics.col.people')], rows: rows.map((r) => [department(r.department), r.count]) },
     sources: [analyticsSource()],
     mode: 'kb',
   }
@@ -243,75 +277,84 @@ async function context(): Promise<AssistantContext> {
   return data as AssistantContext
 }
 
-async function tryPersonal(q: string): Promise<AiAnswer | null> {
-  const balance = /(сколько|остат|осталось|баланс|доступно).*(отпуск|дней отдыха|демалыс)|(отпуск|демалыс).*(осталось|остаток|сколько у меня|мне положено еще)|қалды/.test(q)
-  const myRequests = /(статус|где|что с|как там).*(заявк|отпуск|аванс|справк)|(мои|моя|моих|моей) заявк/.test(q)
-  const myCourses = /(мои|мой|мне назначен|назначенн).*(курс|обучени)|какие (у меня )?курсы|что (мне )?(нужно )?пройти/.test(q)
-  const myManager = /(кто|мой|моя).*(руководител|начальник)/.test(q) && !/зарплат|оклад/.test(q)
-  const myHire = /(когда|дата).*(принят|приема|трудоустро)|мой стаж|сколько я работаю/.test(q)
-  if (!(balance || myRequests || myCourses || myManager || myHire)) return null
+async function tryPersonal(x: Query): Promise<AiAnswer | null> {
+  const intent = personalIntent(x)
+  if (!intent) return null
 
   const ctx = await context()
-  if (balance) {
+  if (intent === 'balance') {
     const v = ctx.vacation
+    const carry = v.carryover_from_last_year ?? 0
     return {
       status: 'personal',
-      text: `У вас доступно **${num(v.available, 1)} дн.** отпуска на ${v.year} год: положено ${num(v.entitled - (v.carryover_from_last_year ?? 0), 1)}${v.carryover_from_last_year ? ` + ${num(v.carryover_from_last_year, 1)} перенесено с прошлого года` : ''}, уже оформлено ${num(v.used, 1)}, на согласовании ${num(v.reserved, 1)}. Праздничные дни в отпуск не засчитываются.`,
-      sources: [PROFILE_SOURCE],
+      text: t('jana.balance', {
+        available: num(v.available, 1),
+        year: v.year,
+        entitled: num(v.entitled - carry, 1),
+        carryover: carry ? t('jana.balanceCarryover', { n: num(carry, 1) }) : '',
+        used: num(v.used, 1),
+        reserved: num(v.reserved, 1),
+      }),
+      sources: [profileSource()],
       mode: 'kb',
-      actions: [{ label: 'Оформить отпуск', to: '/requests?new=vacation' }],
+      actions: [action('vacation')],
     }
   }
-  if (myRequests) {
+  if (intent === 'requests') {
     if (!ctx.requests.length) {
-      return { status: 'personal', text: 'У вас пока нет заявок.', sources: [PROFILE_SOURCE], mode: 'kb', actions: [{ label: 'Новая заявка', to: '/requests?new=vacation' }] }
+      return { status: 'personal', text: t('jana.noRequests'), sources: [profileSource()], mode: 'kb', actions: [{ label: t('req.new'), to: '/requests?new=vacation' }] }
     }
     return {
       status: 'personal',
-      text: 'Ваши последние заявки:',
+      text: t('jana.myRequests'),
       table: {
-        columns: ['№', 'Тип', 'Детали', 'Статус'],
+        columns: [t('req.colNo'), t('req.colType'), t('req.details'), t('req.colStatus')],
         rows: ctx.requests.map((r) => [
           r.number,
-          r.type,
+          requestType(r.type),
           r.amount ? money(r.amount) : r.start_date ? fmtRange(r.start_date, r.end_date) : fmtDate(r.created_at),
-          STATUS_RU[r.status] ?? r.status,
+          requestStatus(r.status),
         ]),
       },
-      sources: [PROFILE_SOURCE],
+      sources: [profileSource()],
       mode: 'kb',
-      actions: [{ label: 'Мои заявки', to: '/requests' }],
+      actions: [{ label: t('nav.requests'), to: '/requests' }],
     }
   }
-  if (myCourses) {
-    if (!ctx.courses.length) return { status: 'personal', text: 'Назначенных курсов нет. Загляните в каталог Jana Academy.', sources: [PROFILE_SOURCE], mode: 'kb', actions: [{ label: 'Jana Academy', to: '/academy' }] }
+  if (intent === 'courses') {
+    if (!ctx.courses.length) {
+      return { status: 'personal', text: t('jana.noCourses'), sources: [profileSource()], mode: 'kb', actions: [{ label: 'Jana Academy', to: '/academy' }] }
+    }
     return {
       status: 'personal',
-      text: 'Ваше обучение в Jana Academy:',
+      text: t('jana.myCourses'),
       table: {
-        columns: ['Курс', 'Статус', 'Прогресс', 'Срок'],
-        rows: ctx.courses.map((c) => [c.title, COURSE_STATUS[c.status] ?? c.status, `${c.progress}%${c.score ? ` · тест ${c.score}%` : ''}`, c.due_date ? fmtDate(c.due_date) : '–']),
+        columns: [t('academy.course'), t('req.colStatus'), t('jana.col.progress'), t('jana.col.due')],
+        rows: ctx.courses.map((c) => [
+          c.title,
+          courseStatus(c.status),
+          `${c.progress}%${c.score ? ` · ${t('academy.testScore', { score: c.score })}` : ''}`,
+          c.due_date ? fmtDate(c.due_date) : '–',
+        ]),
       },
-      sources: [PROFILE_SOURCE],
+      sources: [profileSource()],
       mode: 'kb',
-      actions: [{ label: 'Открыть Jana Academy', to: '/academy' }],
+      actions: [{ label: t('jana.act.academy'), to: '/academy' }],
     }
   }
-  if (myManager) {
+  if (intent === 'manager') {
     return {
       status: 'personal',
-      text: ctx.profile.manager
-        ? `Ваш непосредственный руководитель: **${ctx.profile.manager}**. Он(а) первым согласует ваши заявки на отпуск и аванс.`
-        : 'В 1С:ЗУП у вас не указан непосредственный руководитель, поэтому заявки сразу попадают в HR.',
-      sources: [PROFILE_SOURCE],
+      text: ctx.profile.manager ? t('jana.manager', { name: ctx.profile.manager }) : t('jana.managerNone'),
+      sources: [profileSource()],
       mode: 'kb',
-      actions: [{ label: 'Мой профиль', to: '/profile' }],
+      actions: [{ label: t('nav.profile'), to: '/profile' }],
     }
   }
   return {
     status: 'personal',
-    text: `Вы приняты в ${ctx.profile.company} ${fmtDate(ctx.profile.hire_date)} на должность «${ctx.profile.position}».`,
-    sources: [PROFILE_SOURCE],
+    text: t('jana.hired', { company: ctx.profile.company, date: fmtDate(ctx.profile.hire_date), position: ctx.profile.position }),
+    sources: [profileSource()],
     mode: 'kb',
   }
 }
@@ -324,74 +367,71 @@ function isReliable(hit: KbHit): boolean {
   return (hit.matched >= 2 && coverage >= 0.5) || coverage >= 0.75
 }
 
-async function tryKnowledgeBase(question: string): Promise<AiAnswer | null> {
-  const { data, error } = await supabase.rpc('kb_search', { p_query: question, p_limit: 4 })
+async function kbSearch(query: string): Promise<KbHit[]> {
+  const { data, error } = await supabase.rpc('kb_search', { p_query: query, p_limit: 4 })
   if (error) throw new Error(error.message)
-  const hits = (data ?? []) as KbHit[]
-  const reliable = hits.filter(isReliable)
+  return ((data ?? []) as KbHit[]).filter(isReliable)
+}
+
+async function tryKnowledgeBase(x: Query): Promise<AiAnswer | null> {
+  // Статьи и поиск по ним русские: вопрос на другом языке сначала ищем по русскому запросу его темы
+  const ru = getLang() === 'ru'
+  const topic = kbTopicQuery(x)
+  const queries = [...new Set(ru ? [x.raw, topic] : [topic, x.raw])].filter((s): s is string => Boolean(s))
+  let reliable: KbHit[] = []
+  for (const query of queries) {
+    reliable = await kbSearch(query)
+    if (reliable.length) break
+  }
   if (!reliable.length) return null
   const top = reliable[0]
   // второй фрагмент той же статьи, если он тоже уверенно найден
   const extra = reliable.slice(1).find((h) => h.article_id === top.article_id && h.matched >= top.matched - 1)
   const parts = [top, ...(extra ? [extra] : [])]
+  const kind = articleAction(top.title)
   return {
     status: 'answered',
-    text: parts.map((h) => h.content).join('\n\n'),
+    text: [...(ru ? [] : [t('jana.kbInRussian')]), ...parts.map((h) => h.content)].join('\n\n'),
     sources: parts.map((h) => ({ kind: 'kb', title: h.title, slug: h.slug, heading: h.heading, source_title: h.source_title })),
     mode: 'kb',
-    actions: /отпуск/i.test(top.title)
-      ? [{ label: 'Оформить отпуск', to: '/requests?new=vacation' }]
-      : /аванс/i.test(top.title)
-        ? [{ label: 'Запросить аванс', to: '/requests?new=advance' }]
-        : /справк/i.test(top.title)
-          ? [{ label: 'Заказать справку', to: '/requests?new=certificate' }]
-          : undefined,
+    actions: kind ? [action(kind)] : undefined,
   }
 }
 
 /* ---------- Точка входа ---------- */
 
 export async function answerLocally(question: string, opts: { role: Role; firstName: string }): Promise<AiAnswer> {
-  const q = norm(question)
+  const x = prepare(question)
 
-  if (/^(привет|здравств|добрый (день|вечер)|доброе утро|салем|сәлем|hello|hi\b)/.test(q) || /(что|чем) (ты )?(умеешь|можешь помочь)|кто ты/.test(q)) {
+  if (isGreeting(x)) {
     return {
       status: 'smalltalk',
-      text:
-        'Здравствуйте! Я AI Jana, HR-помощник JanaMen. Подскажу, как оформить отпуск, аванс или справку, сколько у вас дней отпуска и статус заявок, что пройти в Jana Academy. Отвечаю только по базе знаний HR и всегда показываю источник.' +
-        (opts.role !== 'employee' ? ' Ещё могу показать цифры по вашей команде: кто в отпуске, у кого накопился отпуск, как идёт обучение.' : ''),
-      sources: [{ kind: 'kb', title: 'Как работает AI Jana', slug: 'ai-jana', heading: 'Откуда AI Jana берёт ответы', source_title: 'Политика использования AI Jana (демо)' }],
+      text: t('jana.greeting') + (opts.role !== 'employee' ? ` ${t('jana.greetingLead')}` : ''),
+      sources: [aiJanaSource('about')],
       mode: 'kb',
     }
   }
 
-  if (asksForOthersData(question, q, opts.firstName)) {
-    return {
-      status: 'refused',
-      text: 'Я не раскрываю персональные данные других сотрудников: зарплату, ИИН, адрес, сведения о здоровье. Это защищено политикой конфиденциальности и правами доступа JanaMen.',
-      sources: [{ kind: 'kb', title: 'Как работает AI Jana', slug: 'ai-jana', heading: 'Чего AI Jana не делает', source_title: 'Политика использования AI Jana (демо)' }],
-      mode: 'kb',
-    }
+  if (asksForOthersData(x, opts.firstName)) {
+    return { status: 'refused', text: t('jana.refusedOthers'), sources: [aiJanaSource('limits')], mode: 'kb' }
   }
 
-  const personal = await tryPersonal(q)
+  const personal = await tryPersonal(x)
   if (personal) return personal
 
-  const stats = await tryAnalytics(q, opts.role)
+  const stats = await tryAnalytics(x, opts.role)
   if (stats) return stats
 
-  const kb = await tryKnowledgeBase(question)
+  const kb = await tryKnowledgeBase(x)
   if (kb) return kb
 
-  return {
-    status: 'no_answer',
-    text: 'В базе знаний нет надёжного ответа на этот вопрос. Я не буду гадать, но могу передать вопрос в HR, и ответ придёт вам в уведомления.',
-    sources: [],
-    mode: 'kb',
-  }
+  return { status: 'no_answer', text: t('jana.noAnswer'), sources: [], mode: 'kb' }
 }
 
 /* ---------- Сервер (LLM) с откатом на встроенный режим ---------- */
+
+/** Подписи источников «профиль» и «аналитика» сервер пишет по-русски: заменяем на язык интерфейса */
+const localSource = (s: AiSource): AiSource => (s.kind === 'profile' ? profileSource() : s.kind === 'analytics' ? analyticsSource() : s)
 
 export async function askJana(
   question: string,
@@ -405,11 +445,13 @@ export async function askJana(
       const res = await fetch('/api/ai-jana', {
         method: 'POST',
         headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
-        body: JSON.stringify({ question, history }),
+        body: JSON.stringify({ question, history, lang: getLang() }),
       })
       if (res.ok && res.headers.get('content-type')?.includes('application/json')) {
-        const json = (await res.json()) as { status: AiAnswer['status']; answer: string; sources: AiSource[] }
-        return { status: json.status, text: json.answer, sources: json.sources ?? [], mode: 'llm' }
+        const json = (await res.json()) as { status: AiAnswer['status']; answer: string; sources: AiSource[]; canned?: 'refused' | 'no_answer' }
+        // Готовые фразы сервера (отказ модели, ответ без источника) показываем из словаря
+        const text = json.canned === 'refused' ? t('jana.llmRefused') : json.canned === 'no_answer' ? t('jana.noAnswer') : json.answer
+        return { status: json.status, text, sources: (json.sources ?? []).map(localSource), mode: 'llm' }
       }
     }
   } catch {

@@ -31,7 +31,7 @@ const SYSTEM_PROMPT = `Ты AI Jana, HR-ассистент сотруднико�
 3. Не раскрывай персональные данные других сотрудников: зарплату, ИИН, адрес, здоровье, личные контакты. На такие просьбы верни status "refused" и вежливо объясни причину. Агрегаты и списки из company_analytics показывать можно: инструмент сам ограничивает их ролью пользователя.
 4. Не принимай кадровых решений и не обещай одобрения заявок: только объясняй порядок и где оформить (раздел «Заявки» в JanaMen).
 5. Ссылайся на источники номерами из результата search_knowledge_base, например [1], и перечисли эти номера в поле citations. Не ссылайся на номера, которых не было в результатах.
-6. Отвечай кратко (до 6–8 предложений или короткий список), дружелюбно, на языке вопроса: русском или казахском. Даты пиши в формате ДД.ММ.ГГГГ, суммы в тенге (₸). Не используй длинное тире «—»: вместо него ставь запятую, двоеточие или точку.
+6. Отвечай кратко (до 6–8 предложений или короткий список), дружелюбно, на языке интерфейса пользователя: он указан в контексте вопроса. Статьи базы знаний на русском: переводи нужные сведения на язык ответа, а названия документов, курсов и подразделений оставляй как есть. Даты пиши в формате ДД.ММ.ГГГГ, суммы в тенге (₸). Не используй длинное тире «—»: вместо него ставь запятую, двоеточие или точку.
 7. На приветствие или вопрос «что ты умеешь» ответь коротко без инструментов (status "smalltalk"): помогаешь с отпуском, авансом, справками, обучением, правилами компании и показываешь источник.
 
 Поле status:
@@ -94,6 +94,17 @@ interface HistoryItem {
   content: string
 }
 
+// Языки интерфейса (src/locales/langs.ts): на каком языке отвечать
+const LANG_NAMES: Record<string, string> = {
+  ru: 'русский',
+  kk: 'казахский',
+  en: 'английский',
+  ky: 'кыргызский',
+  uz: 'узбекский (латиница)',
+  tg: 'таджикский',
+  mn: 'монгольский (кириллица)',
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST')
@@ -112,8 +123,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const body = (typeof req.body === 'string' ? JSON.parse(req.body) : req.body) as {
     question?: string
     history?: HistoryItem[]
+    lang?: string
   }
   const question = String(body?.question ?? '').trim()
+  const lang = body?.lang && LANG_NAMES[body.lang] ? body.lang : 'ru'
   if (!question || question.length > 1500) return res.status(400).json({ error: 'bad_question' })
 
   // Клиент Supabase от имени пользователя: RLS ограничивает всё, что увидит модель
@@ -210,15 +223,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         ...history,
         {
           role: 'user',
-          content: `Контекст: сегодня ${today}; пользователь: ${me.first_name} ${me.last_name}, ${me.position}; роль в JanaMen: ${me.role}.\n\nВопрос: ${question}`,
+          content: `Контекст: сегодня ${today}; пользователь: ${me.first_name} ${me.last_name}, ${me.position}; роль в JanaMen: ${me.role}; язык интерфейса: ${LANG_NAMES[lang]}, отвечай на нём.\n\nВопрос: ${question}`,
         },
       ],
     })
 
+    // canned: готовая фраза, клиент показывает её из своего словаря на языке интерфейса
     if (final.stop_reason === 'refusal') {
       return res.status(200).json({
         status: 'refused',
         answer: 'Я не могу ответить на этот вопрос. Если он касается работы, задайте его HR: кнопка ниже.',
+        canned: 'refused',
         sources: [],
         mode: 'llm',
       })
@@ -259,12 +274,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Защита от «ответа без опоры»: ответ по базе знаний без единого найденного источника не принимаем
     let status = parsed.status
     if (status === 'answered' && !sources.some((s) => s.kind === 'kb')) status = 'no_answer'
-    const answer =
-      status === 'no_answer' && parsed.status === 'answered'
-        ? 'В базе знаний нет надёжного ответа на этот вопрос. Я не буду гадать и могу передать вопрос в HR.'
-        : parsed.answer.replace(/\s*\[(\d+)\]/g, (match, n) => (registry.has(Number(n)) ? match : ''))
+    const unsupported = status === 'no_answer' && parsed.status === 'answered'
+    const answer = unsupported
+      ? 'В базе знаний нет надёжного ответа на этот вопрос. Я не буду гадать и могу передать вопрос в HR.'
+      : parsed.answer.replace(/\s*\[(\d+)\]/g, (match, n) => (registry.has(Number(n)) ? match : ''))
 
-    return res.status(200).json({ status, answer, sources, mode: 'llm' })
+    return res.status(200).json({ status, answer, ...(unsupported ? { canned: 'no_answer' } : {}), sources, mode: 'llm' })
   } catch (error) {
     if (error instanceof Anthropic.RateLimitError) {
       return res.status(503).json({ error: 'llm_rate_limited' })

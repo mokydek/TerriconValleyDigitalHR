@@ -89,7 +89,7 @@ export default function CoursePage() {
         </div>
       </Card>
 
-      <div className="grid gap-5 lg:grid-cols-[300px_1fr]">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[300px_1fr]">
         {/* Оглавление */}
         <Card className="h-fit p-2 lg:sticky lg:top-20">
           <ol>

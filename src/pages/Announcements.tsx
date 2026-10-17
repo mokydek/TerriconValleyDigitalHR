@@ -132,7 +132,7 @@ function NewAnnouncement({ open, onClose }: { open: boolean; onClose: () => void
         <Field label={t('ann.body')}>
           <textarea className="field min-h-[140px]" value={body} onChange={(e) => setBody(e.target.value)} />
         </Field>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label={t('ann.category')}>
             <select className="field" value={category} onChange={(e) => setCategory(e.target.value)}>
               {Object.entries(ANNOUNCEMENT_CATEGORIES).map(([k, v]) => (

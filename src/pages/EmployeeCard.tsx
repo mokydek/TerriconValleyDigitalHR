@@ -107,7 +107,7 @@ export default function EmployeeCardPage() {
         </Card>
       )}
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_1.3fr]">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_1.3fr]">
         <div className="space-y-4">
           <Card>
             <CardHeader

@@ -417,14 +417,15 @@ function ProfileMenu() {
 function MobileTabBar() {
   const { role } = useAuth()
   const { t } = useI18n()
+  // Короткие подписи nav.tab.*: полные названия меню («Пульс компании», «Jana Academy») не помещаются в 72 px
   const items: { to: string; key: I18nKey; icon: ReactNode; end?: boolean }[] = [
-    { to: '/', key: role === 'hr' ? 'nav.pulse' : 'nav.home', icon: role === 'hr' ? <HeartPulse className="h-5 w-5" /> : <Home className="h-5 w-5" />, end: true },
+    { to: '/', key: role === 'hr' ? 'nav.tab.pulse' : 'nav.home', icon: role === 'hr' ? <HeartPulse className="h-5 w-5" /> : <Home className="h-5 w-5" />, end: true },
     role === 'employee'
-      ? { to: '/requests', key: 'nav.requests', icon: <FileStack className="h-5 w-5" /> }
-      : { to: '/approvals', key: role === 'hr' ? 'nav.hrRequests' : 'nav.approvals', icon: <Inbox className="h-5 w-5" /> },
-    { to: '/academy', key: 'nav.academy', icon: <GraduationCap className="h-5 w-5" /> },
+      ? { to: '/requests', key: 'nav.tab.requests', icon: <FileStack className="h-5 w-5" /> }
+      : { to: '/approvals', key: role === 'hr' ? 'nav.hrRequests' : 'nav.tab.approvals', icon: <Inbox className="h-5 w-5" /> },
+    { to: '/academy', key: 'nav.tab.academy', icon: <GraduationCap className="h-5 w-5" /> },
     { to: '/assistant', key: 'nav.assistant', icon: <Sparkles className="h-5 w-5" /> },
-    { to: '/tasks', key: 'nav.tasks', icon: <ClipboardList className="h-5 w-5" /> },
+    { to: '/tasks', key: 'nav.tab.tasks', icon: <ClipboardList className="h-5 w-5" /> },
   ]
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
@@ -439,7 +440,7 @@ function MobileTabBar() {
               }
             >
               {it.icon}
-              <span className="max-w-full truncate px-1">{t(it.key)}</span>
+              <span className="max-w-full truncate px-0.5">{t(it.key)}</span>
             </NavLink>
           </li>
         ))}

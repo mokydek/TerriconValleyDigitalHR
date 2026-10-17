@@ -50,7 +50,7 @@ export default function IntegrationsPage() {
               </li>
             </ul>
             <div className="rounded-xl border border-line p-4">
-              <div className="flex items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <div className="text-sm font-semibold">{t('integr.zup.sync')}</div>
                   <div className="text-xs text-muted">{t('integr.zup.lastSync', { date: pending.data?.last_sync ? fmtDateTime(pending.data.last_sync) : '–' })}</div>
@@ -105,7 +105,13 @@ export default function IntegrationsPage() {
           <div className="space-y-3 px-5 pb-5 text-sm text-ink-soft">
             <p>{t('integr.dl.text1')}</p>
             <p>{t('integr.dl.text2')}</p>
-            <Button variant="outline" icon={<RefreshCw className="h-4 w-4" />} loading={worker.isPending} onClick={() => worker.mutate()}>
+            <Button
+              variant="outline"
+              icon={<RefreshCw className="h-4 w-4" />}
+              loading={worker.isPending}
+              onClick={() => worker.mutate()}
+              className="h-auto min-h-10 max-w-full py-2 text-left whitespace-normal"
+            >
               {t('integr.dl.process')}
             </Button>
           </div>

@@ -87,12 +87,12 @@ export function PeopleTable({ canFollow }: { canFollow: boolean }) {
             <option key={d}>{d}</option>
           ))}
         </select>
-        <div className="inline-flex rounded-xl bg-white p-1 ring-1 ring-line">
+        <div className="scrollbar-thin inline-flex max-w-full overflow-x-auto rounded-xl bg-white p-1 ring-1 ring-line">
           {(['all', 'active', 'vacation', 'newbie'] as const).map((s) => (
             <button
               key={s}
               onClick={() => setState(s)}
-              className={cn('rounded-lg px-3 py-1.5 text-sm font-medium whitespace-nowrap', state === s ? 'bg-brand-600 text-white' : 'text-ink-soft hover:bg-canvas')}
+              className={cn('rounded-lg px-2.5 py-1.5 text-sm font-medium whitespace-nowrap sm:px-3', state === s ? 'bg-brand-600 text-white' : 'text-ink-soft hover:bg-canvas')}
             >
               {s === 'all' ? t('common.all') : t(STATE[s].label)}
             </button>

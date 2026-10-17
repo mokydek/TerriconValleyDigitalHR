@@ -45,7 +45,7 @@ function ArticleList() {
         {groups.map(([cat, items]) => (
           <section key={cat}>
             <h2 className="mb-3 text-sm font-semibold tracking-wide text-muted uppercase">{cat}</h2>
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {items.map((a) => (
                 <Link key={a.id} to={`/knowledge/${a.slug}`} className="card group p-4 transition hover:border-brand-300">
                   <div className="flex items-start justify-between gap-2">

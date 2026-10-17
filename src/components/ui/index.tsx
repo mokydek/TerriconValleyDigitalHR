@@ -84,7 +84,7 @@ export function CardHeader({
       <div className="flex min-w-0 items-start gap-3">
         {icon && <div className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand-700">{icon}</div>}
         <div className="min-w-0">
-          <h3 className="truncate text-[15px] font-semibold text-ink">{title}</h3>
+          <h3 className="text-[15px] font-semibold break-words text-ink">{title}</h3>
           {subtitle && <p className="mt-0.5 text-sm text-muted">{subtitle}</p>}
         </div>
       </div>

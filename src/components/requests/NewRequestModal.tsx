@@ -162,7 +162,7 @@ export function NewRequestModal({
       }
     >
       {!type && (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {REQUEST_TYPES.map((rt) => (
             <button
               key={rt}
@@ -195,7 +195,7 @@ export function NewRequestModal({
               </div>
             </div>
           )}
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field label={t('req.from')}>
               <input type="date" className="field" value={start} min={isoDate(new Date())} onChange={(e) => setStart(e.target.value)} data-testid="vac-start" />
             </Field>
@@ -259,7 +259,7 @@ export function NewRequestModal({
               ))}
             </select>
           </Field>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field label={t('req.language')}>
               <select className="field" value={language} onChange={(e) => setLanguage(e.target.value)}>
                 {LANGS.filter((l) => CERT_LANGS.includes(l.code)).map((l) => (

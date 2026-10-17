@@ -99,7 +99,7 @@ export default function AcademyPage() {
 
       {tab === 'mine' &&
         (mine.isLoading ? (
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {[1, 2, 3].map((i) => (
               <Skeleton key={i} className="h-60" />
             ))}
@@ -114,7 +114,7 @@ export default function AcademyPage() {
             />
           </Card>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {[...assigned]
               .sort((a, b) => (a.status === 'completed' ? 1 : 0) - (b.status === 'completed' ? 1 : 0))
               .map((a) => (
@@ -124,7 +124,7 @@ export default function AcademyPage() {
         ))}
 
       {tab === 'catalog' && (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {(courses.data ?? []).map((c) => (
             <CourseCard key={c.id} course={c} assignment={byCourse.get(c.id)} lessons={lessonCounts.data?.[c.id]} />
           ))}
@@ -165,7 +165,7 @@ function ManageLearning({ courses }: { courses: Course[] }) {
           {t('academy.assignCourse')}
         </Button>
       </div>
-      <div className="grid gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
         {funnel.data &&
           [
             { label: t('academy.assignedCount'), value: funnel.data.assigned },
@@ -313,7 +313,7 @@ export function AssignCourseModal({
       }
     >
       <div className="space-y-4">
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label={t('academy.course')}>
             <select className="field" value={effectiveCourse} onChange={(e) => setCourseId(e.target.value)}>
               {courseList.map((c) => (

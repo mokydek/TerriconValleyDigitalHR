@@ -57,7 +57,8 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="grid min-h-dvh lg:grid-cols-[1.05fr_1fr]">
+    // grid-cols-1 (minmax(0, 1fr)): без него колонка на телефоне растягивается по строке с truncate и страница шире экрана
+    <div className="grid min-h-dvh grid-cols-1 lg:grid-cols-[1.05fr_1fr]">
       {/* Бренд-панель */}
       <div className="relative hidden overflow-hidden bg-[#0f2a12] text-white lg:flex lg:flex-col lg:justify-between lg:p-12">
         <svg className="pointer-events-none absolute inset-0 h-full w-full opacity-40" viewBox="0 0 800 800" preserveAspectRatio="none" aria-hidden>

@@ -12,6 +12,12 @@ export default {
   'nav.knowledge': 'База знаний',
   'nav.notifications': 'Уведомления',
   'nav.tasks': 'Задачи',
+  // Нижняя панель на телефоне: ячейка 72 px, подпись в одну строку не длиннее ~68 px шрифтом 10,5 px
+  'nav.tab.pulse': 'Пульс',
+  'nav.tab.requests': 'Мои заявки',
+  'nav.tab.approvals': 'Заявки',
+  'nav.tab.academy': 'Academy',
+  'nav.tab.tasks': 'Задачи',
   'nav.announcements': 'Объявления',
   'nav.team': 'Моя команда',
   'nav.employees': 'Сотрудники',

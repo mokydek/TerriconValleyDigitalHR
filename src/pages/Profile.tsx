@@ -112,7 +112,7 @@ export default function ProfilePage() {
                 </span>
               }
             />
-            <dl className="grid gap-x-8 px-5 pb-4 sm:grid-cols-2">
+            <dl className="grid grid-cols-1 gap-x-8 px-5 pb-4 sm:grid-cols-2">
               <Item label={t('profile.fullName')} value={fullFio} />
               <Item label={t('profile.company')} value={me.company} />
               <Item label={t('profile.position')} value={me.position} />

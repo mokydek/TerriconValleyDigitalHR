@@ -14,7 +14,7 @@ export default function AssistantPage() {
   const tickets = useTickets('mine')
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_320px]">
       <Card className="flex h-[calc(100dvh-170px)] min-h-[520px] flex-col p-4 sm:p-5">
         <div className="mb-3 flex items-center justify-between gap-3 border-b border-line pb-3">
           <div className="flex items-center gap-3">

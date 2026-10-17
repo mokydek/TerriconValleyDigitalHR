@@ -326,7 +326,7 @@ function NewTaskModal({ open, onClose }: { open: boolean; onClose: () => void })
         <Field label={t('tasks.description')} hint={t('tasks.optional')}>
           <textarea className="field min-h-[72px]" value={description} onChange={(e) => setDescription(e.target.value)} />
         </Field>
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <Field label={t('tasks.priority')}>
             <select className="field" value={priority} onChange={(e) => setPriority(e.target.value)}>
               {Object.entries(PRIORITY_META).map(([k, v]) => (

@@ -188,7 +188,7 @@ function LearningTab() {
       ]
     : []
   return (
-    <div className="grid gap-4 xl:grid-cols-2">
+    <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
       <Card>
         <CardHeader title={t('analytics.funnel.title')} subtitle={t('analytics.funnel.subtitle')} />
         <div className="space-y-3 px-5 pb-5">
@@ -283,7 +283,7 @@ function RequestsTab() {
   const stages = times.data?.stages ?? []
   const bottleneck = stages.length ? stages.reduce((acc, s) => (s.avg_hours > acc.avg_hours ? s : acc)) : null
   return (
-    <div className="grid gap-4 xl:grid-cols-2">
+    <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
       <Card>
         <CardHeader title={t('analytics.stages.title')} subtitle={t('analytics.stages.subtitle')} />
         <div className="space-y-4 px-5 pb-5">
@@ -359,7 +359,7 @@ function AiTab() {
   const { data } = useAnalytics<AiInsights>('ai_insights')
   if (!data) return <Skeleton className="h-80" />
   return (
-    <div className="grid gap-4 xl:grid-cols-2">
+    <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
       <div className="grid grid-cols-2 gap-3 xl:col-span-2 xl:grid-cols-4">
         <Kpi label={t('analytics.ai.questions')} value={num(data.total)} icon={<Bot className="h-4 w-4" />} />
         <Kpi label={t('analytics.ai.answered')} value={`${data.answered_pct}%`} icon={<Bot className="h-4 w-4" />} tone="brand" />
@@ -465,7 +465,7 @@ function LogisticsTab() {
           </ResponsiveContainer>
         </div>
       </Card>
-      <div className="grid gap-4 xl:grid-cols-[1.4fr_1fr]">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.4fr_1fr]">
         <Card>
           <CardHeader title={t('analytics.staff.title')} subtitle={t('analytics.staff.subtitle')} action={<ForecastBadge />} />
           <div className="px-3 pb-4">

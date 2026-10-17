@@ -50,7 +50,7 @@ export default {
   'academy.dueField': 'Срок прохождения',
   'academy.employees': 'Сотрудники',
   'academy.selectAll': 'Выбрать всех ({n})',
-  'course.passedToast': 'Тест сдан: {score}% 🎉',
+  'course.passedToast': 'Тест сдан: {score}%',
   'course.failedToast': 'Результат {score}%, нужно {pass}%',
   'course.passScore': 'проходной балл {n}%',
   'course.certificate': 'Сертификат',

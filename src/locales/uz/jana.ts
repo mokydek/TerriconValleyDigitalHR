@@ -2,7 +2,7 @@ import type ru from '../ru/jana'
 
 export default {
   'jana.greeting':
-    'Assalomu alaykum! Men AI Jana, JanaMen HR yordamchisiman. Taʼtil, avans yoki maʼlumotnomani qanday rasmiylashtirish, sizda necha kun taʼtil borligi va arizalaringiz holati, Jana Academyda nimalarni oʻtish kerakligi haqida aytib beraman. Faqat HR bilimlar bazasi asosida javob beraman va doim manbasini koʻrsataman.',
+    'Assalomu alaykum! Men AI Jana, JanaMen HR yordamchisiman. Taʼtil, avans yoki maʼlumotnomani qanday rasmiylashtirish, sizda necha kun taʼtil borligi va arizalaringiz holati, vazifalaringiz va ularning muddatlari, Jana Academyda nimalarni oʻtish kerakligi, eng yaqin bayram qachonligi va kompaniyada qanday yangiliklar borligi haqida aytib beraman. Faqat HR bilimlar bazasi va sizning maʼlumotlaringiz asosida javob beraman va doim manbasini koʻrsataman.',
   'jana.greetingLead': 'Jamoangiz boʻyicha raqamlarni ham koʻrsata olaman: kim taʼtilda, kimda taʼtil kunlari yigʻilib qolgan, oʻqish qanday ketmoqda.',
   'jana.refusedOthers':
     'Men boshqa xodimlarning shaxsiy maʼlumotlarini oshkor qilmayman: maoshi, JShShIR, manzili, sogʻligʻi haqidagi maʼlumotlar. Bu maxfiylik siyosati va JanaMen kirish huquqlari bilan himoyalangan.',
@@ -34,7 +34,7 @@ export default {
   'jana.onVacation': '{period} ({range}) {scope} taʼtilda {n} kishi.',
   'jana.onVacationNone': '{period} {scope} hech kim taʼtilda emas.',
   'jana.overdue': '{scope} muddati oʻtgan oʻqish: {n}.',
-  'jana.overdueNone': '{scope} muddati oʻtgan oʻqish yoʻq. 👏',
+  'jana.overdueNone': '{scope} muddati oʻtgan oʻqish yoʻq.',
   'jana.inWork': '{scope} ishda {n} ta ariza bor. Eng eskisi {days} kundan beri kutmoqda.',
   'jana.inWorkNone': '{scope} ishdagi arizalar yoʻq.',
   'jana.newcomers': '{scope} soʻnggi 90 kundagi yangi xodimlar: {n}.',

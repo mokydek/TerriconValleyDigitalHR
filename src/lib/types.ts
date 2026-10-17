@@ -120,7 +120,9 @@ export interface Course {
   title: string
   description: string | null
   category: string
-  emoji: string
+  /** ключ собственной иконки курса (CourseIcon) */
+  icon: string
+  summary: string | null
   duration_minutes: number
   is_mandatory: boolean
   pass_score: number
@@ -133,6 +135,10 @@ export interface Lesson {
   title: string
   content: string
   duration_minutes: number
+  kind: 'article' | 'video' | 'practice'
+  video_id: string | null
+  video_title: string | null
+  video_channel: string | null
 }
 
 export interface Question {
@@ -206,17 +212,50 @@ export interface Task {
   status: 'todo' | 'in_progress' | 'review' | 'done'
   category: string
   due_date: string | null
+  /** дедлайн с точным временем */
+  due_at: string | null
+  kind: TaskKind
+  course_id: string | null
+  checklist: { text: string; done: boolean }[]
+  result_note: string | null
+  submitted_at: string | null
+  review_comment: string | null
   started_at: string | null
   completed_at: string | null
   created_at: string
   assignee?: Pick<Employee, 'id' | 'first_name' | 'last_name' | 'position'> | null
   creator?: Pick<Employee, 'id' | 'first_name' | 'last_name' | 'position'> | null
+  course?: Pick<Course, 'id' | 'slug' | 'title' | 'duration_minutes' | 'icon'> | null
+}
+
+export type TaskKind = 'simple' | 'course' | 'report' | 'checklist'
+
+export interface TaskAttachment {
+  id: string
+  task_id: string
+  author_id: string | null
+  name: string
+  mime: string
+  size: number
+  created_at: string
+}
+
+export interface LessonCheck {
+  id: string
+  lesson_id: string
+  sort: number
+  question: string
+  options: string[]
+  explanation: string | null
 }
 
 export interface Announcement {
   id: string
   title: string
+  summary: string | null
   body: string
+  cover: string
+  image: string | null
   category: string
   pinned: boolean
   audience_department_id: string | null

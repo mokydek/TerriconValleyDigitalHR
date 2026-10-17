@@ -1,14 +1,16 @@
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowRight, Bell, CalendarClock, ClipboardList, FileStack, GraduationCap, Megaphone, Palmtree, Pin } from '@/components/icons'
+import { ArrowRight, Bell, CheckCircle2, ClipboardList, FileStack, GraduationCap, Megaphone, Palmtree, Pin } from '@/components/icons'
 import { useAuth } from '@/lib/auth'
 import { useI18n } from '@/lib/i18n'
 import { useAnnouncements, useMarkNotificationRead, useMyAssignments, useMyRequests, useNotifications, useTasks, useVacationBalance } from '@/lib/api'
-import { ANNOUNCEMENT_CATEGORIES, PRIORITY_META } from '@/lib/constants'
+import { ANNOUNCEMENT_CATEGORIES } from '@/lib/constants'
 import { days, entitledText, fmtDate, fullName, timeAgo } from '@/lib/format'
 import { serverText } from '@/lib/serverText'
 import { cn } from '@/lib/utils'
 import { Avatar, Badge, Card, CardHeader, Empty, Progress, ProgressRing, Skeleton } from '@/components/ui'
 import { requestSummary, StatusBadge, TypeLabel } from '@/components/requests/RequestParts'
+import { DeadlineChip, PriorityStars } from '@/components/tasks/TaskParts'
+import { CourseIcon } from '@/components/academy/CourseIcon'
 
 export function ProfileCard() {
   const { me } = useAuth()
@@ -141,11 +143,14 @@ export function MyLearningCard() {
             <Link key={a.id} to={`/academy/${a.course?.slug}`} className="block rounded-xl border border-line p-3 transition hover:border-brand-300">
               <div className="flex items-start justify-between gap-2">
                 <div className="flex min-w-0 items-center gap-2">
-                  <span className="text-lg">{a.course?.emoji}</span>
+                  <CourseIcon name={a.course?.icon} className="h-9 w-9" />
                   <span className="truncate text-sm font-medium">{a.course?.title}</span>
                 </div>
                 {a.status === 'completed' ? (
-                  <Badge className="bg-brand-50 text-brand-700 ring-brand-200">✓ {a.score}%</Badge>
+                  <Badge className="bg-brand-50 text-brand-700 ring-brand-200">
+                    <CheckCircle2 className="mr-1 inline h-3 w-3" />
+                    {a.score}%
+                  </Badge>
                 ) : overdue ? (
                   <Badge className="bg-rose-50 text-rose-700 ring-rose-200">{t('home.courseOverdue')}</Badge>
                 ) : a.due_date ? (
@@ -183,29 +188,24 @@ export function MyTasksCard() {
       <ul className="px-2 pb-3">
         {isLoading && <Skeleton className="mx-3 h-12" />}
         {!isLoading && open.length === 0 && <Empty title={t('home.noTasks')} text={t('home.noTasksText')} />}
-        {open.map((task) => {
-          const overdue = task.due_date && new Date(task.due_date) < new Date(new Date().toDateString())
-          return (
-            <li key={task.id}>
-              <Link to="/tasks" className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition hover:bg-canvas">
-                <span className={cn('h-2.5 w-2.5 shrink-0 rounded-full', task.status === 'in_progress' ? 'bg-sky-500' : task.status === 'review' ? 'bg-violet-500' : 'bg-line')} />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium text-ink">{task.title}</span>
-                  <span className="text-xs text-muted">
-                    {t('home.taskFrom', { name: task.creator ? fullName(task.creator) : '–' })}
-                    {task.due_date && (
-                      <span className={cn(overdue && 'font-medium text-rose-600')}>
-                        {' '}
-                        · <CalendarClock className="inline h-3 w-3" /> {fmtDate(task.due_date, 'd MMM')}
-                      </span>
-                    )}
-                  </span>
+        {open.map((task) => (
+          <li key={task.id}>
+            <Link
+              to={task.kind === 'course' && task.course ? `/academy/${task.course.slug}` : `/tasks?open=${task.id}`}
+              className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition hover:bg-canvas active:scale-[0.99]"
+            >
+              <span className={cn('h-2.5 w-2.5 shrink-0 rounded-full', task.status === 'in_progress' ? 'bg-sky-500' : task.status === 'review' ? 'bg-violet-500' : 'bg-line')} />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-medium text-ink">{task.title}</span>
+                <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted">
+                  <DeadlineChip task={task} compact />
+                  {task.creator && task.creator.id !== task.assignee_id && <span className="truncate">{t('home.taskFrom', { name: fullName(task.creator) })}</span>}
                 </span>
-                <Badge className={PRIORITY_META[task.priority].style}>{PRIORITY_META[task.priority].label}</Badge>
-              </Link>
-            </li>
-          )
-        })}
+              </span>
+              <PriorityStars value={task.priority} />
+            </Link>
+          </li>
+        ))}
       </ul>
     </Card>
   )
@@ -236,7 +236,7 @@ export function NewsCard({ limit = 3 }: { limit?: number }) {
                 <div className="flex items-center gap-2">
                   {a.pinned && <Pin className="h-3.5 w-3.5 text-brand-600" />}
                   <Badge className={cat.style}>
-                    {cat.emoji} {cat.label}
+                    <cat.icon className="h-3 w-3" /> {cat.label}
                   </Badge>
                   {!a.read && <span className="h-2 w-2 rounded-full bg-brand-500" title={t('home.unread')} />}
                   <span className="ml-auto text-xs text-muted">{timeAgo(a.created_at)}</span>

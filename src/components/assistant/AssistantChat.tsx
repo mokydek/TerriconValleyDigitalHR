@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowUp, BookOpenCheck, ChartColumnBig, CircleAlert, ShieldAlert, Sparkles, UserRound, UsersRound } from '@/components/icons'
+import { ArrowUp, BookOpenCheck, CalendarDays, ChartColumnBig, CheckCircle2, CircleAlert, Megaphone, ShieldAlert, Sparkles, UserRound, UsersRound } from '@/components/icons'
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/auth'
 import { useI18n, type I18nKey } from '@/lib/i18n'
@@ -87,9 +87,9 @@ export function useAssistant() {
 
 // Примеры вопросов по ролям: ключи словаря, текст подставляется на языке интерфейса при отрисовке
 const SUGGESTIONS: Record<string, I18nKey[]> = {
-  employee: ['ai.q.myVacationDays', 'ai.q.advance', 'ai.q.moveVacation', 'ai.q.myRequests', 'ai.q.payday', 'ai.q.nightShift'],
-  manager: ['ai.q.vacationNextWeek', 'ai.q.over30Days', 'ai.q.safetyWorst', 'ai.q.approvalTime', 'ai.q.myVacationDays'],
-  hr: ['ai.q.vacationNextWeek', 'ai.q.over30Days', 'ai.q.safetyWorst', 'ai.q.pendingCount', 'ai.q.lateLearning', 'ai.q.vacationIn1c'],
+  employee: ['ai.q.myTasks', 'ai.q.myVacationDays', 'ai.q.advance', 'ai.q.myRequests', 'ai.q.nextHoliday', 'ai.q.payday', 'ai.q.nightShift'],
+  manager: ['ai.q.toReview', 'ai.q.vacationNextWeek', 'ai.q.over30Days', 'ai.q.safetyWorst', 'ai.q.approvalTime', 'ai.q.myTasks'],
+  hr: ['ai.q.toReview', 'ai.q.vacationNextWeek', 'ai.q.over30Days', 'ai.q.safetyWorst', 'ai.q.pendingCount', 'ai.q.lateLearning', 'ai.q.news'],
 }
 
 function StatusChip({ answer }: { answer: AiAnswer }) {
@@ -171,7 +171,15 @@ function AssistantBubble({ msg, compact }: { msg: ChatMessage; compact?: boolean
                   {a.table.rows.slice(0, compact ? 8 : 30).map((r, i) => (
                     <tr key={i} className="border-t border-line">
                       {r.map((c, j) => (
-                        <td key={j} className="px-3 py-1.5 whitespace-nowrap text-ink">
+                        <td
+                          key={j}
+                          className={cn(
+                            'px-3 py-1.5 text-ink',
+                            // первый столбец (название) переносится, остальные короткие и в одну строку
+                            j === 0 ? 'min-w-[11rem] whitespace-normal' : 'whitespace-nowrap',
+                            typeof c === 'string' && /^[★☆]+$/.test(c) && 'tracking-wider text-amber-500',
+                          )}
+                        >
                           {c}
                         </td>
                       ))}
@@ -204,7 +212,15 @@ function AssistantBubble({ msg, compact }: { msg: ChatMessage; compact?: boolean
                     </Link>
                   ) : (
                     <span key={i} className="inline-flex items-center gap-2 rounded-lg bg-canvas px-2.5 py-1.5 text-[12.5px] text-ink-soft">
-                      {s.kind === 'analytics' ? <UsersRound className="h-3.5 w-3.5 text-violet-600" /> : <UserRound className="h-3.5 w-3.5 text-sky-600" />}
+                      {s.kind === 'analytics' ? (
+                        <UsersRound className="h-3.5 w-3.5 text-violet-600" />
+                      ) : s.icon === 'calendar' ? (
+                        <CalendarDays className="h-3.5 w-3.5 text-brand-600" />
+                      ) : s.icon === 'news' ? (
+                        <Megaphone className="h-3.5 w-3.5 text-brand-600" />
+                      ) : (
+                        <UserRound className="h-3.5 w-3.5 text-sky-600" />
+                      )}
                       {s.title}
                     </span>
                   ),
@@ -221,8 +237,8 @@ function AssistantBubble({ msg, compact }: { msg: ChatMessage; compact?: boolean
           ))}
           {(a.status === 'no_answer' || a.status === 'refused') &&
             (msg.escalated ? (
-              <span className="inline-flex items-center rounded-lg bg-brand-50 px-3 py-1.5 text-sm text-brand-700">
-                ✓ {t('ai.ticketSent', { n: msg.escalated })}
+              <span className="inline-flex animate-rise items-center gap-1.5 rounded-lg bg-brand-50 px-3 py-1.5 text-sm text-brand-700">
+                <CheckCircle2 className="h-4 w-4" /> {t('ai.ticketSent', { n: msg.escalated })}
               </span>
             ) : (
               <Button

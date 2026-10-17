@@ -5,7 +5,7 @@ export default {
   'tasks.in_progress': 'In progress',
   'tasks.review': 'In review',
   'tasks.done': 'Done',
-  'tasks.doneToast': 'Task No. {n} completed 🎉',
+  'tasks.doneToast': 'Task No. {n} completed',
   'tasks.dragHint': 'Drag a card to change its status',
   'tasks.teamSubtitle': 'Team tasks',
   'tasks.new': 'New task',

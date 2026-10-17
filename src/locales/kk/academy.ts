@@ -51,7 +51,7 @@ export default {
   'academy.dueField': 'Өту мерзімі',
   'academy.employees': 'Қызметкерлер',
   'academy.selectAll': 'Барлығын таңдау ({n})',
-  'course.passedToast': 'Тесттен өттіңіз: {score}% 🎉',
+  'course.passedToast': 'Тесттен өттіңіз: {score}%',
   'course.failedToast': 'Нәтиже {score}%, қажеті {pass}%',
   'course.passScore': 'өту балы {n}%',
   'course.certificate': 'Сертификат',

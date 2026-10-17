@@ -95,7 +95,7 @@ export default {
   'excel.done': 'Excel fayli tayyor',
   'excel.failed': 'Excel faylini yaratib boʻlmadi',
   'team.subtitle': 'Maoshlar va shaxsiy maʼlumotlar rahbarga koʻrsatilmaydi',
-  'employees.subtitle': '⭐ “Kuzatuvda” xodim boʻyicha bildirishnomalarni yoqadi',
+  'employees.subtitle': '“Kuzatuvda” xodim boʻyicha bildirishnomalarni yoqadi',
   'notif.all': 'Barcha bildirishnomalar',
   'notif.unread': 'Oʻqilmaganlar',
   'notif.kind.request': 'Arizalar',

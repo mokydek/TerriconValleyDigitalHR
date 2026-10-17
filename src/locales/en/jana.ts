@@ -2,7 +2,7 @@ import type ru from '../ru/jana'
 
 export default {
   'jana.greeting':
-    'Hello! I’m AI Jana, the JanaMen HR assistant. I can tell you how to request a vacation, a salary advance or a certificate, how many vacation days you have and where your requests stand, and what to complete in Jana Academy. I answer only from the HR knowledge base and always show the source.',
+    'Hello! I’m AI Jana, the JanaMen HR assistant. I can tell you how to request a vacation, a salary advance or a certificate, how many vacation days you have and where your requests stand, what tasks and deadlines you have, what to complete in Jana Academy, when the next public holiday is and what’s new at the company. I answer only from the HR knowledge base and your own data, and always show the source.',
   'jana.greetingLead': 'I can also show figures for your team: who’s on vacation, who has built up vacation days, and how training is going.',
   'jana.refusedOthers':
     'I don’t disclose other employees’ personal data: salary, IIN, address or health information. It’s protected by the privacy policy and JanaMen access rights.',
@@ -34,7 +34,7 @@ export default {
   'jana.onVacation': '{period} ({range}), {n} {n|person is|people are} on vacation {scope}.',
   'jana.onVacationNone': '{period}, nobody {scope} is on vacation.',
   'jana.overdue': 'Overdue training {scope}: {n}.',
-  'jana.overdueNone': 'No overdue training {scope}. 👏',
+  'jana.overdueNone': 'No overdue training {scope}.',
   'jana.inWork': '{n} {n|request is|requests are} in progress {scope}. The oldest has been waiting {days} {days|day|days}.',
   'jana.inWorkNone': 'No requests in progress {scope}.',
   'jana.newcomers': 'Newcomers in the last 90 days {scope}: {n}.',

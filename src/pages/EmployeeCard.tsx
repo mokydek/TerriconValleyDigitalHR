@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ClipboardList, GraduationCap, Lock, Mail, Phone, Plus, RefreshCw } from '@/components/icons'
+import { ArrowLeft, ClipboardList, GraduationCap, Lock, Mail, Phone, Plus, RefreshCw } from '@/components/icons'
 import { useAuth } from '@/lib/auth'
 import { tr, useI18n } from '@/lib/i18n'
 import { useCourses, useEmployee, useEmployeeRequests, useMyAssignments, usePeople, useRequestEvents, useTasks, useVacationBalance } from '@/lib/api'
-import { PRIORITY_META } from '@/lib/constants'
+import { DeadlineChip, KindChip, PriorityStars } from '@/components/tasks/TaskParts'
 import { days, fmtDate, fmtDateTime, fullName, money } from '@/lib/format'
 import type { HrRequest } from '@/lib/types'
 import { Avatar, Badge, Button, Card, CardHeader, Empty, ErrorBox, PageLoader, Progress } from '@/components/ui'
@@ -57,8 +57,8 @@ export default function EmployeeCardPage() {
 
   return (
     <div>
-      <Link to={isHr ? '/employees' : '/team'} className="mb-3 inline-flex items-center gap-1 text-sm text-muted hover:text-brand-700">
-        ← {isHr ? t('nav.employees') : t('nav.team')}
+      <Link to={isHr ? '/employees' : '/team'} className="group mb-3 inline-flex items-center gap-1 text-sm text-muted hover:text-brand-700">
+        <ArrowLeft className="h-4 w-4 transition group-hover:-translate-x-0.5" /> {isHr ? t('nav.employees') : t('nav.team')}
       </Link>
       <Card className="mb-5 p-5">
         <div className="flex flex-col gap-4 md:flex-row md:items-center">
@@ -174,7 +174,7 @@ export default function EmployeeCardPage() {
                     <li key={a.id}>
                       <div className="flex items-center justify-between gap-2 text-sm">
                         <span className="truncate font-medium">
-                          {a.course?.emoji} {a.course?.title}
+                          {a.course?.title}
                         </span>
                         {a.status === 'completed' ? (
                           <Badge className="bg-brand-50 text-brand-700 ring-brand-200">{a.score}%</Badge>
@@ -209,19 +209,21 @@ export default function EmployeeCardPage() {
               <CardHeader icon={<ClipboardList className="h-[18px] w-[18px]" />} title={t('nav.tasks')} />
               <ul className="divide-y divide-line border-t border-line">
                 {(tasks.data ?? []).length === 0 && <li className="px-5 py-4 text-sm text-muted">{t('emp.noTasks')}</li>}
-                {(tasks.data ?? []).map((task) => {
-                  const overdue = task.status !== 'done' && task.due_date && new Date(task.due_date) < new Date(new Date().toDateString())
-                  return (
-                    <li key={task.id} className="flex items-center gap-3 px-5 py-2.5 text-sm">
+                {(tasks.data ?? []).map((task) => (
+                  <li key={task.id}>
+                    <Link to={`/tasks?open=${task.id}`} className="flex items-center gap-3 px-5 py-2.5 text-sm transition hover:bg-canvas">
                       <span className="min-w-0 flex-1">
                         <span className="block truncate font-medium">{task.title}</span>
-                        <span className={overdue ? 'text-xs font-medium text-rose-600' : 'text-xs text-muted'}>{task.due_date ? t('emp.until', { date: fmtDate(task.due_date, 'd MMM') }) : t('emp.noDue')}</span>
+                        <span className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                          {task.status !== 'done' && <DeadlineChip task={task} compact />}
+                          <KindChip kind={task.kind} />
+                        </span>
                       </span>
-                      <Badge className={PRIORITY_META[task.priority].style}>{PRIORITY_META[task.priority].label}</Badge>
+                      <PriorityStars value={task.priority} />
                       <Badge className={task.status === 'done' ? 'bg-brand-50 text-brand-700 ring-brand-200' : 'bg-canvas text-ink-soft ring-line'}>{t(`tasks.${task.status}`)}</Badge>
-                    </li>
-                  )
-                })}
+                    </Link>
+                  </li>
+                ))}
               </ul>
             </Card>
           </div>

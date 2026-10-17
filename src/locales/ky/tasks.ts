@@ -5,7 +5,7 @@ export default {
   'tasks.in_progress': 'Иште',
   'tasks.review': 'Текшерүүдө',
   'tasks.done': 'Даяр',
-  'tasks.doneToast': '№{n} тапшырма аткарылды 🎉',
+  'tasks.doneToast': '№{n} тапшырма аткарылды',
   'tasks.dragHint': 'Абалын өзгөртүү үчүн карточканы сүйрөңүз',
   'tasks.teamSubtitle': 'Команданын тапшырмалары',
   'tasks.new': 'Жаңы тапшырма',

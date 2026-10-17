@@ -51,7 +51,7 @@ export default {
   'academy.dueField': 'Дуусгах хугацаа',
   'academy.employees': 'Ажилтнууд',
   'academy.selectAll': 'Бүгдийг сонгох ({n})',
-  'course.passedToast': 'Шалгалтад тэнцлээ: {score}% 🎉',
+  'course.passedToast': 'Шалгалтад тэнцлээ: {score}%',
   'course.failedToast': 'Үр дүн {score}%, {pass}% шаардлагатай',
   'course.passScore': 'тэнцэх оноо {n}%',
   'course.certificate': 'Гэрчилгээ',

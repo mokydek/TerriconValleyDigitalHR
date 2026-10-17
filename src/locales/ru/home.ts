@@ -91,7 +91,7 @@ export default {
   'home.tasksAllDone': 'Все задачи выполнены',
   'home.noTasks': 'Задач нет',
   'home.noTasksText': 'Новые задачи от руководителя появятся здесь',
-  'home.taskFrom': 'от {name}',
+  'home.taskFrom': 'Поставил(а): {name}',
   'home.unread': 'Не прочитано',
   'home.notifNew': '{n} {n|новое|новых|новых}',
   'home.notifAllRead': 'Всё прочитано',

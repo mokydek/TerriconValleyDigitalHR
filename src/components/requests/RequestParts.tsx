@@ -1,12 +1,13 @@
 import { Link } from 'react-router-dom'
-import { Ban, Check, Clock3, FileText, Loader2, Palmtree, Pencil, Wallet, X } from '@/components/icons'
+import { Ban, Check, Clock3, FileText, Palmtree, Pencil, Truck, Wallet, X } from '@/components/icons'
+import { toast } from 'sonner'
 import { t, useI18n, type I18nKey } from '@/lib/i18n'
 import { CERT_PURPOSES, certPurposeLabel, dataFieldLabel, REQUEST_TYPE_META, STATUS_STYLE } from '@/lib/constants'
 import { days, duration, fmtDateTime, fmtRange, fullName, money } from '@/lib/format'
 import { serverText } from '@/lib/serverText'
 import type { HrRequest, RequestEvent, RequestStatus, RequestType } from '@/lib/types'
 import { cn } from '@/lib/utils'
-import { Badge } from '@/components/ui'
+import { Badge, useMounted } from '@/components/ui'
 
 export function StatusBadge({ status }: { status: RequestStatus }) {
   const { t } = useI18n()
@@ -109,46 +110,94 @@ export function requestStages(r: HrRequest, events: RequestEvent[] = []): Stage[
   return stages
 }
 
+/**
+ * Трек заявки в стиле отслеживания посылки Jańa Post: трек-номер, дорога с этапами
+ * и грузовичок, который «доезжает» до текущего этапа. Готово = доставлено.
+ */
 export function RequestStepper({ request, events }: { request: HrRequest; events?: RequestEvent[] }) {
   const { t } = useI18n()
+  const mounted = useMounted()
   const stages = requestStages(request, events)
+  const failed = stages.some((s) => s.state === 'failed')
+  const finished = stages.every((s) => s.state === 'done' || s.state === 'skipped')
+  const currentIdx = finished ? stages.length - 1 : Math.max(0, stages.findIndex((s) => s.state === 'current' || s.state === 'failed' || s.state === 'todo'))
+  const pct = stages.length > 1 ? currentIdx / (stages.length - 1) : 1
+  const current = stages[currentIdx]
+  const moving = !finished && !failed
+  const track = `JP-HR-${String(request.number).padStart(6, '0')}`
   return (
-    <ol className="flex items-start">
-      {stages.map((s, i) => (
-        <li key={s.key} className="flex flex-1 flex-col items-center text-center">
-          <div className="flex w-full items-center">
-            <div className={cn('h-0.5 flex-1', i === 0 ? 'bg-transparent' : stages[i - 1].state === 'done' || stages[i - 1].state === 'skipped' ? 'bg-brand-400' : 'bg-line')} />
-            <div
-              className={cn(
-                'grid h-8 w-8 shrink-0 place-items-center rounded-full border-2 text-xs font-bold',
-                s.state === 'done' && 'border-brand-500 bg-brand-500 text-white',
-                s.state === 'current' && 'border-brand-500 bg-white text-brand-600 ring-4 ring-brand-100',
-                s.state === 'todo' && 'border-line bg-white text-muted',
-                s.state === 'skipped' && 'border-dashed border-line bg-canvas text-muted',
-                s.state === 'failed' && 'border-rose-500 bg-rose-500 text-white',
-              )}
-            >
-              {s.state === 'done' ? (
-                <Check className="h-4 w-4" />
-              ) : s.state === 'failed' ? (
-                <X className="h-4 w-4" />
-              ) : s.state === 'current' ? (
-                s.key === '1c' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Clock3 className="h-4 w-4" />
-              ) : s.state === 'skipped' ? (
-                '–'
-              ) : (
-                i + 1
-              )}
-            </div>
-            <div className={cn('h-0.5 flex-1', i === stages.length - 1 ? 'bg-transparent' : s.state === 'done' || s.state === 'skipped' ? 'bg-brand-400' : 'bg-line')} />
-          </div>
-          <span className={cn('mt-1.5 text-[11.5px] font-medium', s.state === 'current' ? 'text-brand-700' : s.state === 'failed' ? 'text-rose-600' : 'text-muted')}>
-            {t(s.labelKey)}
-            {s.state === 'skipped' && <span className="block text-[10px] font-normal">{t('req.stepSkipped')}</span>}
+    <div className="rounded-2xl bg-gradient-to-br from-brand-50 to-white p-4 ring-1 ring-brand-100" data-testid="parcel-track">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <div className="text-[11px] font-semibold tracking-wider text-muted uppercase">{t('r2.trackNo')}</div>
+          <button
+            type="button"
+            className="font-mono text-sm font-bold text-ink transition hover:text-brand-700 active:scale-95"
+            title={t('r2.copy')}
+            onClick={() => {
+              void navigator.clipboard?.writeText(track)
+              toast.success(t('r2.copied'))
+            }}
+          >
+            {track}
+          </button>
+        </div>
+        <span
+          className={cn(
+            'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold',
+            failed ? 'bg-rose-50 text-rose-700' : finished ? 'bg-brand-600 text-white' : 'bg-white text-brand-700 ring-1 ring-brand-200',
+          )}
+        >
+          {failed ? <X className="h-3.5 w-3.5" /> : finished ? <Check className="h-3.5 w-3.5" /> : <Truck className="h-3.5 w-3.5" />}
+          {failed ? t('r2.stopped') : finished ? t('r2.delivered') : t('r2.onTheWay', { stage: t(current.labelKey) })}
+        </span>
+      </div>
+
+      {/* Дорога */}
+      <div className="relative mx-4 mt-6 mb-1 h-9">
+        <div className="absolute top-1/2 right-0 left-0 h-1 -translate-y-1/2 rounded-full bg-line" />
+        <div
+          className={cn('absolute top-1/2 left-0 h-1 -translate-y-1/2 rounded-full transition-[width] duration-1000 ease-[cubic-bezier(0.22,1,0.36,1)]', failed ? 'bg-rose-400' : 'bg-brand-500')}
+          style={{ width: `${(mounted ? pct : 0) * 100}%` }}
+        />
+        {moving && (
+          <div
+            className="absolute top-1/2 h-1 -translate-y-1/2 bg-[repeating-linear-gradient(90deg,var(--color-brand-300)_0_8px,transparent_8px_16px)] [animation:road_0.8s_linear_infinite]"
+            style={{ left: `${pct * 100}%`, width: `${(1 - pct) * 100}%` }}
+          />
+        )}
+        {stages.map((st, i) => (
+          <span
+            key={st.key}
+            className={cn(
+              'absolute top-1/2 grid h-4 w-4 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full ring-4 ring-white transition-colors duration-500',
+              st.state === 'done' ? 'bg-brand-500' : st.state === 'failed' ? 'bg-rose-500' : st.state === 'skipped' ? 'bg-line' : 'bg-white ring-brand-100 outline-2 outline-line',
+            )}
+            style={{ left: `${(i / Math.max(1, stages.length - 1)) * 100}%` }}
+          />
+        ))}
+        {/* Грузовичок */}
+        <div
+          className="absolute top-1/2 -translate-x-1/2 -translate-y-[85%] transition-[left] duration-1000 ease-[cubic-bezier(0.22,1,0.36,1)]"
+          style={{ left: `${(mounted ? pct : 0) * 100}%` }}
+        >
+          <span className={cn('grid h-8 w-8 place-items-center rounded-xl text-white shadow-md', failed ? 'bg-rose-500' : 'bg-brand-600', moving && 'animate-[float_1.6s_ease-in-out_infinite]')}>
+            {finished ? <Check className="h-4 w-4" /> : <Truck className="h-4 w-4" />}
           </span>
-        </li>
-      ))}
-    </ol>
+        </div>
+      </div>
+
+      <ol className="mt-3 grid" style={{ gridTemplateColumns: `repeat(${stages.length}, minmax(0, 1fr))` }}>
+        {stages.map((st) => (
+          <li key={st.key} className="text-center">
+            <span className={cn('block text-[11.5px] font-semibold', st.state === 'current' ? 'text-brand-700' : st.state === 'failed' ? 'text-rose-600' : st.state === 'done' ? 'text-ink' : 'text-muted')}>
+              {t(st.labelKey)}
+            </span>
+            {st.state === 'skipped' && <span className="block text-[10px] text-muted">{t('req.stepSkipped')}</span>}
+          </li>
+        ))}
+      </ol>
+    </div>
   )
 }
 

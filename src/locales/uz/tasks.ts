@@ -5,7 +5,7 @@ export default {
   'tasks.in_progress': 'Jarayonda',
   'tasks.review': 'Tekshiruvda',
   'tasks.done': 'Tayyor',
-  'tasks.doneToast': '№{n} vazifa bajarildi 🎉',
+  'tasks.doneToast': '№{n} vazifa bajarildi',
   'tasks.dragHint': 'Holatni oʻzgartirish uchun kartani sudrang',
   'tasks.teamSubtitle': 'Jamoa vazifalari',
   'tasks.new': 'Yangi vazifa',

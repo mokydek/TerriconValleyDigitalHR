@@ -51,7 +51,7 @@ export default {
   'academy.dueField': 'Oʻtish muddati',
   'academy.employees': 'Xodimlar',
   'academy.selectAll': 'Hammasini tanlash ({n})',
-  'course.passedToast': 'Testdan oʻtdingiz: {score}% 🎉',
+  'course.passedToast': 'Testdan oʻtdingiz: {score}%',
   'course.failedToast': 'Natija {score}%, {pass}% kerak',
   'course.passScore': 'oʻtish bali {n}%',
   'course.certificate': 'Sertifikat',

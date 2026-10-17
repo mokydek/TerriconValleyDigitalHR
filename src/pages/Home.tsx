@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom'
 import {
   ArrowRight,
   BadgeCheck,
-  Bell,
   BellRing,
   Bot,
   CalendarDays,
@@ -14,12 +13,12 @@ import {
   GraduationCap,
   HeartPulse,
   Inbox,
-  LayoutGrid,
   LineChart,
   Megaphone,
-  MessageCircleQuestion,
+  UserRound,
   Palmtree,
-  Sparkles,
+  PenLine,
+  FileStack,
   Users,
   Wallet,
 } from '@/components/icons'
@@ -34,11 +33,9 @@ import {
   useHrDashboard,
   useMyAssignments,
   useMyRequests,
-  useNotifications,
   usePeople,
   useRefreshWatchAlerts,
   useTasks,
-  useTickets,
   useWorkRequests,
 } from '@/lib/api'
 import { fmtDate, fullName, num, todayLabel } from '@/lib/format'
@@ -46,7 +43,9 @@ import { useQuery } from '@tanstack/react-query'
 import { must, supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 import { Avatar, Button, Card, CardHeader, Empty, ErrorBox, Kpi, Skeleton, Tabs } from '@/components/ui'
-import { MyLearningCard, MyRequestsCard, MyTasksCard, NewsCard, NotificationsCard, ProfileCard } from '@/components/home/Widgets'
+import { MyLearningCard, MyRequestsCard, MyTasksCard, NewsCard, ProfileCard } from '@/components/home/Widgets'
+import { MyDay } from '@/components/home/MyDay'
+import { LeadActions } from '@/components/home/LeadActions'
 import { RequestDrawer } from '@/components/requests/RequestDrawer'
 import { requestSummary, TypeLabel, WaitingTimer } from '@/components/requests/RequestParts'
 import { AttentionZone, WatchlistCard } from '@/components/hr/HrBlocks'
@@ -66,7 +65,7 @@ function QuickServices() {
     { label: t('home.qVacation'), icon: <Palmtree className="h-5 w-5" />, to: '/requests?new=vacation', tone: 'bg-brand-50 text-brand-700' },
     { label: t('home.qAdvance'), icon: <Wallet className="h-5 w-5" />, to: '/requests?new=advance', tone: 'bg-brand-50 text-brand-700' },
     { label: t('home.qCertificate'), icon: <FileText className="h-5 w-5" />, to: '/requests?new=certificate', tone: 'bg-brand-50 text-brand-700' },
-    { label: t('home.qAsk'), icon: <Sparkles className="h-5 w-5" />, to: '/assistant', tone: 'bg-brand-50 text-brand-700' },
+    { label: t('d2.qData'), icon: <PenLine className="h-5 w-5" />, to: '/requests?new=data_change', tone: 'bg-brand-50 text-brand-700' },
   ]
   return (
     // на телефоне — одна компактная строка из четырёх кнопок, чтобы главная помещалась без прокрутки
@@ -75,10 +74,10 @@ function QuickServices() {
         <button
           key={it.label}
           onClick={() => navigate(it.to)}
-          className="card group flex min-w-0 flex-col items-center gap-1.5 px-1 py-3 text-center transition hover:-translate-y-0.5 hover:border-brand-300 sm:flex-row sm:gap-3 sm:p-4 sm:text-left"
+          className="card lift group flex min-w-0 flex-col items-center gap-1.5 px-1 py-3 text-center hover:border-brand-300 sm:flex-row sm:gap-3 sm:p-4 sm:text-left"
           data-testid={`quick-${it.to.split('=')[1] ?? 'ai'}`}
         >
-          <span className={cn('grid h-10 w-10 shrink-0 place-items-center rounded-xl sm:h-11 sm:w-11', it.tone)}>{it.icon}</span>
+          <span className={cn('grid h-10 w-10 shrink-0 place-items-center rounded-xl transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6 sm:h-11 sm:w-11', it.tone)}>{it.icon}</span>
           <span className="text-[12px] leading-tight font-semibold text-ink sm:text-[14.5px]">{it.label}</span>
         </button>
       ))}
@@ -94,7 +93,9 @@ function WelcomeBanner() {
   if (!me || !welcome) return null
   return (
     <div className="mb-6 flex flex-col gap-4 rounded-3xl bg-gradient-to-r from-brand-600 to-brand-800 p-5 text-white sm:flex-row sm:items-center">
-      <div className="text-4xl">👋</div>
+      <div className="grid h-14 w-14 shrink-0 animate-float place-items-center rounded-2xl bg-white/15">
+        <GraduationCap className="h-7 w-7" />
+      </div>
       <div className="flex-1">
         <div className="text-lg font-semibold">{t('home.welcomeTitle', { name: me.first_name })}</div>
         <div className="text-sm text-white/85">{t('home.welcomeText')}</div>
@@ -248,7 +249,7 @@ function TeamKpis() {
 
 /* ================= HR: «Пульс компании» ================= */
 
-const PULSE_TABS = ['attention', 'watchlist', 'charts'] as const
+const PULSE_TABS = ['attention', 'watchlist', 'charts', 'me'] as const
 type PulseTab = (typeof PULSE_TABS)[number]
 
 function PulseCharts() {
@@ -279,14 +280,10 @@ function PulseCharts() {
 function HrPulse() {
   const { t } = useI18n()
   const dash = useHrDashboard()
-  const tickets = useTickets('all')
-  const work = useWorkRequests(0)
   const attention = useAttentionZone()
   const people = usePeople()
   const [tab, setTab] = useTabParam<PulseTab>(PULSE_TABS, 'attention')
   useRefreshWatchAlerts(true)
-  const openTickets = (tickets.data ?? []).filter((x) => x.status === 'open').length
-  const atHr = (work.data ?? []).filter((r) => r.status === 'approved' || (r.status === 'pending' && r.approver?.role === 'hr')).length
   const d = dash.data
 
   return (
@@ -298,22 +295,11 @@ function HrPulse() {
             <HeartPulse className="h-7 w-7 text-brand-600" /> {t('nav.pulse')}
           </h1>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Link to="/approvals">
-            <Button variant={atHr ? 'primary' : 'outline'} icon={<Inbox className="h-4 w-4" />}>
-              {t('home.processRequests')} {atHr > 0 && <span className="rounded-full bg-white/25 px-1.5 text-xs">{atHr}</span>}
-            </Button>
-          </Link>
-          <Link to="/tickets">
-            <Button variant="outline" icon={<MessageCircleQuestion className="h-4 w-4" />}>
-              {t('home.tickets')} {openTickets > 0 && <span className="rounded-full bg-rose-500 px-1.5 text-xs text-white">{openTickets}</span>}
-            </Button>
-          </Link>
-        </div>
       </div>
+      <LeadActions />
 
       {dash.error && <ErrorBox error={dash.error} onRetry={() => void dash.refetch()} />}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+      <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         {!d ? (
           Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-[110px]" />)
         ) : (
@@ -336,6 +322,7 @@ function HrPulse() {
           { value: 'attention', label: <TabLabel icon={<BellRing className="h-4 w-4" />}>{t('hr.attention')}</TabLabel>, count: attention.data?.length },
           { value: 'watchlist', label: <TabLabel icon={<Eye className="h-4 w-4" />}>{t('hr.watchlist')}</TabLabel>, count: (people.data ?? []).filter((p) => p.followed).length },
           { value: 'charts', label: <TabLabel icon={<LineChart className="h-4 w-4" />}>{t('home.tabCharts')}</TabLabel> },
+          { value: 'me', label: <TabLabel icon={<UserRound className="h-4 w-4" />}>{t('cc.me')}</TabLabel> },
         ]}
       />
       {tab === 'attention' && <AttentionZone />}
@@ -345,13 +332,20 @@ function HrPulse() {
         </div>
       )}
       {tab === 'charts' && <PulseCharts />}
+      {/* HR тоже сотрудник: свои задачи, обучение, отпуск и заявки */}
+      {tab === 'me' && (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.5fr_1fr]">
+          <MyDay />
+          <ProfileCard />
+        </div>
+      )}
     </div>
   )
 }
 
 /* ================= Работник и руководитель ================= */
 
-const WORK_TABS = ['team', 'overview', 'tasks', 'learning', 'news', 'notifications'] as const
+const WORK_TABS = ['team', 'overview', 'tasks', 'learning', 'news'] as const
 type WorkTab = (typeof WORK_TABS)[number]
 
 function WorkerHome({ manager, teamPending = 0 }: { manager?: boolean; teamPending?: number }) {
@@ -363,20 +357,18 @@ function WorkerHome({ manager, teamPending = 0 }: { manager?: boolean; teamPendi
   const tasks = useTasks('mine')
   const learning = useMyAssignments()
   const news = useAnnouncements(10)
-  const notifications = useNotifications()
   const icon = 'h-4 w-4'
 
   const items: { value: WorkTab; label: ReactNode; count?: number }[] = [
     ...(manager ? [{ value: 'team' as const, label: <TabLabel icon={<Users className={icon} />}>{t('home.tabTeam')}</TabLabel>, count: teamPending }] : []),
     {
       value: 'overview',
-      label: <TabLabel icon={<LayoutGrid className={icon} />}>{t('home.tabOverview')}</TabLabel>,
+      label: <TabLabel icon={<FileStack className={icon} />}>{t('nav.requests')}</TabLabel>,
       count: (requests.data ?? []).filter((r) => r.status === 'pending' || r.status === 'approved' || r.status === 'processing').length,
     },
     { value: 'tasks', label: <TabLabel icon={<ClipboardList className={icon} />}>{t('home.tabTasks')}</TabLabel>, count: (tasks.data ?? []).filter((x) => x.status !== 'done').length },
     { value: 'learning', label: <TabLabel icon={<GraduationCap className={icon} />}>{t('home.tabLearning')}</TabLabel>, count: (learning.data ?? []).filter((a) => a.status !== 'completed').length },
     { value: 'news', label: <TabLabel icon={<Megaphone className={icon} />}>{t('home.tabNews')}</TabLabel>, count: (news.data ?? []).filter((a) => !a.read).length },
-    { value: 'notifications', label: <TabLabel icon={<Bell className={icon} />}>{t('home.tabNotifications')}</TabLabel>, count: (notifications.data ?? []).filter((n) => !n.read_at).length },
   ]
 
   return (
@@ -384,11 +376,17 @@ function WorkerHome({ manager, teamPending = 0 }: { manager?: boolean; teamPendi
       <Greeting />
       <WelcomeBanner />
       <QuickServices />
+      {/* «Мой день» и профиль: всё срочное и главное о себе без переходов */}
+      <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-[1.5fr_1fr]">
+        <MyDay />
+        <ProfileCard />
+      </div>
 
       <Tabs<WorkTab> value={tab} onChange={setTab} items={items} className="mt-6 mb-4" />
 
       {tab === 'team' && (
         <div className="space-y-4">
+          <LeadActions />
           <TeamKpis />
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.5fr_1fr]">
             <TeamApprovals />
@@ -396,22 +394,11 @@ function WorkerHome({ manager, teamPending = 0 }: { manager?: boolean; teamPendi
           </div>
         </div>
       )}
-      {tab === 'overview' && (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.5fr_1fr]">
-          {/* на телефоне сначала профиль и остаток отпуска */}
-          <div className="min-w-0 lg:order-2">
-            <ProfileCard />
-          </div>
-          <div className="min-w-0 lg:order-1">
-            <MyRequestsCard onOpen={setOpenRequest} />
-          </div>
-        </div>
-      )}
-      <div className="max-w-3xl">
+      <div className="max-w-4xl">
+        {tab === 'overview' && <MyRequestsCard onOpen={setOpenRequest} />}
         {tab === 'tasks' && <MyTasksCard />}
         {tab === 'learning' && <MyLearningCard />}
         {tab === 'news' && <NewsCard limit={6} />}
-        {tab === 'notifications' && <NotificationsCard />}
       </div>
       <MyRequestDrawer id={openRequest} onClose={() => setOpenRequest(null)} />
     </div>

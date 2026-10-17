@@ -51,7 +51,7 @@ export default {
   'academy.dueField': 'Due date',
   'academy.employees': 'Employees',
   'academy.selectAll': 'Select all ({n})',
-  'course.passedToast': 'Test passed: {score}% 🎉',
+  'course.passedToast': 'Test passed: {score}%',
   'course.failedToast': 'Score {score}%, {pass}% required',
   'course.passScore': 'pass mark {n}%',
   'course.certificate': 'Certificate',

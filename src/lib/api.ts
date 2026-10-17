@@ -21,6 +21,9 @@ import type {
   RequestEvent,
   RequestType,
   Task,
+  TaskAttachment,
+  TaskKind,
+  LessonCheck,
   VacationBalance,
 } from './types'
 
@@ -339,7 +342,15 @@ export function useCourse(slug?: string) {
         must(supabase.from('lesson_progress').select('lesson_id').eq('employee_id', me!.id)) as Promise<{ lesson_id: string }[]>,
       ])
       const done = new Set(progress.map((p) => p.lesson_id))
-      return { course, lessons, questions, assignment, done }
+      const lessonIds = lessons.map((l) => l.id)
+      const [checks, answered] = await Promise.all([
+        lessonIds.length
+          ? (must(supabase.from('lesson_checks').select('*').in('lesson_id', lessonIds).order('sort')) as Promise<LessonCheck[]>)
+          : Promise.resolve([] as LessonCheck[]),
+        must(supabase.from('lesson_check_answers').select('check_id,correct').eq('employee_id', me!.id)) as Promise<{ check_id: string; correct: boolean }[]>,
+      ])
+      const solved = new Set(answered.filter((a) => a.correct).map((a) => a.check_id))
+      return { course, lessons, questions, assignment, done, checks, solved }
     },
   })
 }
@@ -349,6 +360,17 @@ function invalidateAcademy(qc: ReturnType<typeof useQueryClient>) {
   void qc.invalidateQueries({ queryKey: ['assignments'] })
   void qc.invalidateQueries({ queryKey: ['notifications'] })
   void qc.invalidateQueries({ queryKey: ['hr'] })
+}
+
+export function useAnswerCheck() {
+  return useMutation({
+    mutationFn: async (p: { checkId: string; index: number }) =>
+      (await must(supabase.rpc('answer_lesson_check', { p_check: p.checkId, p_index: p.index }))) as {
+        correct: boolean
+        explanation: string | null
+        correct_index: number | null
+      },
+  })
 }
 
 export function useCompleteLesson() {
@@ -380,7 +402,7 @@ export function useAssignCourse() {
 /* ======================= Задачи ======================= */
 
 const TASK_SELECT =
-  '*, assignee:employees!tasks_assignee_fk(id,first_name,last_name,position), creator:employees!tasks_creator_fk(id,first_name,last_name,position)'
+  '*, assignee:employees!tasks_assignee_fk(id,first_name,last_name,position), creator:employees!tasks_creator_fk(id,first_name,last_name,position), course:courses!tasks_course_fk(id,slug,title,duration_minutes,icon)'
 
 export function useTasks(scope: 'mine' | 'created' | 'team' | 'employee', employeeId?: string) {
   const { me } = useAuth()
@@ -388,7 +410,7 @@ export function useTasks(scope: 'mine' | 'created' | 'team' | 'employee', employ
     queryKey: ['tasks', scope, employeeId ?? me?.id],
     enabled: Boolean(me),
     queryFn: async () => {
-      let q = supabase.from('tasks').select(TASK_SELECT).order('due_date', { ascending: true, nullsFirst: false })
+      let q = supabase.from('tasks').select(TASK_SELECT).order('due_at', { ascending: true, nullsFirst: false })
       if (scope === 'mine') q = q.eq('assignee_id', me!.id)
       if (scope === 'created') q = q.eq('created_by', me!.id)
       if (scope === 'team') q = q.neq('assignee_id', me!.id)
@@ -409,25 +431,98 @@ export function useUpdateTask() {
   })
 }
 
+export interface NewTaskInput {
+  title: string
+  description: string
+  priority: string
+  category: string
+  dueAt: string | null
+  assignees: string[]
+  kind: TaskKind
+  courseId: string | null
+  checklist: { text: string; done: boolean }[]
+}
+
 export function useAssignTasks() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (p: { title: string; description: string; priority: string; category: string; due: string | null; assignees: string[] }) =>
+    mutationFn: async (p: NewTaskInput) =>
       must(
         supabase.rpc('assign_tasks', {
           p_title: p.title,
           p_description: p.description,
           p_priority: p.priority,
           p_category: p.category,
-          p_due: p.due,
+          p_due: null,
           p_assignees: p.assignees,
+          p_kind: p.kind,
+          p_course: p.courseId,
+          p_checklist: p.checklist,
+          p_due_at: p.dueAt,
         }),
       ) as Promise<number>,
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['tasks'] })
       void qc.invalidateQueries({ queryKey: ['hr'] })
+      void qc.invalidateQueries({ queryKey: ['assignments'] })
     },
   })
+}
+
+/** Принять отчёт по задаче или вернуть на доработку */
+export function useReviewTask() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (p: { id: string; accept: boolean; comment?: string }) =>
+      must(supabase.rpc('review_task', { p_task: p.id, p_accept: p.accept, p_comment: p.comment ?? null })),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['tasks'] })
+      void qc.invalidateQueries({ queryKey: ['task'] })
+    },
+  })
+}
+
+export function useTask(id?: string | null) {
+  return useQuery({
+    queryKey: ['task', id],
+    enabled: Boolean(id),
+    queryFn: async () => (await must(supabase.from('tasks').select(TASK_SELECT).eq('id', id!).maybeSingle())) as Task | null,
+  })
+}
+
+const ATTACHMENT_FIELDS = 'id,task_id,author_id,name,mime,size,created_at'
+
+export function useTaskAttachments(taskId?: string) {
+  return useQuery({
+    queryKey: ['task-attachments', taskId],
+    enabled: Boolean(taskId),
+    queryFn: async () =>
+      (await must(supabase.from('task_attachments').select(ATTACHMENT_FIELDS).eq('task_id', taskId!).order('created_at'))) as TaskAttachment[],
+  })
+}
+
+export function useAddAttachment() {
+  const qc = useQueryClient()
+  const { me } = useAuth()
+  return useMutation({
+    mutationFn: async (p: { taskId: string; name: string; mime: string; size: number; data: string }) =>
+      must(supabase.from('task_attachments').insert({ task_id: p.taskId, author_id: me!.id, name: p.name, mime: p.mime, size: p.size, data: p.data })),
+    onSuccess: (_d, p) => void qc.invalidateQueries({ queryKey: ['task-attachments', p.taskId] }),
+  })
+}
+
+export function useDeleteAttachment() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (p: { id: string; taskId: string }) => must(supabase.from('task_attachments').delete().eq('id', p.id)),
+    onSuccess: (_d, p) => void qc.invalidateQueries({ queryKey: ['task-attachments', p.taskId] }),
+  })
+}
+
+/** Содержимое вложения грузим только по клику: в списке хватает имени и размера */
+export async function fetchAttachmentData(id: string): Promise<string> {
+  const row = (await must(supabase.from('task_attachments').select('data').eq('id', id).single())) as { data: string }
+  return row.data
 }
 
 /* ======================= Объявления ======================= */
@@ -468,8 +563,16 @@ export function useMarkAnnouncementRead() {
 export function useCreateAnnouncement() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (a: { title: string; body: string; category: string; pinned: boolean; audience_department_id: string | null }) =>
-      must(supabase.from('announcements').insert(a)),
+    mutationFn: async (a: {
+      title: string
+      summary: string | null
+      body: string
+      category: string
+      cover: string
+      image: string | null
+      pinned: boolean
+      audience_department_id: string | null
+    }) => must(supabase.from('announcements').insert(a)),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['announcements'] }),
   })
 }
@@ -590,6 +693,27 @@ export function useAttentionAction() {
       void qc.invalidateQueries({ queryKey: ['hr'] })
       void qc.invalidateQueries({ queryKey: ['assignments'] })
     },
+  })
+}
+
+/** Действия «Зоны внимания» пачкой: напомнить всем, поторопить всех, назначить всем */
+export function useAttentionBulk() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (items: { action: string; employee_id: string; ref_id: string | null }[]) =>
+      must(supabase.rpc('attention_bulk', { p_items: items })) as Promise<number>,
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['hr'] })
+      void qc.invalidateQueries({ queryKey: ['assignments'] })
+    },
+  })
+}
+
+/** Своё напоминание группе сотрудников */
+export function useSendReminder() {
+  return useMutation({
+    mutationFn: async (p: { employees: string[]; title: string; body: string; link: string }) =>
+      must(supabase.rpc('send_reminder', { p_employees: p.employees, p_title: p.title, p_body: p.body, p_link: p.link })) as Promise<number>,
   })
 }
 

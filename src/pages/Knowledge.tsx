@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
-import { BookOpen, FileText, Lock, Search, Sparkles } from '@/components/icons'
+import { ArrowLeft, BookOpen, FileText, Lock, Search, Sparkles } from '@/components/icons'
 import { t, useI18n } from '@/lib/i18n'
 import { useKbArticle, useKbArticles } from '@/lib/api'
 import { fmtDate } from '@/lib/format'
@@ -92,8 +92,8 @@ function Article({ slug }: { slug: string }) {
   const sections = data.content.split(/\n(?=## )/)
   return (
     <div className="mx-auto max-w-3xl">
-      <Link to="/knowledge" className="mb-3 inline-flex items-center gap-1 text-sm text-muted hover:text-brand-700">
-        ← {t('kb.back')}
+      <Link to="/knowledge" className="group mb-3 inline-flex items-center gap-1 text-sm text-muted hover:text-brand-700">
+        <ArrowLeft className="h-4 w-4 transition group-hover:-translate-x-0.5" /> {t('kb.back')}
       </Link>
       <Card className="p-6 sm:p-8">
         <div className="flex flex-wrap items-center gap-2">

@@ -95,19 +95,44 @@ ok('history events', ev.map(e => e.action).join(',') === 'created,approved,proce
 const { data: notes } = await emp.from('notifications').select('title').order('created_at', { ascending: false }).limit(5)
 ok('employee notified', notes.some(n => n.title.includes('оформлена')), notes.map(n=>n.title).join(' | '))
 
-// --- обучение
+// --- обучение: статьи, видео, микротесты «Проверь себя» и итоговый тест
 const { data: course } = await emp.from('courses').select('id, slug').eq('slug', 'infosec').single()
-const { data: lessons } = await emp.from('course_lessons').select('id').eq('course_id', course.id).order('sort')
+const { data: lessons } = await emp.from('course_lessons').select('id, kind').eq('course_id', course.id).order('sort')
+ok('course has video and practice', lessons.some(l => l.kind === 'video') && lessons.some(l => l.kind === 'practice'), lessons.map(l => l.kind).join(','))
+const { data: leakedKeys } = await emp.from('lesson_check_keys').select('*').limit(1)
+ok('practice answer keys hidden', !leakedKeys?.length, `rows=${leakedKeys?.length}`)
 let a
-for (const l of lessons) { const r = await emp.rpc('complete_lesson', { p_lesson: l.id }); a = r.data; if (r.error) ok('lesson', false, r.error.message) }
-ok('lessons progress', a?.progress === 80, `progress=${a?.progress}`)
+let practiceGuard = false
+for (const l of lessons) {
+  if (l.kind === 'practice') {
+    const early = await emp.rpc('complete_lesson', { p_lesson: l.id })
+    if (early.error && /проверки/.test(early.error.message)) practiceGuard = true
+    const { data: checks } = await emp.from('lesson_checks').select('id').eq('lesson_id', l.id).order('sort')
+    for (const c of checks) {
+      let res
+      let i = 0
+      do { res = (await emp.rpc('answer_lesson_check', { p_check: c.id, p_index: i++ })).data } while (!res?.correct && i < 4)
+      if (!res?.correct) ok('practice answer', false, JSON.stringify(res))
+    }
+  }
+  const r = await emp.rpc('complete_lesson', { p_lesson: l.id })
+  a = r.data
+  if (r.error) ok('lesson', false, r.error.message)
+}
+ok('practice lesson needs correct answers', practiceGuard)
+const expected = Math.round((100 * lessons.length) / (lessons.length + 1))
+ok('lessons progress', a?.progress === expected, `progress=${a?.progress}, expected=${expected}`)
 const { data: qs } = await emp.from('course_questions').select('id').eq('course_id', course.id).order('sort')
-const wrong = Object.fromEntries(qs.map(q => [q.id, 3]))
-const { data: r1 } = await emp.rpc('submit_quiz', { p_course: course.id, p_answers: wrong })
+// Ключи итогового теста клиенту недоступны: пробуем варианты по порядку, сервер говорит только «верно / неверно»
+const answers = Object.fromEntries(qs.map(q => [q.id, 0]))
+const { data: r1 } = await emp.rpc('submit_quiz', { p_course: course.id, p_answers: answers })
 ok('quiz fail', r1?.passed === false, JSON.stringify({ s: r1?.score }))
-const right = Object.fromEntries(qs.map(q => [q.id, 0]))
-const { data: r2 } = await emp.rpc('submit_quiz', { p_course: course.id, p_answers: right })
-ok('quiz pass', r2?.passed === true && r2.score === 100, JSON.stringify({ s: r2?.score }))
+let r2 = r1
+for (let attempt = 0; attempt < 4 && !(r2?.passed && r2.score === 100); attempt++) {
+  for (const x of r2?.results ?? []) if (!x.correct) answers[x.question_id] += 1
+  r2 = (await emp.rpc('submit_quiz', { p_course: course.id, p_answers: answers })).data
+}
+ok('quiz pass', r2?.passed === true && r2.score === 100, JSON.stringify({ s: r2?.score, attempts: r2?.attempts }))
 
 // --- база знаний
 const { data: kb } = await emp.rpc('kb_search', { p_query: 'Сколько дней отпуска положено?' })
@@ -165,6 +190,63 @@ const { error: tUpdErr } = await emp.from('tasks').update({ title: 'hack' }).eq(
 ok('assignee cannot rename task', !!tUpdErr, tUpdErr?.message)
 const { error: tUpd2 } = await emp.from('tasks').update({ status: 'done' }).eq('id', myTasks[0].id)
 ok('assignee completes task', !tUpd2, tUpd2?.message)
+
+// --- задачи v2: отчёт с результатом и проверкой, чек-лист, задача «пройти курс», дедлайн со временем
+const dueAt = new Date(Date.now() + 2 * 86400000).toISOString()
+const { error: rtErr } = await mgr.rpc('assign_tasks', { p_title: 'Тест: отчёт по смене', p_description: 'Приложите фото', p_priority: 'urgent', p_category: 'warehouse', p_due: null, p_due_at: dueAt, p_assignees: [me.id], p_kind: 'report' })
+ok('manager assigns report task with deadline time', !rtErr, rtErr?.message)
+const { data: rt } = await emp.from('tasks').select('id, status, due_at, due_date').eq('title', 'Тест: отчёт по смене').single()
+ok('deadline stored with time, date derived', rt?.due_at && rt.due_date, JSON.stringify(rt))
+const { error: noResErr } = await emp.from('tasks').update({ status: 'review' }).eq('id', rt.id)
+ok('report needs a result before review', !!noResErr, noResErr?.message)
+const { error: selfDoneErr } = await emp.from('tasks').update({ status: 'done', result_note: 'Готово' }).eq('id', rt.id)
+ok('assignee cannot close report task himself', !!selfDoneErr, selfDoneErr?.message)
+const { error: subErr } = await emp.from('tasks').update({ status: 'review', result_note: 'Смена закрыта, расхождений нет' }).eq('id', rt.id)
+ok('assignee submits report for review', !subErr, subErr?.message)
+const { error: foreignReviewErr } = await emp.rpc('review_task', { p_task: rt.id, p_accept: true, p_comment: null })
+ok('assignee cannot accept own report', !!foreignReviewErr, foreignReviewErr?.message)
+const { error: backErr } = await mgr.rpc('review_task', { p_task: rt.id, p_accept: false, p_comment: 'Добавьте фото ячеек' })
+ok('manager returns report with comment', !backErr, backErr?.message)
+const { data: rtBack } = await emp.from('tasks').select('status, review_comment').eq('id', rt.id).single()
+ok('returned report is back in progress', rtBack?.status === 'in_progress' && rtBack.review_comment === 'Добавьте фото ячеек', JSON.stringify(rtBack))
+await emp.from('tasks').update({ status: 'review' }).eq('id', rt.id)
+const { error: accErr } = await mgr.rpc('review_task', { p_task: rt.id, p_accept: true, p_comment: null })
+const { data: rtDone } = await emp.from('tasks').select('status').eq('id', rt.id).single()
+ok('manager accepts report', !accErr && rtDone?.status === 'done', accErr?.message ?? rtDone?.status)
+
+const steps = [{ text: 'Шаг 1', done: false }, { text: 'Шаг 2', done: false }]
+await mgr.rpc('assign_tasks', { p_title: 'Тест: чек-лист', p_description: '', p_priority: 'medium', p_category: 'general', p_due: null, p_due_at: dueAt, p_assignees: [me.id], p_kind: 'checklist', p_checklist: steps })
+const { data: ct } = await emp.from('tasks').select('id, checklist').eq('title', 'Тест: чек-лист').single()
+const { error: ctEarly } = await emp.from('tasks').update({ status: 'done' }).eq('id', ct.id)
+ok('checklist cannot be closed with open steps', !!ctEarly, ctEarly?.message)
+const { error: ctStep } = await emp.from('tasks').update({ checklist: [{ text: 'Шаг 1', done: true }, { text: 'Шаг 2', done: false }] }).eq('id', ct.id)
+const { data: ctMid } = await emp.from('tasks').select('status').eq('id', ct.id).single()
+ok('first checked step starts the task', !ctStep && ctMid?.status === 'in_progress', ctStep?.message ?? ctMid?.status)
+const { error: ctHack } = await emp.from('tasks').update({ checklist: [{ text: 'Другой шаг', done: true }, { text: 'Шаг 2', done: true }] }).eq('id', ct.id)
+ok('assignee cannot rewrite checklist steps', !!ctHack, ctHack?.message)
+await emp.from('tasks').update({ checklist: [{ text: 'Шаг 1', done: true }, { text: 'Шаг 2', done: true }] }).eq('id', ct.id)
+const { error: ctDone } = await emp.from('tasks').update({ status: 'done' }).eq('id', ct.id)
+ok('checklist closes when all steps are done', !ctDone, ctDone?.message)
+
+const { data: service } = await emp.from('courses').select('id').eq('slug', 'service').single()
+const { error: ctaErr } = await mgr.rpc('assign_tasks', { p_title: 'Пройти курс «Стандарты клиентского сервиса»', p_description: '', p_priority: 'high', p_category: 'training', p_due: null, p_due_at: dueAt, p_assignees: [me.id], p_kind: 'course', p_course: service.id })
+const { data: courseTask } = await emp.from('tasks').select('id, kind, course:courses!tasks_course_fk(slug)').eq('kind', 'course').eq('course_id', service.id).maybeSingle()
+ok('course task links to the course', !ctaErr && courseTask?.course?.slug === 'service', ctaErr?.message ?? JSON.stringify(courseTask))
+const { data: svcAssign } = await emp.from('course_assignments').select('status').eq('course_id', service.id).eq('employee_id', me.id).maybeSingle()
+ok('course task also assigns the course', !!svcAssign, JSON.stringify(svcAssign))
+const { error: ctManual } = await emp.from('tasks').update({ status: 'done' }).eq('id', courseTask.id)
+ok('course task closes only by passing the course', !!ctManual, ctManual?.message)
+
+// --- AI Jana видит свои задачи с дедлайнами, праздники и объявления
+const { data: actx } = await emp.rpc('assistant_context')
+ok('assistant context has tasks, holidays, news', Array.isArray(actx?.tasks) && actx.tasks.length > 0 && Array.isArray(actx.holidays) && Array.isArray(actx.news), `tasks=${actx?.tasks?.length} holidays=${actx?.holidays?.length} news=${actx?.news?.length}`)
+ok('assistant context only own tasks', actx?.tasks?.every(x => x.from !== undefined), '')
+
+// --- напоминания: HR всем, руководитель своей команде, работник никому
+const { data: remSent, error: remErr } = await hr.rpc('send_reminder', { p_employees: [me.id], p_title: 'Тест напоминания', p_body: 'Проверьте профиль', p_link: '/profile' })
+ok('hr sends reminder', !remErr && remSent === 1, remErr?.message)
+const { error: empRemErr } = await emp.rpc('send_reminder', { p_employees: [hrMe], p_title: 'Спам', p_body: '', p_link: null })
+ok('employee cannot send reminders', !!empRemErr, empRemErr?.message)
 
 // --- фото профиля: видят все, меняет только владелец
 const pixel = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='

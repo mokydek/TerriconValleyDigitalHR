@@ -413,7 +413,7 @@ interface Logistics {
   daily: { day: string; parcels_in: number; delivered: number; on_time_pct: number }[]
   by_location: { location: string; city: string; parcels_in: number; on_time_pct: number; error_rate_pct: number }[]
   forecast: { day: string; date: string; forecast: number; lower: number; upper: number; required_staff: number; usual_staff: number; available_staff: number; on_vacation: number }[]
-  summary: { peak_day: string; peak_volume: number; peak_required_staff: number; current_staff: number; usual_staff: number; available_staff: number; staff_gap: number; on_vacation_at_peak: number }
+  summary: { peak_day: string; peak_volume: number; peak_required_staff: number; current_staff: number; usual_staff?: number; available_staff?: number; staff_gap: number; on_vacation_at_peak: number }
 }
 
 function LogisticsTab() {
@@ -473,7 +473,7 @@ function LogisticsTab() {
         <Card className="p-5">
           <h3 className="font-semibold">Вывод для HR</h3>
           <p className="mt-2 text-sm text-ink-soft">
-            Пик ожидается <b>{data.summary.peak_day}</b>: ~{num(data.summary.peak_volume)} посылок в сутки. Нужно {data.summary.peak_required_staff} чел. на смене, а обычно в этот день недели выходит {data.summary.usual_staff}
+            Пик ожидается <b>{data.summary.peak_day}</b>: ~{num(data.summary.peak_volume)} посылок в сутки. Нужно {data.summary.peak_required_staff} чел. на смене, а обычно в этот день недели выходит {data.summary.usual_staff ?? data.summary.current_staff}
             {data.summary.on_vacation_at_peak > 0 && <>, из них в отпуске {data.summary.on_vacation_at_peak}</>}.
           </p>
           <div className={cn('mt-4 rounded-xl px-4 py-3 text-sm', data.summary.staff_gap > 0 ? 'bg-rose-50 text-rose-900' : 'bg-brand-50 text-brand-900')}>

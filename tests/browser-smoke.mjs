@@ -89,27 +89,30 @@ async function runEngine(engine) {
       let aborted = 0
       let navigatedAt = 0
       let realtime = 'нет'
-      page.on('pageerror', (e) => {
-        // WebKit сообщает о запросах, прерванных переходом на другую страницу, как об ошибке доступа
-        if (/access control checks/.test(e.message) && Date.now() - navigatedAt < 5000) return void aborted++
-        problems.push(`JS: ${e.message}`)
-        console.log(`[${engine}] pageerror: ${e.message}`)
-      })
-      page.on('console', (m) => {
-        if (m.type() === 'error') console.log(`[${engine}] console.error: ${m.text().slice(0, 300)}`)
-      })
-      page.on('response', (r) => {
-        if (r.status() < 400 || r.url().includes('/api/ai-jana') || r.url().endsWith('/favicon.ico')) return
-        // хостинг без правил переписывания отдаёт маршрут SPA с кодом 404, но страница работает
-        if (r.request().resourceType() === 'document' && r.url().startsWith(BASE)) deepLink404.push(new URL(r.url()).pathname)
-        else problems.push(`HTTP ${r.status()} ${r.url().slice(0, 140)}`)
-      })
-      page.on('websocket', (ws) => {
-        if (ws.url().includes('/realtime/')) {
-          realtime = 'подключено'
-          ws.on('socketerror', (e) => (realtime = `ошибка: ${e}`))
-        }
-      })
+      const watch = (tab) => {
+        tab.on('pageerror', (e) => {
+          // WebKit сообщает о запросах, прерванных переходом на другую страницу, как об ошибке доступа
+          if (/access control checks/.test(e.message) && Date.now() - navigatedAt < 5000) return void aborted++
+          problems.push(`JS: ${e.message}`)
+          console.log(`[${engine}] pageerror: ${e.message}`)
+        })
+        tab.on('console', (m) => {
+          if (m.type() === 'error') console.log(`[${engine}] console.error: ${m.text().slice(0, 300)}`)
+        })
+        tab.on('response', (r) => {
+          if (r.status() < 400 || r.url().includes('/api/ai-jana') || r.url().endsWith('/favicon.ico')) return
+          // хостинг без правил переписывания отдаёт маршрут SPA с кодом 404, но страница работает
+          if (r.request().resourceType() === 'document' && r.url().startsWith(BASE)) deepLink404.push(new URL(r.url()).pathname)
+          else problems.push(`HTTP ${r.status()} ${r.url().slice(0, 140)}`)
+        })
+        tab.on('websocket', (ws) => {
+          if (ws.url().includes('/realtime/')) {
+            realtime = 'подключено'
+            ws.on('socketerror', (e) => (realtime = `ошибка: ${e}`))
+          }
+        })
+      }
+      watch(page)
       const started = Date.now()
       await page.goto(BASE)
       try {
@@ -125,7 +128,12 @@ async function runEngine(engine) {
         await ctx.close()
         continue
       }
+      // каждый раздел открывается в новой вкладке, прежняя закрывается: WebKit держит пройденные страницы
+      // в памяти (кэш «назад»), и на машине с 512 МБ к концу длинного прогона разделы перестают отрисовываться
+      await page.close()
       for (const route of routes) {
+        const page = await ctx.newPage()
+        watch(page)
         navigatedAt = Date.now()
         await page.goto(BASE + route)
         // ждём, пока раздел покажет содержимое (на слабой машине WebKit заметно медленнее Chromium)
@@ -140,6 +148,7 @@ async function runEngine(engine) {
           const wide = await page.evaluate(widerThanScreen)
           if (wide) out(false, `[${engine}] ${role} ${route}: шире экрана`, wide)
         }
+        await page.close()
       }
       out(problems.length === 0, `[${engine}] ${role}: ошибки JS и запросов`, problems.slice(0, 5).join(' ; '))
       if (aborted) lines.push(`NOTE | [${engine}] ${role}: запросов, прерванных переходом между страницами, — ${aborted}`)

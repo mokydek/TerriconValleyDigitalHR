@@ -1,9 +1,10 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import {
   Bell,
   BookOpen,
   Building2,
+  Camera,
   ChartColumnBig,
   CheckCheck,
   ClipboardList,
@@ -12,22 +13,30 @@ import {
   HeartPulse,
   Home,
   Inbox,
+  Languages,
+  Loader2,
   LogOut,
   Megaphone,
   Menu,
+  MessageCircle,
   MessagesSquare,
   Plug,
   Sparkles,
+  Trash2,
   UserRound,
   Users,
   X,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { useAuth } from '@/lib/auth'
 import { useI18n, type I18nKey } from '@/lib/i18n'
 import { useMarkAllRead, useMarkNotificationRead, useNotifications, useRealtimeNotifications } from '@/lib/api'
+import { useAvatar, useRemoveAvatar } from '@/lib/avatars'
+import { useChatUnread, useRealtimeChats } from '@/lib/chat'
 import { fullName, timeAgo } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { Avatar, Badge } from '@/components/ui'
+import { usePhotoPicker } from '@/components/profile/PhotoPicker'
 import { AssistantWidget } from '@/components/assistant/AssistantWidget'
 import type { Role } from '@/lib/types'
 
@@ -141,7 +150,7 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       </nav>
       <div className="border-t border-line p-3">
         <div className="flex items-center gap-3 rounded-xl px-2 py-2">
-          <Avatar name={fullName(me)} size={36} />
+          <Avatar id={me.id} name={fullName(me)} size={36} />
           <div className="min-w-0 flex-1">
             <div className="truncate text-sm font-semibold">{fullName(me)}</div>
             <div className="truncate text-xs text-muted">{t(`role.${role}` as I18nKey)}</div>
@@ -191,6 +200,12 @@ function NotificationsBell() {
   const { t } = useI18n()
   const [open, setOpen] = useState(false)
   const unread = data.filter((n) => !n.read_at).length
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false)
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open])
   return (
     <div className="relative">
       <button
@@ -249,6 +264,156 @@ function NotificationsBell() {
   )
 }
 
+function ChatButton() {
+  const unread = useChatUnread()
+  const { t } = useI18n()
+  return (
+    <Link
+      to="/messages"
+      className="relative grid h-10 w-10 place-items-center rounded-xl text-ink-soft transition hover:bg-canvas hover:text-ink"
+      aria-label={t('nav.messages')}
+      title={t('nav.messages')}
+      data-testid="chat-button"
+    >
+      <MessageCircle className="h-5 w-5" />
+      {unread > 0 && (
+        <span className="absolute top-1.5 right-1.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-brand-600 px-1 text-[10px] font-bold text-white ring-2 ring-white">
+          {unread > 9 ? '9+' : unread}
+        </span>
+      )}
+    </Link>
+  )
+}
+
+function MenuItem({ icon, children, onClick, to, danger }: { icon: ReactNode; children: ReactNode; onClick?: () => void; to?: string; danger?: boolean }) {
+  const cls = cn(
+    'flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-[14.5px] font-medium transition',
+    danger ? 'text-rose-600 hover:bg-rose-50' : 'text-ink-soft hover:bg-canvas hover:text-ink',
+  )
+  return to ? (
+    <Link to={to} onClick={onClick} className={cls} role="menuitem">
+      {icon}
+      {children}
+    </Link>
+  ) : (
+    <button type="button" onClick={onClick} className={cls} role="menuitem">
+      {icon}
+      {children}
+    </button>
+  )
+}
+
+/** Профиль справа сверху: фото, переход в профиль, смена фото, язык, выход */
+function ProfileMenu() {
+  const { me, role, signOut } = useAuth()
+  const { t } = useI18n()
+  const [open, setOpen] = useState(false)
+  const photo = usePhotoPicker()
+  const hasPhoto = Boolean(useAvatar(me?.id))
+  const removePhoto = useRemoveAvatar()
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false)
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open])
+  if (!me || !role) return null
+  const close = () => setOpen(false)
+  return (
+    <div className="relative">
+      {photo.input}
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="relative ml-0.5 rounded-full ring-2 ring-transparent transition hover:ring-brand-200 focus-visible:ring-brand-400"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label={t('menu.open')}
+        data-testid="profile-menu"
+      >
+        <Avatar id={me.id} name={fullName(me)} size={36} />
+        {photo.busy && (
+          <span className="absolute inset-0 grid place-items-center rounded-full bg-ink/40 text-white">
+            <Loader2 className="h-4 w-4 animate-spin" />
+          </span>
+        )}
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-30" onClick={close} />
+          <div role="menu" className="absolute right-0 z-40 mt-2 w-[min(92vw,300px)] overflow-hidden rounded-2xl border border-line bg-white shadow-[var(--shadow-pop)] animate-fade-in">
+            <div className="flex items-center gap-3 border-b border-line px-4 py-4">
+              <button
+                type="button"
+                onClick={() => {
+                  photo.pick()
+                  close()
+                }}
+                className="group relative shrink-0 rounded-full"
+                title={t('menu.changePhoto')}
+                aria-label={t('menu.changePhoto')}
+              >
+                <Avatar id={me.id} name={fullName(me)} size={52} />
+                <span className="absolute -right-0.5 -bottom-0.5 grid h-6 w-6 place-items-center rounded-full bg-brand-600 text-white ring-2 ring-white group-hover:bg-brand-700">
+                  <Camera className="h-3.5 w-3.5" />
+                </span>
+              </button>
+              <div className="min-w-0">
+                <div className="truncate font-semibold text-ink">{fullName(me)}</div>
+                <div className="truncate text-xs text-muted">{me.position}</div>
+                <Badge className="mt-1.5 bg-brand-50 text-brand-700 ring-brand-200">{t(`role.${role}` as I18nKey)}</Badge>
+              </div>
+            </div>
+            <div className="p-1.5">
+              <MenuItem to="/profile" onClick={close} icon={<UserRound className="h-4 w-4" />}>
+                {t('nav.profile')}
+              </MenuItem>
+              <MenuItem to="/messages" onClick={close} icon={<MessageCircle className="h-4 w-4" />}>
+                {t('nav.messages')}
+              </MenuItem>
+              <MenuItem
+                onClick={() => {
+                  photo.pick()
+                  close()
+                }}
+                icon={<Camera className="h-4 w-4" />}
+              >
+                {t('menu.changePhoto')}
+              </MenuItem>
+              {hasPhoto && (
+                <MenuItem
+                  onClick={() => {
+                    close()
+                    removePhoto.mutate(undefined, {
+                      onSuccess: () => toast.success(t('photo.removed')),
+                      onError: (e) => toast.error((e as Error).message),
+                    })
+                  }}
+                  icon={<Trash2 className="h-4 w-4" />}
+                >
+                  {t('menu.removePhoto')}
+                </MenuItem>
+              )}
+              <div className="flex items-center justify-between gap-3 px-3 py-2 text-[14.5px] font-medium text-ink-soft">
+                <span className="inline-flex items-center gap-3">
+                  <Languages className="h-4 w-4" />
+                  {t('menu.language')}
+                </span>
+                <LangSwitch />
+              </div>
+            </div>
+            <div className="border-t border-line p-1.5">
+              <MenuItem danger onClick={() => void signOut()} icon={<LogOut className="h-4 w-4" />}>
+                {t('nav.logout')}
+              </MenuItem>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 function MobileTabBar() {
   const { role } = useAuth()
   const { t } = useI18n()
@@ -289,6 +454,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { t } = useI18n()
   const location = useLocation()
   useRealtimeNotifications()
+  useRealtimeChats()
   return (
     <div className="min-h-dvh">
       {/* Desktop sidebar */}
@@ -323,10 +489,14 @@ export function AppShell({ children }: { children: ReactNode }) {
               <span className="truncate">{me?.company}</span>
               {me?.department?.name && <span className="truncate">· {me.department.name}</span>}
             </div>
-            <div className="ml-auto flex items-center gap-2">
-              {role && <Badge className="hidden bg-white text-ink-soft ring-line sm:inline-flex">{t(`role.${role}` as I18nKey)}</Badge>}
-              <LangSwitch />
+            <div className="ml-auto flex items-center gap-1 sm:gap-2">
+              {role && <Badge className="hidden bg-white text-ink-soft ring-line xl:inline-flex">{t(`role.${role}` as I18nKey)}</Badge>}
+              <div className="hidden sm:block">
+                <LangSwitch />
+              </div>
+              <ChatButton />
               <NotificationsBell />
+              <ProfileMenu />
             </div>
           </div>
         </header>
@@ -335,7 +505,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </main>
       </div>
       <MobileTabBar />
-      {!location.pathname.startsWith('/assistant') && <AssistantWidget />}
+      {!/^\/(assistant|messages)/.test(location.pathname) && <AssistantWidget />}
     </div>
   )
 }

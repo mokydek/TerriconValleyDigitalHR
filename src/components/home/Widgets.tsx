@@ -20,7 +20,7 @@ export function ProfileCard() {
     <Card className="overflow-hidden">
       <div className="bg-gradient-to-br from-brand-600 to-brand-800 px-5 pt-5 pb-14 text-white">
         <div className="flex items-center gap-3">
-          <Avatar name={fullName(me)} size={48} className="ring-2 ring-white/40" />
+          <Avatar id={me.id} name={fullName(me)} size={48} className="ring-2 ring-white/40" />
           <div className="min-w-0">
             <div className="truncate text-[17px] font-semibold">{fullName(me)}</div>
             <div className="truncate text-sm text-white/80">{me.position}</div>

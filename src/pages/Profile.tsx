@@ -7,8 +7,9 @@ import { useI18n } from '@/lib/i18n'
 import { useEmployee, useMyAssignments, useMyRequests, useVacationBalance } from '@/lib/api'
 import { must, supabase } from '@/lib/supabase'
 import { days, fmtDate, fmtDateTime, fullName } from '@/lib/format'
-import { Avatar, Badge, Button, Card, CardHeader, Field, Modal, PageHeader, Progress, Skeleton, Tabs } from '@/components/ui'
+import { Badge, Button, Card, CardHeader, Field, Modal, PageHeader, Progress, Skeleton, Tabs } from '@/components/ui'
 import { requestSummary, StatusBadge, TypeLabel } from '@/components/requests/RequestParts'
+import { MyPhoto } from '@/components/profile/PhotoPicker'
 import { useQueryClient } from '@tanstack/react-query'
 import { TabLabel, useTabParam } from '@/lib/tabs'
 import type { HrRequest } from '@/lib/types'
@@ -56,7 +57,7 @@ export default function ProfilePage() {
 
       <Card className="p-5">
         <div className="flex items-center gap-4">
-          <Avatar name={fullName(me)} size={64} />
+          <MyPhoto size={64} />
           <div className="min-w-0 flex-1">
             <h2 className="text-xl font-bold">{fullFio}</h2>
             <p className="text-muted">

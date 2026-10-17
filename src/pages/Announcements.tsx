@@ -71,7 +71,7 @@ export default function AnnouncementsPage() {
               <h2 className="mt-3 text-lg font-semibold">{a.title}</h2>
               <p className="mt-2 text-[15px] leading-relaxed whitespace-pre-line text-ink-soft">{a.body}</p>
               <div className="mt-4 flex items-center gap-2 text-sm text-muted">
-                <Avatar name={fullName(a.author)} size={24} />
+                <Avatar id={a.author_id} name={fullName(a.author)} size={24} />
                 {fullName(a.author)} · {a.author?.position} · {fmtDateTime(a.created_at)}
               </div>
             </Card>

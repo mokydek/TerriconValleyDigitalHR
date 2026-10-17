@@ -28,6 +28,7 @@ const AnalyticsPage = lazy(() => import('@/pages/Analytics'))
 const TicketsPage = lazy(() => import('@/pages/Tickets'))
 const IntegrationsPage = lazy(() => import('@/pages/Integrations'))
 const DocumentPage = lazy(() => import('@/pages/DocumentView'))
+const MessagesPage = lazy(() => import('@/pages/Messages'))
 
 function RoleGate({ roles, children }: { roles: Role[]; children: ReactNode }) {
   const { role } = useAuth()
@@ -171,6 +172,7 @@ export default function App() {
             <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/tasks" element={<TasksPage />} />
             <Route path="/announcements" element={<AnnouncementsPage />} />
+            <Route path="/messages" element={<MessagesPage />} />
             <Route path="/documents/:requestId" element={<DocumentPage />} />
             <Route
               path="/approvals"

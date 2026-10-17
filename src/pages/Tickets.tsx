@@ -50,7 +50,7 @@ function TicketCard({ ticket }: { ticket: HrTicket }) {
   return (
     <Card className="p-5" data-testid="ticket">
       <div className="flex items-start gap-3">
-        <Avatar name={fullName(ticket.employee)} size={40} />
+        <Avatar id={ticket.employee_id} name={fullName(ticket.employee)} size={40} />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-semibold">{fullName(ticket.employee)}</span>

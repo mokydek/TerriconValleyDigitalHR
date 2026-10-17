@@ -17,9 +17,9 @@ try {
 
 const BASE = (process.env.E2E_BASE_URL ?? 'http://localhost:5173').replace(/\/$/, '')
 const ROUTES = {
-  employee: ['/', '/?tab=learning', '/profile', '/requests', '/academy', '/knowledge', '/notifications', '/tasks', '/announcements', '/assistant'],
-  manager: ['/', '/?tab=overview', '/approvals', '/team', '/analytics', '/requests'],
-  hr: ['/', '/?tab=charts', '/approvals', '/employees', '/analytics', '/analytics?tab=learning', '/analytics?tab=logistics', '/tickets', '/integrations'],
+  employee: ['/', '/?tab=learning', '/profile', '/requests', '/academy', '/knowledge', '/notifications', '/tasks', '/announcements', '/assistant', '/messages'],
+  manager: ['/', '/?tab=overview', '/approvals', '/team', '/analytics', '/requests', '/messages'],
+  hr: ['/', '/?tab=charts', '/approvals', '/employees', '/analytics', '/analytics?tab=learning', '/analytics?tab=logistics', '/tickets', '/integrations', '/messages'],
 }
 const lines = []
 let failed = 0

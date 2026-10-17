@@ -48,6 +48,8 @@ async function appQueries(sb, me, role, email) {
     ['праздники', () => sb.from('holidays').select('day,name')],
     ['база знаний', () => sb.from('kb_articles').select('*')],
     ['контекст AI Jana', () => sb.rpc('assistant_context')],
+    ['сообщения', () => sb.rpc('chat_list')],
+    ['фото профиля', () => sb.from('employee_avatars').select('employee_id,image')],
   ]
   if (role !== 'employee') {
     checks.push(

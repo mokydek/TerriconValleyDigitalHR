@@ -107,7 +107,7 @@ export default function TasksPage() {
                         <span className="text-muted">№{task.number}</span> {task.title}
                       </div>
                       <div className="mt-0.5 flex items-center gap-2 text-sm text-muted">
-                        <Avatar name={fullName(task.assignee)} size={20} /> {fullName(task.assignee)}
+                        <Avatar id={task.assignee?.id} name={fullName(task.assignee)} size={20} /> {fullName(task.assignee)}
                         {task.due_date && <span>· до {fmtDate(task.due_date, 'd MMM')}</span>}
                       </div>
                     </div>

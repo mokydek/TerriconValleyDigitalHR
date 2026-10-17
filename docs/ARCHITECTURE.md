@@ -136,6 +136,10 @@ erDiagram
   tasks ||--o{ task_comments : "комментарии"
   employees ||--o{ announcements : "публикует"
   employees ||--o{ watchlist : "HR следит"
+  employees ||--o| employee_avatars : "фото"
+  chats ||--o{ chat_members : "участники"
+  chats ||--o{ chat_messages : "сообщения"
+  employees ||--o{ chat_messages : "пишет"
 ```
 
 | Группа | Таблицы |
@@ -146,9 +150,14 @@ erDiagram
 | AI Jana | `kb_articles`, `kb_chunks` (tsvector, русская морфология + триграммы), `ai_queries`, `hr_tickets` |
 | Работа команды | `tasks`, `task_comments`, `announcements`, `announcement_reads` |
 | HR-аналитика | `watchlist`, `reminders`, `logistics_daily`, `audit_log` |
+| Профиль и сообщения | `employee_avatars` (фото 256×256 data URL), `chats`, `chat_members`, `chat_messages` |
 
 `employee_private` вынесена отдельно, чтобы рабочий профиль коллег (ФИО, должность, подразделение) был виден всем,
 а персональные данные только самому сотруднику и HR.
+
+Переписку читают только участники чата (`is_chat_member`), даже HR. Писать можно только функциями `send_message`,
+`open_direct_chat`, `create_group_chat`, `mark_chat_read`; `chat_list` отдаёт чаты пользователя с непрочитанными.
+Новые сообщения приходят через Realtime, в Docker-стеке списки обновляются опросом.
 
 ## Роли и права
 

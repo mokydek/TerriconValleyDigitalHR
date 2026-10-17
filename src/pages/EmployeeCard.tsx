@@ -11,6 +11,7 @@ import { Avatar, Badge, Button, Card, CardHeader, Empty, ErrorBox, PageLoader, P
 import { RequestDrawer } from '@/components/requests/RequestDrawer'
 import { requestSummary, RequestStepper, StatusBadge, TypeLabel } from '@/components/requests/RequestParts'
 import { FollowStar } from '@/components/hr/HrBlocks'
+import { WriteButton } from '@/components/chat/WriteButton'
 import { AssignCourseModal } from './Academy'
 
 function RequestTrack({ r, onOpen }: { r: HrRequest; onOpen: () => void }) {
@@ -35,7 +36,7 @@ function RequestTrack({ r, onOpen }: { r: HrRequest; onOpen: () => void }) {
 
 export default function EmployeeCardPage() {
   const { id } = useParams()
-  const { isHr } = useAuth()
+  const { isHr, me } = useAuth()
   const { t } = useI18n()
   const emp = useEmployee(id)
   const requests = useEmployeeRequests(id)
@@ -61,7 +62,7 @@ export default function EmployeeCardPage() {
       </Link>
       <Card className="mb-5 p-5">
         <div className="flex flex-col gap-4 md:flex-row md:items-center">
-          <Avatar name={fullName(e)} size={72} />
+          <Avatar id={e.id} name={fullName(e)} size={72} />
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <h1 className="text-2xl font-bold">{[e.last_name, e.first_name, e.middle_name].filter(Boolean).join(' ')}</h1>
@@ -81,18 +82,21 @@ export default function EmployeeCardPage() {
               )}
             </div>
           </div>
-          {canSeeTeamData && (
-            <div className="flex flex-wrap gap-2">
-              <Button variant="outline" icon={<GraduationCap className="h-4 w-4" />} onClick={() => setAssignOpen(true)}>
-                Назначить курс
-              </Button>
-              <Link to="/tasks">
-                <Button variant="outline" icon={<Plus className="h-4 w-4" />}>
-                  Поставить задачу
+          <div className="flex flex-wrap gap-2">
+            {e.id !== me?.id && <WriteButton employeeId={e.id} />}
+            {canSeeTeamData && (
+              <>
+                <Button variant="outline" icon={<GraduationCap className="h-4 w-4" />} onClick={() => setAssignOpen(true)}>
+                  Назначить курс
                 </Button>
-              </Link>
-            </div>
-          )}
+                <Link to="/tasks">
+                  <Button variant="outline" icon={<Plus className="h-4 w-4" />}>
+                    Поставить задачу
+                  </Button>
+                </Link>
+              </>
+            )}
+          </div>
         </div>
       </Card>
 

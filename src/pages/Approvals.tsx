@@ -123,7 +123,7 @@ function HrKanban() {
                           <span className="text-xs text-muted">№{r.number}</span>
                         </div>
                         <div className="mt-2 flex items-center gap-2">
-                          <Avatar name={fullName(r.employee)} size={24} />
+                          <Avatar id={r.employee?.id} name={fullName(r.employee)} size={24} />
                           <span className="truncate text-sm font-medium">{fullName(r.employee)}</span>
                         </div>
                         <div className="mt-1 truncate text-[12.5px] text-muted">{requestSummary(r)}</div>
@@ -225,7 +225,7 @@ function ManagerApprovals() {
             {rows.map((r) => (
               <li key={r.id} className="flex flex-col gap-3 px-5 py-4 md:flex-row md:items-center">
                 <button onClick={() => setOpen(r)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
-                  <Avatar name={fullName(r.employee)} size={40} />
+                  <Avatar id={r.employee?.id} name={fullName(r.employee)} size={40} />
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-semibold">{fullName(r.employee)}</span>

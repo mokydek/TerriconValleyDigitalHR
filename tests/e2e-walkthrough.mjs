@@ -133,6 +133,43 @@ try {
   await shot('11-notifications')
   await page.keyboard.press('Escape')
 
+  // профиль справа сверху: своё фото (рисуем нейтральную картинку, реальных фото в проекте нет)
+  const avatarPng = await page.evaluate(() => {
+    const c = document.createElement('canvas')
+    c.width = c.height = 512
+    const g = c.getContext('2d')
+    const grad = g.createLinearGradient(0, 0, 512, 512)
+    grad.addColorStop(0, '#2fb52a')
+    grad.addColorStop(1, '#0e6b0b')
+    g.fillStyle = grad
+    g.fillRect(0, 0, 512, 512)
+    g.fillStyle = 'rgba(255,255,255,0.92)'
+    g.beginPath()
+    g.arc(256, 205, 95, 0, Math.PI * 2)
+    g.fill()
+    g.beginPath()
+    g.ellipse(256, 480, 175, 160, 0, Math.PI, 0)
+    g.fill()
+    return c.toDataURL('image/png').split(',')[1]
+  })
+  await page.getByTestId('avatar-input').first().setInputFiles({ name: 'avatar.png', mimeType: 'image/png', buffer: Buffer.from(avatarPng, 'base64') })
+  await page.waitForTimeout(1500)
+  await page.getByTestId('profile-menu').click()
+  await page.waitForTimeout(400)
+  await shot('28-profile-menu')
+  await page.keyboard.press('Escape')
+  log('photo ok')
+
+  // сообщения: работник пишет руководителю
+  await page.getByTestId('chat-button').click()
+  await page.waitForSelector('[data-testid="chat-row"]')
+  await page.getByTestId('chat-row').filter({ hasText: 'Ерлан Сапаров' }).first().click()
+  await page.getByTestId('chat-input').fill('Ерлан, подала заявку на отпуск, посмотрите, пожалуйста.')
+  await page.getByTestId('chat-input').press('Enter')
+  await page.waitForTimeout(1200)
+  await shot('29-messages')
+  log('chat sent')
+
   // 6. Руководитель
   await logout()
   await loginAs('manager')
@@ -151,6 +188,19 @@ try {
   await page.goto(BASE + '/analytics')
   await page.waitForTimeout(2000)
   await shot('15-manager-analytics')
+  // руководитель видит новое сообщение и отвечает на него
+  log('manager chat badge:', (await page.getByTestId('chat-button').innerText()).trim() || '0')
+  await page.getByTestId('chat-button').click()
+  await page.waitForSelector('[data-testid="chat-row"]')
+  await page.getByTestId('chat-row').filter({ hasText: 'Дана Жумабекова' }).first().click()
+  const last = page.getByTestId('chat-bubble').filter({ hasText: 'подала заявку на отпуск' }).last()
+  await last.hover()
+  await page.locator('li', { has: last }).getByTestId('chat-reply').click()
+  await page.getByTestId('chat-input').fill('Вижу, согласовал. Хорошего отдыха!')
+  await page.getByTestId('chat-send').click()
+  await page.waitForTimeout(1200)
+  await shot('30-manager-chat')
+  log('manager replied')
 
   // 7. HR
   await logout()
@@ -205,6 +255,11 @@ try {
   await m.goto(BASE + '/requests')
   await m.waitForTimeout(1500)
   await m.screenshot({ path: path.join(OUT, '27-mobile-requests.png') })
+  await m.goto(BASE + '/messages')
+  await m.waitForSelector('[data-testid="chat-row"]')
+  await m.getByTestId('chat-row').filter({ hasText: 'Ерлан Сапаров' }).first().click()
+  await m.waitForTimeout(1500)
+  await m.screenshot({ path: path.join(OUT, '31-mobile-chat.png') })
 
   log('errors:', errors.length)
   for (const er of errors.slice(0, 30)) console.log('  ', er.slice(0, 400))

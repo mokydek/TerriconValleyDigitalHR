@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { Loader2, X } from 'lucide-react'
 import { cn, colorFor } from '@/lib/utils'
 import { initials } from '@/lib/format'
+import { useAvatar } from '@/lib/avatars'
 
 /* ---------- Button ---------- */
 
@@ -109,7 +110,21 @@ export function Badge({ className, children, dot }: { className?: string; childr
 
 /* ---------- Avatar ---------- */
 
-export function Avatar({ name, size = 36, className }: { name: string; size?: number; className?: string }) {
+/** Фото сотрудника (если он его загрузил) или инициалы; id нужен, чтобы найти фото */
+export function Avatar({ name, size = 36, className, id }: { name: string; size?: number; className?: string; id?: string | null }) {
+  const photo = useAvatar(id)
+  if (photo) {
+    return (
+      <img
+        src={photo}
+        alt=""
+        aria-hidden
+        draggable={false}
+        className={cn('shrink-0 rounded-full object-cover select-none', className)}
+        style={{ width: size, height: size }}
+      />
+    )
+  }
   return (
     <div
       className={cn('grid shrink-0 place-items-center rounded-full font-semibold text-white select-none', className)}

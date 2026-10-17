@@ -20,6 +20,7 @@ create schema seed_tmp;
 
 delete from auth.users where email like '%@jana.test';
 truncate table
+  public.chat_messages, public.chat_members, public.chats, public.employee_avatars,
   public.audit_log, public.integration_events, public.logistics_daily, public.watchlist,
   public.announcement_reads, public.announcements, public.task_comments, public.tasks,
   public.hr_tickets, public.ai_queries, public.kb_chunks, public.kb_articles,
@@ -800,6 +801,79 @@ insert into public.notifications (employee_id, title, body, link, kind, read_at,
   (seed_tmp.emp('JP-0002'), 'Новое обращение', 'Сабина Мусина: «Как оформить отпуск по уходу за ребёнком?»', '/tickets', 'ticket', null, now() - interval '5 hours'),
   (seed_tmp.emp('JP-0018'), 'Добро пожаловать в Jana Post! 👋', 'Начните с курса «Добро пожаловать в Jana Post» в Jana Academy', '/academy/welcome', 'course', null, now() - interval '5 days'),
   (seed_tmp.emp('JP-0018'), 'Назначен курс: Охрана труда на складе и в ПВЗ', 'Jana Academy · пройти до ' || to_char(current_date + 7, 'DD.MM.YYYY'), '/academy/safety', 'course', null, now() - interval '5 days');
+
+-- ---------- Сообщения: несколько переписок, чтобы раздел не был пустым ----------
+
+do $$
+declare
+  v_dana uuid := seed_tmp.emp('JP-0013');
+  v_erlan uuid := seed_tmp.emp('JP-0012');
+  v_hr uuid := seed_tmp.emp('JP-0002');
+  v_timur uuid := seed_tmp.emp('JP-0018');
+  v_miras uuid := seed_tmp.emp('JP-0017');
+  v_olzhas uuid := seed_tmp.emp('JP-0015');
+  c uuid;
+  q uuid;
+begin
+  -- Дана и руководитель: последнее сообщение Дана ещё не прочитала
+  insert into public.chats (kind, created_by, created_at) values ('direct', v_erlan, now() - interval '26 hours') returning id into c;
+  insert into public.chat_messages (chat_id, author_id, body, created_at) values
+    (c, v_erlan, 'Дана, привет! Сможешь завтра подменить Олжаса на приёмке рейса из Урумчи?', now() - interval '26 hours'),
+    (c, v_dana, 'Да, смогу. С 8:00?', now() - interval '25 hours 50 minutes'),
+    (c, v_erlan, 'Да, с 8:00. Спасибо!', now() - interval '25 hours 45 minutes'),
+    (c, v_dana, 'Отчёт по ошибкам сортировки за неделю отправила в задачах.', now() - interval '3 hours'),
+    (c, v_erlan, 'Видел, спасибо. Обсудим завтра на планёрке.', now() - interval '2 hours');
+  insert into public.chat_members (chat_id, employee_id, joined_at, last_read_at) values
+    (c, v_erlan, now() - interval '26 hours', now() - interval '2 hours'),
+    (c, v_dana, now() - interval '26 hours', now() - interval '3 hours');
+
+  -- Дана и HR
+  insert into public.chats (kind, created_by, created_at) values ('direct', v_hr, now() - interval '2 days') returning id into c;
+  insert into public.chat_messages (chat_id, author_id, body, created_at) values
+    (c, v_hr, 'Дана, добрый день! Напоминаю про курс по информационной безопасности, его нужно пройти до ' || to_char(current_date + 11, 'DD.MM') || '.', now() - interval '2 days'),
+    (c, v_dana, 'Спасибо, пройду на этой неделе.', now() - interval '2 days' + interval '12 minutes'),
+    (c, v_hr, 'Если будут вопросы по отпуску или справкам, пишите сюда.', now() - interval '50 minutes');
+  insert into public.chat_members (chat_id, employee_id, joined_at, last_read_at) values
+    (c, v_hr, now() - interval '2 days', now() - interval '50 minutes'),
+    (c, v_dana, now() - interval '2 days', now() - interval '2 days' + interval '12 minutes');
+
+  -- Группа смены: ответ Даны на вопрос новичка
+  insert into public.chats (kind, title, created_by, created_at) values ('group', 'Смена А · склад', v_erlan, now() - interval '20 hours') returning id into c;
+  insert into public.chat_messages (chat_id, author_id, body, created_at) values
+    (c, v_erlan, 'Коллеги, в субботу с 08:00 инвентаризация зон B и C. Проверьте ТСД.', now() - interval '20 hours'),
+    (c, v_miras, 'Погрузчик №2 проверил, всё исправно.', now() - interval '19 hours');
+  insert into public.chat_messages (chat_id, author_id, body, created_at)
+  values (c, v_timur, 'Подскажите, где взять листы пересчёта?', now() - interval '5 hours') returning id into q;
+  insert into public.chat_messages (chat_id, author_id, body, reply_to, created_at) values
+    (c, v_dana, 'На стойке у старшего смены, утром покажу.', q, now() - interval '4 hours 50 minutes'),
+    (c, v_erlan, 'Спасибо, Дана! Тимур, если что, пиши мне.', null, now() - interval '1 hour');
+  insert into public.chat_members (chat_id, employee_id, joined_at, last_read_at) values
+    (c, v_erlan, now() - interval '20 hours', now() - interval '1 hour'),
+    (c, v_dana, now() - interval '20 hours', now() - interval '4 hours 50 minutes'),
+    (c, v_timur, now() - interval '20 hours', now() - interval '4 hours'),
+    (c, v_miras, now() - interval '20 hours', now() - interval '19 hours'),
+    (c, v_olzhas, now() - interval '20 hours', now() - interval '20 hours');
+
+  -- Новичок и HR
+  insert into public.chats (kind, created_by, created_at) values ('direct', v_hr, now() - interval '4 days') returning id into c;
+  insert into public.chat_messages (chat_id, author_id, body, created_at) values
+    (c, v_hr, 'Тимур, добро пожаловать в Jana Post! Начните с курса «Добро пожаловать» в Jana Academy.', now() - interval '4 days'),
+    (c, v_timur, 'Спасибо! Уже начал.', now() - interval '4 days' + interval '30 minutes');
+  insert into public.chat_members (chat_id, employee_id, joined_at, last_read_at) values
+    (c, v_hr, now() - interval '4 days', now() - interval '3 days'),
+    (c, v_timur, now() - interval '4 days', now() - interval '4 days' + interval '30 minutes');
+
+  -- Руководитель и HR
+  insert into public.chats (kind, created_by, created_at) values ('direct', v_hr, now() - interval '1 day') returning id into c;
+  insert into public.chat_messages (chat_id, author_id, body, created_at) values
+    (c, v_hr, 'Ерлан, у Олжаса просрочен курс по охране труда. Напомните ему, пожалуйста.', now() - interval '1 day'),
+    (c, v_erlan, 'Хорошо, поговорю с ним сегодня.', now() - interval '23 hours');
+  insert into public.chat_members (chat_id, employee_id, joined_at, last_read_at) values
+    (c, v_hr, now() - interval '1 day', now() - interval '22 hours'),
+    (c, v_erlan, now() - interval '1 day', now() - interval '23 hours');
+
+  update public.chats ch set last_message_at = (select max(m.created_at) from public.chat_messages m where m.chat_id = ch.id);
+end $$;
 
 -- ---------- Включаем триггеры обратно ----------
 

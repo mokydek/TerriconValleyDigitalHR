@@ -272,3 +272,31 @@ export interface AttentionItem {
   severity: 'high' | 'medium' | 'low'
   last_reminded_at: string | null
 }
+
+export interface ChatListItem {
+  id: string
+  kind: 'direct' | 'group'
+  title: string | null
+  peer_id: string | null
+  member_count: number
+  last_body: string | null
+  last_author_id: string | null
+  last_author_name: string | null
+  last_at: string
+  unread: number
+}
+
+export interface ChatMessage {
+  id: string
+  chat_id: string
+  author_id: string
+  body: string
+  reply_to: string | null
+  created_at: string
+}
+
+export interface ChatMember {
+  employee_id: string
+  last_read_at: string
+  employee: Pick<Employee, 'id' | 'first_name' | 'last_name' | 'position'> | null
+}

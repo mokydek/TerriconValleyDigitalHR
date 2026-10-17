@@ -160,7 +160,7 @@ export function WatchlistCard() {
         {followed.map((p) => (
           <li key={p.employee_id}>
             <Link to={`/employees/${p.employee_id}`} className="flex items-center gap-3 px-5 py-3 transition hover:bg-canvas">
-              <Avatar name={p.full_name} size={36} />
+              <Avatar id={p.employee_id} name={p.full_name} size={36} />
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-semibold text-ink">{p.full_name}</div>
                 <div className="truncate text-xs text-muted">

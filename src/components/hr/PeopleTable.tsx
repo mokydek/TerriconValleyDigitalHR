@@ -126,7 +126,7 @@ export function PeopleTable({ canFollow }: { canFollow: boolean }) {
                     )}
                     <td className="px-4 py-2.5">
                       <div className="flex items-center gap-3">
-                        <Avatar name={p.full_name} size={34} />
+                        <Avatar id={p.employee_id} name={p.full_name} size={34} />
                         <div className="min-w-0">
                           <div className="truncate font-medium text-ink">{p.full_name}</div>
                           <div className="truncate text-xs text-muted">{p.job_title}</div>

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Bell, CheckCheck } from 'lucide-react'
+import { Bell, CheckCheck } from '@/components/icons'
 import { useI18n, type I18nKey } from '@/lib/i18n'
 import { serverText } from '@/lib/serverText'
 import { useMarkAllRead, useMarkNotificationRead, useNotifications } from '@/lib/api'

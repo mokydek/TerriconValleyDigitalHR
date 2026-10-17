@@ -15,10 +15,10 @@ export default {
   'analytics.persons': '{n} чел.',
   'analytics.nRequests': '{n} {n|заявка|заявки|заявок}',
   'analytics.quoted': '«{text}»',
-  'analytics.tab.vacations': '🌴 Отпуска',
-  'analytics.tab.learning': '🎓 Обучение',
-  'analytics.tab.requests': '📨 Заявки',
-  'analytics.tab.logistics': '🚚 Логистика и нагрузка',
+  'analytics.tab.vacations': 'Отпуска',
+  'analytics.tab.learning': 'Обучение',
+  'analytics.tab.requests': 'Заявки',
+  'analytics.tab.logistics': 'Логистика и нагрузка',
 
   // Отпуска
   'analytics.heat.title': 'Тепловая карта отпусков · {year}',

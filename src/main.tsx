@@ -9,6 +9,12 @@ import { I18nProvider, initLang, t } from '@/lib/i18n'
 import App from './App'
 import { ErrorBoundary, RELOAD_FLAG } from '@/components/ErrorBoundary'
 import { reloadFresh } from '@/lib/reload'
+// Шрифт Onest: близкий к Jańa Post гротеск с полной кириллицей и казахскими буквами, хранится в сборке (работает без интернета)
+import '@fontsource/onest/400.css'
+import '@fontsource/onest/500.css'
+import '@fontsource/onest/600.css'
+import '@fontsource/onest/700.css'
+import '@fontsource/onest/800.css'
 import './index.css'
 
 // После обновления сайта файлы старой сборки исчезают: перезагружаемся один раз, а не показываем белый экран

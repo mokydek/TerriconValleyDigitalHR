@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { BookPlus, MessagesSquare, Send } from 'lucide-react'
+import { BookPlus, MessagesSquare, Send } from '@/components/icons'
 import { toast } from 'sonner'
 import { useAnswerTicket, useTickets } from '@/lib/api'
 import { fmtDateTime, fullName, timeAgo } from '@/lib/format'

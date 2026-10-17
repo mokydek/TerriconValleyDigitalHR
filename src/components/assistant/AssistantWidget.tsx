@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Maximize2, Sparkles, X } from 'lucide-react'
+import { Maximize2, Sparkles, X } from '@/components/icons'
 import { useI18n } from '@/lib/i18n'
 import { AssistantChat } from './AssistantChat'
 

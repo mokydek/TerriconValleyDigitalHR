@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ClipboardList, GraduationCap, Lock, Mail, Phone, Plus, RefreshCw } from 'lucide-react'
+import { ClipboardList, GraduationCap, Lock, Mail, Phone, Plus, RefreshCw } from '@/components/icons'
 import { useAuth } from '@/lib/auth'
 import { tr, useI18n } from '@/lib/i18n'
 import { useCourses, useEmployee, useEmployeeRequests, useMyAssignments, usePeople, useRequestEvents, useTasks, useVacationBalance } from '@/lib/api'

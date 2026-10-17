@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
-import { Award, Check, CheckCircle2, ChevronRight, Clock, Lock, Printer, RotateCcw, XCircle } from 'lucide-react'
+import { Award, Check, CheckCircle2, ChevronRight, Clock, Lock, Printer, RotateCcw, XCircle } from '@/components/icons'
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/auth'
 import { tr, useI18n } from '@/lib/i18n'

@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Bar, BarChart, CartesianGrid, Cell, ComposedChart, Legend, Line, ResponsiveContainer, Tooltip, XAxis, YAxis, Area } from 'recharts'
-import { AlertTriangle, Bot, Download, GraduationCap, Inbox, Palmtree, Truck } from 'lucide-react'
+import { AlertTriangle, Bot, Download, GraduationCap, Inbox, Palmtree, Truck } from '@/components/icons'
 import { useAuth } from '@/lib/auth'
 import { useAnalytics, useHrCharts, useHrDashboard, type HrCharts } from '@/lib/api'
 import { CHART_COLORS } from '@/lib/constants'
@@ -57,7 +57,7 @@ export default function AnalyticsPage() {
           { value: 'vacations', label: t('analytics.tab.vacations') },
           { value: 'learning', label: t('analytics.tab.learning') },
           { value: 'requests', label: t('analytics.tab.requests') },
-          { value: 'ai', label: '🤖 AI Jana' },
+          { value: 'ai', label: 'AI Jana' },
           { value: 'logistics', label: t('analytics.tab.logistics') },
         ]}
       />

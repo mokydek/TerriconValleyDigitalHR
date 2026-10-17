@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { RefreshCw } from 'lucide-react'
+import { RefreshCw } from '@/components/icons'
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/auth'
 import { useCancelRequest, useDecideRequest, useRequestEvents, useRunIntegrationWorker, useVacationBalance } from '@/lib/api'

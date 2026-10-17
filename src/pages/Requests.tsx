@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { ChevronRight, FilePlus2, FileStack } from 'lucide-react'
+import { ChevronRight, FilePlus2, FileStack } from '@/components/icons'
 import { useI18n } from '@/lib/i18n'
 import { useMyRequests } from '@/lib/api'
 import { fmtDate } from '@/lib/format'

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Ban, Check, Clock3, FileText, Loader2, X } from 'lucide-react'
+import { Ban, Check, Clock3, FileText, Loader2, Palmtree, Pencil, Wallet, X } from '@/components/icons'
 import { t, useI18n, type I18nKey } from '@/lib/i18n'
 import { CERT_PURPOSES, certPurposeLabel, dataFieldLabel, REQUEST_TYPE_META, STATUS_STYLE } from '@/lib/constants'
 import { days, duration, fmtDateTime, fmtRange, fullName, money } from '@/lib/format'
@@ -17,12 +17,24 @@ export function StatusBadge({ status }: { status: RequestStatus }) {
   )
 }
 
+const TYPE_ICON: Record<RequestType, typeof FileText> = { vacation: Palmtree, advance: Wallet, certificate: FileText, data_change: Pencil }
+
+/** Значок типа заявки в фирменной зелёной плашке (вместо эмодзи) */
+export function TypeIcon({ type, size = 'md' }: { type: RequestType; size?: 'md' | 'lg' }) {
+  const Icon = TYPE_ICON[type]
+  return (
+    <span className={cn('grid shrink-0 place-items-center rounded-xl bg-brand-50 text-brand-700', size === 'lg' ? 'h-11 w-11' : 'h-8 w-8')}>
+      <Icon className={size === 'lg' ? 'h-5 w-5' : 'h-[18px] w-[18px]'} />
+    </span>
+  )
+}
+
 export function TypeLabel({ type, withHint = false }: { type: RequestType; withHint?: boolean }) {
   const { t } = useI18n()
   const meta = REQUEST_TYPE_META[type]
   return (
     <span className="inline-flex items-center gap-2">
-      <span className="text-lg leading-none">{meta.emoji}</span>
+      <TypeIcon type={type} />
       <span>
         <span className="font-medium text-ink">{t(`type.${type}` as I18nKey)}</span>
         {withHint && <span className="block text-xs text-muted">{meta.hint}</span>}

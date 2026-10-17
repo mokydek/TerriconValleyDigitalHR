@@ -1,6 +1,6 @@
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Printer } from 'lucide-react'
+import { Printer } from '@/components/icons'
 import { must, supabase } from '@/lib/supabase'
 import { CERT_PURPOSES, certPurposeLabel, dataFieldLabel } from '@/lib/constants'
 import { days, fmtDate, money } from '@/lib/format'

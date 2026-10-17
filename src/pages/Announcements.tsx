@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Megaphone, Pin, Plus } from 'lucide-react'
+import { Megaphone, Pin, Plus } from '@/components/icons'
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/auth'
 import { useI18n } from '@/lib/i18n'

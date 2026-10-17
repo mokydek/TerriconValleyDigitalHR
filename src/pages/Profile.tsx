@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { BadgeCheck, Building2, FileStack, GraduationCap, Lock, Mail, Palmtree, Pencil, Phone, RefreshCw, ShieldCheck, UserRound } from 'lucide-react'
+import { BadgeCheck, Building2, FileStack, GraduationCap, Lock, Mail, Palmtree, Pencil, Phone, RefreshCw, ShieldCheck, UserRound } from '@/components/icons'
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/auth'
 import { useI18n } from '@/lib/i18n'

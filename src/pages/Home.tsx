@@ -22,7 +22,7 @@ import {
   Sparkles,
   Users,
   Wallet,
-} from 'lucide-react'
+} from '@/components/icons'
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/auth'
 import { useI18n } from '@/lib/i18n'
@@ -63,10 +63,10 @@ function QuickServices() {
   const { t } = useI18n()
   const navigate = useNavigate()
   const items = [
-    { label: t('home.qVacation'), icon: <Palmtree className="h-5 w-5" />, to: '/requests?new=vacation', tone: 'bg-emerald-50 text-emerald-700' },
-    { label: t('home.qAdvance'), icon: <Wallet className="h-5 w-5" />, to: '/requests?new=advance', tone: 'bg-sky-50 text-sky-700' },
-    { label: t('home.qCertificate'), icon: <FileText className="h-5 w-5" />, to: '/requests?new=certificate', tone: 'bg-violet-50 text-violet-700' },
-    { label: t('home.qAsk'), icon: <Sparkles className="h-5 w-5" />, to: '/assistant', tone: 'bg-amber-50 text-amber-700' },
+    { label: t('home.qVacation'), icon: <Palmtree className="h-5 w-5" />, to: '/requests?new=vacation', tone: 'bg-brand-50 text-brand-700' },
+    { label: t('home.qAdvance'), icon: <Wallet className="h-5 w-5" />, to: '/requests?new=advance', tone: 'bg-brand-50 text-brand-700' },
+    { label: t('home.qCertificate'), icon: <FileText className="h-5 w-5" />, to: '/requests?new=certificate', tone: 'bg-brand-50 text-brand-700' },
+    { label: t('home.qAsk'), icon: <Sparkles className="h-5 w-5" />, to: '/assistant', tone: 'bg-brand-50 text-brand-700' },
   ]
   return (
     // на телефоне — одна компактная строка из четырёх кнопок, чтобы главная помещалась без прокрутки

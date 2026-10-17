@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { addDays, differenceInCalendarDays, eachDayOfInterval, parseISO } from 'date-fns'
-import { CalendarDays, Info } from 'lucide-react'
+import { CalendarDays, Info } from '@/components/icons'
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/auth'
 import { LANGS, useI18n, type I18nKey } from '@/lib/i18n'
@@ -13,6 +13,7 @@ import { days, entitledText, fmtDate, isoDate, money, num } from '@/lib/format'
 import type { HrRequest, RequestType } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { Button, Field, Modal } from '@/components/ui'
+import { TypeIcon } from '@/components/requests/RequestParts'
 
 /** Языки, на которых выдаётся справка (в заявку записывается код языка) */
 const CERT_LANGS: readonly string[] = ['ru', 'kk', 'en']
@@ -170,7 +171,7 @@ export function NewRequestModal({
               className="flex items-start gap-3 rounded-2xl border border-line bg-white p-4 text-left transition hover:border-brand-300 hover:bg-brand-50/40"
               data-testid={`type-${rt}`}
             >
-              <span className="text-2xl">{REQUEST_TYPE_META[rt].emoji}</span>
+              <TypeIcon type={rt} size="lg" />
               <span>
                 <span className="block font-semibold">{t(`type.${rt}` as I18nKey)}</span>
                 <span className="mt-0.5 block text-sm text-muted">{REQUEST_TYPE_META[rt].hint}</span>

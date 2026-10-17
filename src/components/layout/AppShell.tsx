@@ -27,7 +27,7 @@ import {
   UserRound,
   Users,
   X,
-} from 'lucide-react'
+} from '@/components/icons'
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/auth'
 import { LANGS, useI18n, type I18nKey } from '@/lib/i18n'

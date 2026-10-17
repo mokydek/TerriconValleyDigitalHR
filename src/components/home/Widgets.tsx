@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowRight, Bell, CalendarClock, ClipboardList, FileStack, GraduationCap, Megaphone, Palmtree, Pin } from 'lucide-react'
+import { ArrowRight, Bell, CalendarClock, ClipboardList, FileStack, GraduationCap, Megaphone, Palmtree, Pin } from '@/components/icons'
 import { useAuth } from '@/lib/auth'
 import { useI18n } from '@/lib/i18n'
 import { useAnnouncements, useMarkNotificationRead, useMyAssignments, useMyRequests, useNotifications, useTasks, useVacationBalance } from '@/lib/api'

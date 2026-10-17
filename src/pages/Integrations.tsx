@@ -1,4 +1,4 @@
-import { ArrowDownLeft, ArrowUpRight, CheckCircle2, Database, FileSignature, RefreshCw, UserPlus } from 'lucide-react'
+import { ArrowDownLeft, ArrowUpRight, CheckCircle2, Database, FileSignature, RefreshCw, UserPlus } from '@/components/icons'
 import { toast } from 'sonner'
 import { useIntegrationEvents, useRunIntegrationWorker, useSyncZup, useZupPending } from '@/lib/api'
 import { fmtDateTime } from '@/lib/format'

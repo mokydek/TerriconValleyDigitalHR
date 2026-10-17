@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
-import { BookOpen, FileText, Lock, Search, Sparkles } from 'lucide-react'
+import { BookOpen, FileText, Lock, Search, Sparkles } from '@/components/icons'
 import { t, useI18n } from '@/lib/i18n'
 import { useKbArticle, useKbArticles } from '@/lib/api'
 import { fmtDate } from '@/lib/format'

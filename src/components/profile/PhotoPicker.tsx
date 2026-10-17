@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Camera, Loader2 } from 'lucide-react'
+import { Camera, Loader2 } from '@/components/icons'
 import { toast } from 'sonner'
 import { imageToAvatar, useSetAvatar } from '@/lib/avatars'
 import { useAuth } from '@/lib/auth'

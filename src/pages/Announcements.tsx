@@ -27,7 +27,6 @@ export default function AnnouncementsPage() {
     <div className="mx-auto max-w-3xl">
       <PageHeader
         title={t('nav.announcements')}
-        subtitle="Новости компании, логистика, HR и важные изменения"
         actions={
           role !== 'employee' && (
             <Button icon={<Plus className="h-4 w-4" />} onClick={() => setCreating(true)}>

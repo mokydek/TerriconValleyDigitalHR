@@ -19,9 +19,9 @@ export const STATUS_STYLE: Record<RequestStatus, string> = {
 }
 
 export const PRIORITY_META: Record<Task['priority'], { label: string; style: string }> = {
-  low: { label: 'Низкий', style: 'bg-slate-100 text-slate-600 ring-slate-200' },
-  medium: { label: 'Средний', style: 'bg-sky-50 text-sky-700 ring-sky-200' },
-  high: { label: 'Высокий', style: 'bg-amber-50 text-amber-800 ring-amber-200' },
+  low: { label: 'Не срочно', style: 'bg-slate-100 text-slate-600 ring-slate-200' },
+  medium: { label: 'Обычная', style: 'bg-sky-50 text-sky-700 ring-sky-200' },
+  high: { label: 'Важно', style: 'bg-amber-50 text-amber-800 ring-amber-200' },
   urgent: { label: 'Срочно', style: 'bg-rose-50 text-rose-700 ring-rose-200' },
 }
 

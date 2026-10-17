@@ -32,7 +32,6 @@ export function AttentionZone({ limit }: { limit?: number }) {
       <CardHeader
         icon={<BellRing className="h-[18px] w-[18px]" />}
         title="Зона внимания"
-        subtitle="Не просто цифры — люди и действие в один клик"
         action={<Badge className="bg-rose-50 text-rose-700 ring-rose-200">{data?.length ?? 0}</Badge>}
       />
       {data && data.length > 0 && (
@@ -101,7 +100,7 @@ export function AttentionZone({ limit }: { limit?: number }) {
         })}
       </ul>
       {limit && (data?.length ?? 0) > limit && (
-        <div className="border-t border-line px-5 py-3 text-center text-sm text-muted">Показаны {limit} из {data?.length} — остальные в «Сотрудниках»</div>
+        <div className="border-t border-line px-5 py-3 text-center text-sm text-muted">Показаны {limit} из {data?.length}, остальные в разделе «Сотрудники»</div>
       )}
     </Card>
   )
@@ -124,7 +123,7 @@ export function FollowStar({ person, size = 'md' }: { person: Pick<PersonRow, 'e
         }
       }}
       className={cn('rounded-lg p-1.5 transition', person.followed ? 'text-amber-500 hover:bg-amber-50' : 'text-muted/50 hover:bg-canvas hover:text-amber-500')}
-      title={person.followed ? 'Не следить' : 'Слежу — получать уведомления'}
+      title={person.followed ? 'Не следить' : 'Следить: получать уведомления'}
       aria-pressed={person.followed}
       data-testid={`follow-${person.employee_id}`}
     >
@@ -141,7 +140,6 @@ export function WatchlistCard() {
       <CardHeader
         icon={<Eye className="h-[18px] w-[18px]" />}
         title="Слежу"
-        subtitle="Ваш список наблюдения: уведомления о заявках, курсах и просрочках"
         action={
           <Link to="/employees" className="text-sm font-medium text-brand-700 hover:underline">
             Добавить

@@ -406,7 +406,7 @@ begin
   ), items as (
     -- Накоплено больше 30 дней отпуска
     select 'vacation'::text as kind, emp.id as emp_id, 'Накоплено ' || rtrim(to_char(vb.available, 'FM999990.9'), '.') || ' дн. отпуска' as title,
-           'Риск выгорания и «сгорания» дней — предложите запланировать отпуск' as details,
+           'Риск выгорания и «сгорания» дней, предложите запланировать отпуск' as details,
            'remind_vacation'::text as action, null::uuid as ref, 'medium'::text as severity
     from emp cross join lateral public.vacation_balance(emp.id) vb
     where vb.available > 30
@@ -423,7 +423,7 @@ begin
     select 'request', emp.id,
            'Заявка №' || r.number || ' висит у руководителя ' ||
              floor(extract(epoch from now() - r.created_at) / 3600)::int || ' ч',
-           public.request_type_label(r.type) || ' · согласующий: ' || coalesce(public.employee_name(r.approver_id), '—'),
+           public.request_type_label(r.type) || ' · согласующий: ' || coalesce(public.employee_name(r.approver_id), '–'),
            'nudge', r.id, case when r.created_at < now() - interval '96 hours' then 'high' else 'medium' end
     from emp join public.requests r on r.employee_id = emp.id
     where r.status = 'pending' and r.created_at < now() - interval '48 hours'
@@ -460,7 +460,7 @@ begin
   if p_action = 'remind_vacation' then
     select * into v_bal from public.vacation_balance(p_employee);
     perform public.notify(p_employee, 'Запланируйте отпуск 🌴',
-      'У вас накоплено ' || v_bal.available || ' дн. отпуска. Оформите заявку в JanaMen — подберём даты вместе с руководителем.',
+      'У вас накоплено ' || v_bal.available || ' дн. отпуска. Оформите заявку в JanaMen и подберите даты вместе с руководителем.',
       '/requests?new=vacation', 'warning');
     insert into public.reminders (kind, employee_id, ref_id, sent_by) values ('vacation', p_employee, null, v_me);
     return 'Напоминание об отпуске отправлено';
@@ -469,7 +469,7 @@ begin
     select * into v_assignment from public.course_assignments where id = p_ref;
     select * into v_course from public.courses where id = v_assignment.course_id;
     perform public.notify(p_employee, 'Напоминание: курс «' || v_course.title || '»',
-      'Срок прохождения истёк ' || to_char(v_assignment.due_date, 'DD.MM.YYYY') || '. Пройдите курс в Jana Academy — это займёт около '
+      'Срок прохождения истёк ' || to_char(v_assignment.due_date, 'DD.MM.YYYY') || '. Пройдите курс в Jana Academy, это займёт около '
         || v_course.duration_minutes || ' минут.', '/academy/' || v_course.slug, 'warning');
     insert into public.reminders (kind, employee_id, ref_id, sent_by) values ('course', p_employee, p_ref, v_me);
     return 'Напоминание о курсе отправлено';

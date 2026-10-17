@@ -11,31 +11,31 @@ const DEMO_PASSWORD = 'Jana2026!'
 const DEMO = [
   {
     email: 'employee@jana.test',
-    role: 'Работник',
+    role: 'role.employee',
     name: 'Дана Жумабекова',
-    position: 'Старший оператор сортировки',
+    position: 'login.posEmployee',
     icon: <UserRound className="h-5 w-5" />,
     tone: 'from-brand-500 to-brand-700',
   },
   {
     email: 'manager@jana.test',
-    role: 'Руководитель',
+    role: 'role.manager',
     name: 'Ерлан Сапаров',
-    position: 'Руководитель склада и сортировки',
+    position: 'login.posManager',
     icon: <Briefcase className="h-5 w-5" />,
     tone: 'from-sky-500 to-sky-700',
   },
   {
     email: 'hr@jana.test',
-    role: 'HR / администратор',
+    role: 'role.hr',
     name: 'Айгерим Нурланова',
-    position: 'HR-директор · «Пульс компании»',
+    position: 'login.posHr',
     icon: <UsersRound className="h-5 w-5" />,
     tone: 'from-violet-500 to-violet-700',
   },
-]
+] as const
 
-const PATH = ['Вход и роль', 'Профиль', 'Заявка', 'Обучение', 'HR-ассистент']
+const PATH = ['login.step1', 'login.step2', 'login.step3', 'login.step4', 'login.step5'] as const
 
 export default function LoginPage() {
   const { signIn } = useAuth()
@@ -74,26 +74,26 @@ export default function LoginPage() {
           <h1 className="text-5xl leading-[1.05] font-extrabold tracking-tight">
             Jana<span className="text-brand-300">Men</span>
           </h1>
-          <p className="mt-4 text-xl text-white/85">Одна платформа для сотрудника: профиль, заявки, обучение и HR-помощь — в одном окне.</p>
+          <p className="mt-4 text-xl text-white/85">{t('login.tagline')}</p>
           <ol className="mt-10 grid grid-cols-5 gap-3">
             {PATH.map((p, i) => (
               <li key={p}>
                 <div className="text-3xl font-extrabold text-brand-300">{String(i + 1).padStart(2, '0')}</div>
                 <div className="mt-2 h-px bg-white/25" />
-                <div className="mt-2 text-xs font-semibold tracking-wide text-white/80 uppercase">{p}</div>
+                <div className="mt-2 text-xs font-semibold tracking-wide text-white/80 uppercase">{t(p)}</div>
               </li>
             ))}
           </ol>
         </div>
         <div className="relative flex flex-wrap gap-x-6 gap-y-2 text-sm text-white/70">
           <span className="inline-flex items-center gap-2">
-            <BadgeCheck className="h-4 w-4 text-brand-300" /> Данные из 1С:ЗУП
+            <BadgeCheck className="h-4 w-4 text-brand-300" /> {t('login.feature1')}
           </span>
           <span className="inline-flex items-center gap-2">
-            <GraduationCap className="h-4 w-4 text-brand-300" /> Jana Academy
+            <GraduationCap className="h-4 w-4 text-brand-300" /> {t('login.feature2')}
           </span>
           <span className="inline-flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-brand-300" /> AI Jana с источниками
+            <Sparkles className="h-4 w-4 text-brand-300" /> {t('login.feature3')}
           </span>
         </div>
       </div>
@@ -130,9 +130,9 @@ export default function LoginPage() {
                 >
                   <div className={cn('grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br text-white', d.tone)}>{d.icon}</div>
                   <div className="min-w-0 flex-1">
-                    <div className="text-[15px] font-semibold">{d.role}</div>
+                    <div className="text-[15px] font-semibold">{t(d.role)}</div>
                     <div className="truncate text-sm text-muted">
-                      {d.name} · {d.position}
+                      {d.name} · {t(d.position)}
                     </div>
                   </div>
                   {busy === d.email ? (
@@ -147,12 +147,12 @@ export default function LoginPage() {
               onClick={() => void login('newbie@jana.test', DEMO_PASSWORD)}
               className="mt-2.5 text-sm text-muted underline-offset-2 hover:text-brand-700 hover:underline"
             >
-              или войти как новый сотрудник (5-й день в компании)
+              {t('login.newbie')}
             </button>
           </div>
 
           <div className="my-7 flex items-center gap-3 text-xs text-muted">
-            <div className="h-px flex-1 bg-line" /> или по почте <div className="h-px flex-1 bg-line" />
+            <div className="h-px flex-1 bg-line" /> {t('login.orEmail')} <div className="h-px flex-1 bg-line" />
           </div>
 
           <form
@@ -172,7 +172,7 @@ export default function LoginPage() {
               {t('login.submit')}
             </Button>
           </form>
-          <p className="mt-6 text-center text-xs text-muted">Демо-стенд: все данные вымышленные. Пароль тестовых аккаунтов — {DEMO_PASSWORD}</p>
+          <p className="mt-6 text-center text-xs text-muted">{t('login.footer', { password: DEMO_PASSWORD })}</p>
         </div>
       </div>
     </div>

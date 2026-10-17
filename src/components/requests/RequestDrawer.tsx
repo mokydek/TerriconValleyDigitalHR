@@ -36,7 +36,7 @@ export function RequestDrawer({ request, onClose }: { request: HrRequest | null;
     try {
       await decide.mutateAsync({ id: r.id, action, comment: action === 'reject' ? comment : comment || undefined })
       if (action === 'process') {
-        toast.success('Передано в 1С:ЗУП — ждём ответ внешней системы…')
+        toast.success('Передано в 1С:ЗУП, ждём ответ…')
         await sleep(2500)
         await worker.mutateAsync()
         toast.success('1С:ЗУП подтвердила: документы сформированы')
@@ -142,21 +142,21 @@ export function RequestDrawer({ request, onClose }: { request: HrRequest | null;
             {!isMine && r.employee && <Row label="Сотрудник" value={`${fullName(r.employee)} · ${r.employee.position}`} />}
             {r.type === 'vacation' && (
               <>
-                <Row label="Период" value={`${fmtDate(r.start_date)} — ${fmtDate(r.end_date)}`} />
+                <Row label="Период" value={`${fmtDate(r.start_date)} – ${fmtDate(r.end_date)}`} />
                 <Row label="Дней (без праздников)" value={days(r.days)} />
               </>
             )}
             {r.type === 'advance' && <Row label="Сумма" value={money(r.amount)} />}
             {r.type === 'certificate' && (
               <>
-                <Row label="Цель" value={String(r.details.purpose ?? '—')} />
+                <Row label="Цель" value={String(r.details.purpose ?? '–')} />
                 <Row label="Язык / экземпляров" value={`${String(r.details.language ?? 'ru').toUpperCase()} / ${r.details.copies ?? 1}`} />
               </>
             )}
             {r.type === 'data_change' && (
               <>
-                <Row label="Что изменить" value={String(r.details.field ?? '—')} />
-                <Row label="Новое значение" value={String(r.details.new_value ?? '—')} />
+                <Row label="Что изменить" value={String(r.details.field ?? '–')} />
+                <Row label="Новое значение" value={String(r.details.new_value ?? '–')} />
               </>
             )}
             {r.comment && <Row label="Комментарий" value={r.comment} />}

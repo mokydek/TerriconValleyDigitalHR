@@ -16,7 +16,7 @@ export default function TicketsPage() {
     <div className="mx-auto max-w-4xl">
       <PageHeader
         title="Обращения в HR"
-        subtitle="Очередь эскалаций: вопросы, на которые у AI Jana не было надёжного ответа. Ответ уходит сотруднику, а по кнопке — пополняет базу знаний, и ассистент становится умнее."
+        subtitle="Вопросы, на которые AI Jana не нашла ответа"
       />
       <Tabs<Filter>
         value={filter}
@@ -92,7 +92,7 @@ function TicketCard({ ticket }: { ticket: HrTicket }) {
               onClick={async () => {
                 try {
                   await answer.mutateAsync({ id: ticket.id, answer: text, addToKb, kbTitle })
-                  toast.success('Ответ отправлен сотруднику', { description: addToKb ? 'и добавлен в базу знаний — AI Jana теперь знает ответ' : undefined })
+                  toast.success('Ответ отправлен сотруднику', { description: addToKb ? 'и добавлен в базу знаний' : undefined })
                 } catch (e) {
                   toast.error((e as Error).message)
                 }

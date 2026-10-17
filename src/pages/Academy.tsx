@@ -36,7 +36,7 @@ function CourseCard({ course, assignment, lessons }: { course: Course; assignmen
       <div className="mt-auto border-t border-line px-5 py-3.5">
         <div className="flex items-center justify-between gap-2 text-xs text-muted">
           <span className="inline-flex items-center gap-1">
-            <Clock className="h-3.5 w-3.5" /> {course.duration_minutes} {t('academy.min')} · {lessons ?? '—'} {t('academy.lessons')} + тест
+            <Clock className="h-3.5 w-3.5" /> {course.duration_minutes} {t('academy.min')} · {lessons ?? '–'} {t('academy.lessons')} + тест
           </span>
           {assignment?.due_date && assignment.status !== 'completed' && (
             <span className={cn(overdue && 'font-medium text-rose-600')}>
@@ -109,7 +109,7 @@ export default function AcademyPage() {
           </div>
         ) : assigned.length === 0 ? (
           <Card>
-            <Empty icon={<GraduationCap className="h-6 w-6" />} title="Назначенных курсов нет" text="Загляните в каталог — там есть курсы для саморазвития" action={<Button onClick={() => setTab('catalog')}>Каталог</Button>} />
+            <Empty icon={<GraduationCap className="h-6 w-6" />} title="Назначенных курсов нет" text="Курсы для развития есть в каталоге" action={<Button onClick={() => setTab('catalog')}>Каталог</Button>} />
           </Card>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -185,7 +185,7 @@ function ManageLearning({ courses }: { courses: Course[] }) {
             Пройдено обязательных: <b>{forecast.data.pct}%</b> ({forecast.data.completed} из {forecast.data.total}). Темп: {forecast.data.rate_per_week} завершений в неделю.
           </div>
           <Badge className="bg-violet-50 text-violet-700 ring-violet-200">
-            прогноз 100%: {forecast.data.eta ? fmtDate(forecast.data.eta) : 'темп нулевой — нужен пинок 🙂'}
+            прогноз 100%: {forecast.data.eta ? fmtDate(forecast.data.eta) : 'темп нулевой'}
           </Badge>
         </Card>
       )}
@@ -213,7 +213,7 @@ function ManageLearning({ courses }: { courses: Course[] }) {
                   <td className="px-5 py-3">
                     {s.completed} <span className="text-muted">({s.assigned ? Math.round((s.completed / s.assigned) * 100) : 0}%)</span>
                   </td>
-                  <td className="px-5 py-3">{s.avg_score ?? '—'}</td>
+                  <td className="px-5 py-3">{s.avg_score ?? '–'}</td>
                 </tr>
               ))}
             </tbody>

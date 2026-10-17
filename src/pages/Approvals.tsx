@@ -76,7 +76,7 @@ function HrKanban() {
     <div>
       <PageHeader
         title="Заявки компании"
-        subtitle="Канбан по этапам трека: руководитель → HR → 1С:ЗУП → готово. Таймер показывает, сколько заявка на текущем этапе."
+        subtitle="Руководитель → HR → 1С:ЗУП → готово"
         actions={
           <Button variant="outline" icon={<RefreshCw className="h-4 w-4" />} loading={worker.isPending} onClick={() => worker.mutate()}>
             Запросить статусы из 1С
@@ -200,7 +200,7 @@ function ManagerApprovals() {
 
   return (
     <div>
-      <PageHeader title="Согласования" subtitle="Заявки только вашей команды. Данные других подразделений вам недоступны — это проверяет сервер." />
+      <PageHeader title="Согласования" subtitle="Заявки вашей команды" />
       <Tabs<MgrTab>
         value={tab}
         onChange={setTab}

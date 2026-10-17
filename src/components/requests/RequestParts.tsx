@@ -122,7 +122,7 @@ export function RequestStepper({ request, events }: { request: HrRequest; events
               ) : s.state === 'current' ? (
                 s.key === '1c' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Clock3 className="h-4 w-4" />
               ) : s.state === 'skipped' ? (
-                '—'
+                '–'
               ) : (
                 i + 1
               )}
@@ -144,7 +144,7 @@ const EVENT_LABEL: Record<RequestEvent['action'], string> = {
   approved: 'Согласовано руководителем',
   rejected: 'Отклонено',
   processed: 'HR оформил и передал во внешнюю систему',
-  completed: 'Оформлено — документы готовы',
+  completed: 'Оформлено, документы готовы',
   cancelled: 'Заявка отозвана',
   integration: 'Ответ внешней системы',
   nudged: 'HR напомнил согласующему',

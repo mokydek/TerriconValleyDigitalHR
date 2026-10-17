@@ -45,7 +45,7 @@ export class ErrorBoundary extends Component<Props, { error: Error | null }> {
     return (
       <div className="mx-auto max-w-lg px-4 py-16 text-center">
         <h1 className="text-xl font-bold text-ink">Не удалось открыть раздел</h1>
-        <p className="mt-3 text-[15px] text-muted">Попробуйте обновить страницу. Если ошибка повторится — откройте сайт в последней версии браузера.</p>
+        <p className="mt-3 text-[15px] text-muted">Попробуйте обновить страницу. Если ошибка повторится, откройте сайт в другом браузере.</p>
         <button
           type="button"
           className="mt-6 rounded-xl bg-brand-600 px-5 py-2.5 font-semibold text-white"

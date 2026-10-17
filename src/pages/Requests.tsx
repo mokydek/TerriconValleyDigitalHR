@@ -48,7 +48,6 @@ export default function RequestsPage() {
     <div>
       <PageHeader
         title={t('nav.requests')}
-        subtitle="Все HR-заявки в одном списке: тип, дата, текущий статус и полная история"
         actions={
           <Button icon={<FilePlus2 className="h-4 w-4" />} onClick={() => setCreating(true)} data-testid="new-request">
             {t('req.new')}

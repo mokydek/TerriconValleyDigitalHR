@@ -26,7 +26,7 @@ export default function IntegrationsPage() {
     <div>
       <PageHeader
         title="Интеграции"
-        subtitle="Где и как JanaMen подключается к 1С:ЗУП и Documentolog. В прототипе внешние системы — mock-адаптеры с тем же контрактом событий."
+        subtitle="1С:ЗУП и Documentolog. В прототипе это mock-адаптеры с тем же контрактом событий"
       />
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
@@ -39,17 +39,17 @@ export default function IntegrationsPage() {
           <div className="space-y-4 px-5 pb-5">
             <ul className="space-y-1.5 text-sm text-ink-soft">
               <li className="flex gap-2">
-                <ArrowDownLeft className="mt-0.5 h-4 w-4 shrink-0 text-sky-600" /> Входящий поток: сотрудники, должности, подразделения, руководители, даты приёма, оклад — только чтение в JanaMen.
+                <ArrowDownLeft className="mt-0.5 h-4 w-4 shrink-0 text-sky-600" /> Входящий поток: сотрудники, должности, подразделения, руководители, даты приёма, оклад. В JanaMen только чтение.
               </li>
               <li className="flex gap-2">
-                <ArrowUpRight className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" /> Исходящий поток: приказ об отпуске, ведомость аванса, запрос на изменение данных — после оформления заявки HR.
+                <ArrowUpRight className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" /> Исходящий поток: приказ об отпуске, ведомость аванса, запрос на изменение данных после оформления заявки в HR.
               </li>
             </ul>
             <div className="rounded-xl border border-line p-4">
               <div className="flex items-center justify-between gap-2">
                 <div>
                   <div className="text-sm font-semibold">Синхронизация сотрудников</div>
-                  <div className="text-xs text-muted">Последняя: {pending.data?.last_sync ? fmtDateTime(pending.data.last_sync) : '—'}</div>
+                  <div className="text-xs text-muted">Последняя: {pending.data?.last_sync ? fmtDateTime(pending.data.last_sync) : '–'}</div>
                 </div>
                 <Button
                   icon={<RefreshCw className="h-4 w-4" />}
@@ -77,7 +77,7 @@ export default function IntegrationsPage() {
                 <ul className="mt-3 space-y-1.5 text-sm">
                   {pending.data?.new.map((n) => (
                     <li key={n.tab_no} className="flex items-center gap-2">
-                      <UserPlus className="h-4 w-4 text-sky-600" /> Новый в 1С: <b>{n.name}</b> — {n.position} ({n.tab_no})
+                      <UserPlus className="h-4 w-4 text-sky-600" /> Новый в 1С: <b>{n.name}</b>, {n.position} ({n.tab_no})
                     </li>
                   ))}
                   {pending.data?.changed.map((c) => (
@@ -100,7 +100,7 @@ export default function IntegrationsPage() {
           />
           <div className="space-y-3 px-5 pb-5 text-sm text-ink-soft">
             <p>Когда HR оформляет заявку, JanaMen регистрирует документ в Documentolog и запускает маршрут: подписание HR → ознакомление работника. Номер документа сохраняется в карточке заявки.</p>
-            <p>Электронная подпись и хранение оригиналов — на стороне Documentolog (в рамках MVP не требуются).</p>
+            <p>Электронную подпись и хранение оригиналов обеспечивает Documentolog (в MVP не нужны).</p>
             <Button variant="outline" icon={<RefreshCw className="h-4 w-4" />} loading={worker.isPending} onClick={() => worker.mutate()}>
               Обработать очередь событий
             </Button>
@@ -109,7 +109,7 @@ export default function IntegrationsPage() {
       </div>
 
       <Card className="mt-4">
-        <CardHeader title="Журнал интеграционных событий" subtitle="Transactional outbox: событие пишется в одной транзакции с бизнес-операцией, адаптер доставляет его во внешнюю систему" />
+        <CardHeader title="Журнал интеграционных событий" subtitle="Transactional outbox: событие сохраняется вместе с операцией, адаптер доставляет его" />
         <div className="scrollbar-thin overflow-x-auto">
           <table className="w-full min-w-[820px] text-left text-sm">
             <thead className="border-y border-line bg-canvas/60 text-xs text-muted uppercase">
@@ -129,7 +129,7 @@ export default function IntegrationsPage() {
                   <td className="px-5 py-2.5 font-medium">{e.system === '1c_zup' ? '1С:ЗУП' : 'Documentolog'}</td>
                   <td className="px-5 py-2.5 whitespace-nowrap">{e.direction === 'inbound' ? '← входящее' : '→ исходящее'}</td>
                   <td className="px-5 py-2.5">{ENTITY[e.entity] ?? e.entity}</td>
-                  <td className="px-5 py-2.5 text-ink-soft">{e.response?.document ?? e.external_id ?? '—'}</td>
+                  <td className="px-5 py-2.5 text-ink-soft">{e.response?.document ?? e.external_id ?? '–'}</td>
                   <td className="px-5 py-2.5">
                     <Badge className={cn(e.status === 'sent' ? 'bg-brand-50 text-brand-700 ring-brand-200' : e.status === 'error' ? 'bg-rose-50 text-rose-700 ring-rose-200' : 'bg-amber-50 text-amber-800 ring-amber-200')}>
                       {e.status === 'sent' ? 'доставлено' : e.status === 'error' ? 'ошибка' : 'в очереди'}

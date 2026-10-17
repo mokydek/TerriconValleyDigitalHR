@@ -35,7 +35,7 @@ function RoleGate({ roles, children }: { roles: Role[]; children: ReactNode }) {
     return (
       <div className="card mx-auto mt-10 max-w-lg p-8 text-center">
         <p className="text-lg font-semibold">Раздел недоступен для вашей роли</p>
-        <p className="mt-2 text-sm text-muted">Права доступа проверяются и в интерфейсе, и на сервере (RLS) — данные этого раздела вам не отдаются.</p>
+        <p className="mt-2 text-sm text-muted">Права проверяет сервер: данные этого раздела вам не отдаются.</p>
       </div>
     )
   }
@@ -79,7 +79,7 @@ function StartupLoader() {
         {slow && (
           <>
             <p className="mt-5 font-semibold">Сервер отвечает дольше обычного</p>
-            <p className="mt-2 text-sm text-muted">Проверьте интернет и обновите страницу. Если не помогает — войдите заново.</p>
+            <p className="mt-2 text-sm text-muted">Проверьте интернет и обновите страницу. Если не помогает, войдите заново.</p>
             <div className="mt-4 flex justify-center gap-2">
               <Button onClick={reloadFresh}>Обновить</Button>
               <Button variant="outline" onClick={resetSignIn}>
@@ -127,7 +127,7 @@ function Orphan() {
       <div className="card max-w-md p-8 text-center">
         <h1 className="text-xl font-bold">Карточка сотрудника не найдена</h1>
         <p className="mt-3 text-sm text-muted">
-          Аккаунт {session?.user.email} не связан с сотрудником в 1С:ЗУП. Обратитесь в HR — после синхронизации доступ откроется автоматически.
+          Аккаунт {session?.user.email} не связан с сотрудником в 1С:ЗУП. Обратитесь в HR: после синхронизации доступ откроется сам.
         </p>
         <Button className="mt-5" variant="outline" onClick={() => void signOut()}>
           Выйти

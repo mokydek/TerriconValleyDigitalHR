@@ -1,24 +1,29 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { BadgeCheck, Building2, Lock, Mail, Pencil, Phone, RefreshCw, ShieldCheck } from 'lucide-react'
+import { BadgeCheck, Building2, FileStack, GraduationCap, Lock, Mail, Palmtree, Pencil, Phone, RefreshCw, ShieldCheck, UserRound } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/auth'
 import { useI18n } from '@/lib/i18n'
 import { useEmployee, useMyAssignments, useMyRequests, useVacationBalance } from '@/lib/api'
 import { must, supabase } from '@/lib/supabase'
 import { days, fmtDate, fmtDateTime, fullName } from '@/lib/format'
-import { Avatar, Badge, Button, Card, CardHeader, Field, Modal, PageHeader, Progress, Skeleton } from '@/components/ui'
+import { Avatar, Badge, Button, Card, CardHeader, Field, Modal, PageHeader, Progress, Skeleton, Tabs } from '@/components/ui'
 import { requestSummary, StatusBadge, TypeLabel } from '@/components/requests/RequestParts'
 import { useQueryClient } from '@tanstack/react-query'
+import { TabLabel, useTabParam } from '@/lib/tabs'
+import type { HrRequest } from '@/lib/types'
 
 function Item({ label, value, mono }: { label: string; value: React.ReactNode; mono?: boolean }) {
   return (
     <div className="py-2.5">
       <dt className="text-[13px] text-muted">{label}</dt>
-      <dd className={`mt-0.5 font-medium text-ink ${mono ? 'tabular-nums' : ''}`}>{value || '—'}</dd>
+      <dd className={`mt-0.5 font-medium text-ink ${mono ? 'tabular-nums' : ''}`}>{value || '–'}</dd>
     </div>
   )
 }
+
+const PROFILE_TABS = ['data', 'vacation', 'learning', 'requests'] as const
+type ProfileTab = (typeof PROFILE_TABS)[number]
 
 export default function ProfilePage() {
   const { me } = useAuth()
@@ -28,15 +33,18 @@ export default function ProfilePage() {
   const assignments = useMyAssignments()
   const requests = useMyRequests()
   const [editing, setEditing] = useState(false)
+  const [tab, setTab] = useTabParam<ProfileTab>(PROFILE_TABS, 'data')
   if (!me) return null
   const priv = emp.data?.priv
   const b = balance.data
+  const fullFio = [me.last_name, me.first_name, me.middle_name].filter(Boolean).join(' ')
+  const vacations = (requests.data ?? []).filter((r) => r.type === 'vacation')
+  const icon = 'h-4 w-4'
 
   return (
     <div>
       <PageHeader
-        title={t('profile.title')}
-        subtitle="Профиль, остаток отпуска, обучение и заявки — всё о вас в одном месте"
+        title={t('nav.profile')}
         actions={
           <Link to="/requests?new=data_change">
             <Button variant="outline" icon={<Pencil className="h-4 w-4" />}>
@@ -46,29 +54,49 @@ export default function ProfilePage() {
         }
       />
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.5fr_1fr]">
-        <div className="space-y-4">
-          <Card className="p-5">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-              <Avatar name={fullName(me)} size={72} />
-              <div className="min-w-0 flex-1">
-                <h2 className="text-xl font-bold">{[me.last_name, me.first_name, me.middle_name].filter(Boolean).join(' ')}</h2>
-                <p className="text-muted">
-                  {me.position} · {me.department?.name}
-                </p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  <Badge className="bg-brand-50 text-brand-700 ring-brand-200">
-                    <BadgeCheck className="h-3.5 w-3.5" /> {t(`role.${me.role}`)}
-                  </Badge>
-                  <Badge className="bg-canvas text-ink-soft ring-line">
-                    <Building2 className="h-3.5 w-3.5" /> {me.company}
-                  </Badge>
-                </div>
-              </div>
+      <Card className="p-5">
+        <div className="flex items-center gap-4">
+          <Avatar name={fullName(me)} size={64} />
+          <div className="min-w-0 flex-1">
+            <h2 className="text-xl font-bold">{fullFio}</h2>
+            <p className="text-muted">
+              {me.position} · {me.department?.name}
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <Badge className="bg-brand-50 text-brand-700 ring-brand-200">
+                <BadgeCheck className="h-3.5 w-3.5" /> {t(`role.${me.role}`)}
+              </Badge>
+              <Badge className="bg-canvas text-ink-soft ring-line">
+                <Building2 className="h-3.5 w-3.5" /> {me.company}
+              </Badge>
             </div>
-          </Card>
+          </div>
+        </div>
+      </Card>
 
-          <Card>
+      <Tabs<ProfileTab>
+        value={tab}
+        onChange={setTab}
+        className="mt-5 mb-4"
+        items={[
+          { value: 'data', label: <TabLabel icon={<UserRound className={icon} />}>{t('profile.tabData')}</TabLabel> },
+          { value: 'vacation', label: <TabLabel icon={<Palmtree className={icon} />}>{t('profile.tabVacation')}</TabLabel> },
+          {
+            value: 'learning',
+            label: <TabLabel icon={<GraduationCap className={icon} />}>{t('profile.tabLearning')}</TabLabel>,
+            count: (assignments.data ?? []).filter((a) => a.status !== 'completed').length,
+          },
+          {
+            value: 'requests',
+            label: <TabLabel icon={<FileStack className={icon} />}>{t('profile.tabRequests')}</TabLabel>,
+            count: (requests.data ?? []).filter((r) => r.status === 'pending' || r.status === 'approved' || r.status === 'processing').length,
+          },
+        ]}
+      />
+
+      {tab === 'data' && (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.5fr_1fr]">
+          <Card className="min-w-0">
             <CardHeader
               icon={<Lock className="h-[18px] w-[18px]" />}
               title={t('profile.official')}
@@ -77,14 +105,14 @@ export default function ProfilePage() {
                   {t('profile.source')} · {t('common.readOnly')}
                   {me.synced_at && (
                     <span className="inline-flex items-center gap-1 text-xs">
-                      <RefreshCw className="h-3 w-3" /> синхронизировано {fmtDateTime(me.synced_at)}
+                      <RefreshCw className="h-3 w-3" /> {fmtDateTime(me.synced_at)}
                     </span>
                   )}
                 </span>
               }
             />
             <dl className="grid gap-x-8 px-5 pb-4 sm:grid-cols-2">
-              <Item label={t('profile.fullName')} value={[me.last_name, me.first_name, me.middle_name].filter(Boolean).join(' ')} />
+              <Item label={t('profile.fullName')} value={fullFio} />
               <Item label={t('profile.company')} value={me.company} />
               <Item label={t('profile.position')} value={me.position} />
               <Item label={t('profile.department')} value={me.department?.name} />
@@ -95,55 +123,55 @@ export default function ProfilePage() {
             </dl>
             <div className="mx-5 mb-5 flex items-start gap-2.5 rounded-xl bg-canvas px-4 py-3 text-sm text-muted">
               <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" />
-              Официальные кадровые данные ведутся в 1С:ЗУП. Нашли ошибку? Оформите заявку «Изменение данных» — HR исправит в 1С, и профиль обновится после синхронизации.
+              Нашли ошибку? Оформите заявку «Изменение данных», HR исправит её в 1С:ЗУП.
             </div>
           </Card>
 
-          <Card>
-            <CardHeader
-              icon={<Lock className="h-[18px] w-[18px]" />}
-              title={t('profile.private')}
-              subtitle="Видите только вы и HR — руководитель и коллеги эти данные не получают"
-              action={
-                <Button size="sm" variant="ghost" icon={<Pencil className="h-3.5 w-3.5" />} onClick={() => setEditing(true)}>
-                  Контакты
-                </Button>
-              }
-            />
-            {emp.isLoading ? (
-              <Skeleton className="mx-5 mb-5 h-20" />
-            ) : (
-              <dl className="grid gap-x-8 px-5 pb-4 sm:grid-cols-2">
-                <Item label="ИИН" value={priv?.iin ? `${priv.iin.slice(0, 4)}••••${priv.iin.slice(-2)}` : null} mono />
-                <Item label="Дата рождения" value={priv?.birth_date ? fmtDate(priv.birth_date) : null} />
-                <Item label="Личный телефон" value={priv?.personal_phone} />
-                <Item label="Адрес" value={priv?.address} />
-                <Item label="Контакт для экстренной связи" value={priv?.emergency_contact} />
-              </dl>
-            )}
-          </Card>
-
-          <Card>
-            <CardHeader title="Мои заявки" subtitle="Последние" action={<Link to="/requests" className="text-sm font-medium text-brand-700 hover:underline">Все</Link>} />
-            <ul className="divide-y divide-line border-t border-line">
-              {(requests.data ?? []).slice(0, 5).map((r) => (
-                <li key={r.id} className="flex items-center gap-3 px-5 py-3">
-                  <div className="min-w-0 flex-1">
-                    <TypeLabel type={r.type} />
-                    <div className="truncate text-xs text-muted">
-                      №{r.number} · {requestSummary(r)}
-                    </div>
-                  </div>
-                  <StatusBadge status={r.status} />
-                </li>
-              ))}
-            </ul>
-          </Card>
+          <div className="min-w-0 space-y-4">
+            <Card>
+              <CardHeader
+                icon={<Lock className="h-[18px] w-[18px]" />}
+                title={t('profile.private')}
+                subtitle="Видите только вы и HR"
+                action={
+                  <Button size="sm" variant="ghost" icon={<Pencil className="h-3.5 w-3.5" />} onClick={() => setEditing(true)}>
+                    Изменить
+                  </Button>
+                }
+              />
+              {emp.isLoading ? (
+                <Skeleton className="mx-5 mb-5 h-20" />
+              ) : (
+                <dl className="px-5 pb-4">
+                  <Item label="ИИН" value={priv?.iin ? `${priv.iin.slice(0, 4)}••••${priv.iin.slice(-2)}` : null} mono />
+                  <Item label="Дата рождения" value={priv?.birth_date ? fmtDate(priv.birth_date) : null} />
+                  <Item label="Личный телефон" value={priv?.personal_phone} />
+                  <Item label="Адрес" value={priv?.address} />
+                  <Item label="Контакт для экстренной связи" value={priv?.emergency_contact} />
+                </dl>
+              )}
+            </Card>
+            <Card className="p-5">
+              <div className="text-sm font-semibold">Рабочие контакты</div>
+              <div className="mt-3 space-y-2 text-sm">
+                <div className="flex items-center gap-2 text-ink-soft">
+                  <Mail className="h-4 w-4 text-muted" /> {me.email}
+                </div>
+                <div className="flex items-center gap-2 text-ink-soft">
+                  <Phone className="h-4 w-4 text-muted" /> {me.phone ?? '–'}
+                </div>
+              </div>
+            </Card>
+          </div>
         </div>
+      )}
 
-        <div className="space-y-4">
-          <Card className="p-5">
-            <div className="text-sm text-muted">{t('vac.balance')} на {b?.year ?? new Date().getFullYear()} год</div>
+      {tab === 'vacation' && (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_1.5fr]">
+          <Card className="min-w-0 p-5">
+            <div className="text-sm text-muted">
+              {t('vac.balance')}, {b?.year ?? new Date().getFullYear()}
+            </div>
             {b ? (
               <>
                 <div className="mt-1 text-4xl font-bold tracking-tight text-brand-700">{days(b.available)}</div>
@@ -170,41 +198,78 @@ export default function ProfilePage() {
               <Skeleton className="mt-2 h-24" />
             )}
           </Card>
-
-          <Card>
-            <CardHeader title="Обучение" subtitle="Назначенные курсы и результаты" action={<Link to="/academy" className="text-sm font-medium text-brand-700 hover:underline">Academy</Link>} />
-            <ul className="space-y-3 px-5 pb-5">
-              {(assignments.data ?? []).map((a) => (
-                <li key={a.id}>
-                  <Link to={`/academy/${a.course?.slug}`} className="block">
-                    <div className="flex items-center justify-between gap-2 text-sm">
-                      <span className="truncate font-medium">
-                        {a.course?.emoji} {a.course?.title}
-                      </span>
-                      <span className="shrink-0 text-xs text-muted">{a.status === 'completed' ? `тест ${a.score}%` : `${a.progress}%`}</span>
-                    </div>
-                    <Progress value={a.progress} className="mt-1.5 h-1.5" />
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </Card>
-
-          <Card className="p-5">
-            <div className="text-sm font-semibold">Рабочие контакты</div>
-            <div className="mt-3 space-y-2 text-sm">
-              <div className="flex items-center gap-2 text-ink-soft">
-                <Mail className="h-4 w-4 text-muted" /> {me.email}
-              </div>
-              <div className="flex items-center gap-2 text-ink-soft">
-                <Phone className="h-4 w-4 text-muted" /> {me.phone ?? '—'}
-              </div>
-            </div>
+          <Card className="min-w-0">
+            <CardHeader title="Мои отпуска" />
+            <RequestList items={vacations} empty="Заявок на отпуск пока нет" />
           </Card>
         </div>
-      </div>
+      )}
+
+      {tab === 'learning' && (
+        <Card className="max-w-3xl">
+          <CardHeader
+            title={t('profile.tabLearning')}
+            action={
+              <Link to="/academy" className="text-sm font-medium text-brand-700 hover:underline">
+                Jana Academy
+              </Link>
+            }
+          />
+          <ul className="space-y-4 px-5 pb-5">
+            {(assignments.data ?? []).length === 0 && <li className="py-4 text-center text-sm text-muted">Назначенных курсов нет</li>}
+            {(assignments.data ?? []).map((a) => (
+              <li key={a.id}>
+                <Link to={`/academy/${a.course?.slug}`} className="block">
+                  <div className="flex items-center justify-between gap-2 text-sm">
+                    <span className="min-w-0 truncate font-medium">
+                      {a.course?.emoji} {a.course?.title}
+                    </span>
+                    <span className="shrink-0 text-xs text-muted">{a.status === 'completed' ? `тест ${a.score}%` : `${a.progress}%`}</span>
+                  </div>
+                  <Progress value={a.progress} className="mt-1.5 h-1.5" />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
+      {tab === 'requests' && (
+        <Card className="max-w-3xl">
+          <CardHeader
+            title={t('profile.tabRequests')}
+            action={
+              <Link to="/requests" className="text-sm font-medium text-brand-700 hover:underline">
+                {t('home.allRequests')}
+              </Link>
+            }
+          />
+          <RequestList items={(requests.data ?? []).slice(0, 10)} empty={t('home.noRequests')} />
+        </Card>
+      )}
       <EditContacts open={editing} onClose={() => setEditing(false)} initial={priv ?? null} />
     </div>
+  )
+}
+
+function RequestList({ items, empty }: { items: HrRequest[]; empty: string }) {
+  if (items.length === 0) return <p className="px-5 pb-6 text-center text-sm text-muted">{empty}</p>
+  return (
+    <ul className="divide-y divide-line border-t border-line">
+      {items.map((r) => (
+        <li key={r.id}>
+          <Link to="/requests" className="flex items-center gap-3 px-5 py-3 transition hover:bg-canvas">
+            <div className="min-w-0 flex-1">
+              <TypeLabel type={r.type} />
+              <div className="truncate text-xs text-muted">
+                №{r.number} · {requestSummary(r)}
+              </div>
+            </div>
+            <StatusBadge status={r.status} />
+          </Link>
+        </li>
+      ))}
+    </ul>
   )
 }
 

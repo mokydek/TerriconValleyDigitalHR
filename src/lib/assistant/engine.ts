@@ -106,7 +106,7 @@ async function tryAnalytics(q: string, role: Role): Promise<AiAnswer | null> {
   if (role === 'employee') {
     return {
       status: 'refused',
-      text: 'Сводные данные по сотрудникам доступны руководителю и HR. Могу рассказать о ваших собственных данных — например, остатке отпуска или статусе заявок.',
+      text: 'Сводные данные по сотрудникам доступны руководителю и HR. Могу рассказать о ваших данных, например об остатке отпуска или статусе заявок.',
       sources: [],
       mode: 'kb',
     }
@@ -122,9 +122,9 @@ async function tryAnalytics(q: string, role: Role): Promise<AiAnswer | null> {
     return {
       status: 'analytics',
       text: rows.length
-        ? `Остаток отпуска больше ${threshold} дн. ${scopeLabel} — ${rows.length} чел. Лучше заранее запланировать им отпуск, чтобы снизить риск выгорания.`
+        ? `Остаток отпуска больше ${threshold} дн. ${scopeLabel}: ${rows.length} чел. Лучше заранее запланировать им отпуск, чтобы снизить риск выгорания.`
         : `Сотрудников с остатком больше ${threshold} дней ${scopeLabel} нет.`,
-      table: rows.length ? { columns: ['Сотрудник', 'Подразделение', 'Остаток, дн.'], rows: rows.map((r) => [r.name, r.department ?? '—', num(r.available, 1)]) } : undefined,
+      table: rows.length ? { columns: ['Сотрудник', 'Подразделение', 'Остаток, дн.'], rows: rows.map((r) => [r.name, r.department ?? '–', num(r.available, 1)]) } : undefined,
       sources: [analyticsSource()],
       mode: 'kb',
       actions: role === 'hr' ? [{ label: 'Открыть «Зону внимания»', to: '/' }] : undefined,
@@ -145,7 +145,7 @@ async function tryAnalytics(q: string, role: Role): Promise<AiAnswer | null> {
     const worst = rows[0]
     return {
       status: 'analytics',
-      text: `Хуже всего ${course ? `курс «${worst.course}» ` : 'обязательное обучение '}проходит «${worst.department}»: ${worst.completed} из ${worst.assigned} (${worst.pct}%)${worst.overdue ? `, просрочено — ${worst.overdue}` : ''}. Ниже — все подразделения ${scopeLabel}.`,
+      text: `Хуже всего ${course ? `курс «${worst.course}» ` : 'обязательное обучение '}проходит «${worst.department}»: ${worst.completed} из ${worst.assigned} (${worst.pct}%)${worst.overdue ? `, просрочено ${worst.overdue}` : ''}. Ниже все подразделения ${scopeLabel}.`,
       table: {
         columns: ['Подразделение', 'Курс', 'Пройдено', '%', 'Просрочено'],
         rows: rows.map((r) => [r.department, r.course, `${r.completed}/${r.assigned}`, `${r.pct}%`, r.overdue]),
@@ -168,7 +168,7 @@ async function tryAnalytics(q: string, role: Role): Promise<AiAnswer | null> {
       table: rows.length
         ? {
             columns: ['Сотрудник', 'Подразделение', 'Период', 'Статус'],
-            rows: rows.map((r) => [r.name, r.department ?? '—', fmtRange(r.start_date, r.end_date), STATUS_RU[r.status] ?? r.status]),
+            rows: rows.map((r) => [r.name, r.department ?? '–', fmtRange(r.start_date, r.end_date), STATUS_RU[r.status] ?? r.status]),
           }
         : undefined,
       sources: [analyticsSource()],
@@ -290,7 +290,7 @@ async function tryPersonal(q: string): Promise<AiAnswer | null> {
       text: 'Ваше обучение в Jana Academy:',
       table: {
         columns: ['Курс', 'Статус', 'Прогресс', 'Срок'],
-        rows: ctx.courses.map((c) => [c.title, COURSE_STATUS[c.status] ?? c.status, `${c.progress}%${c.score ? ` · тест ${c.score}%` : ''}`, c.due_date ? fmtDate(c.due_date) : '—']),
+        rows: ctx.courses.map((c) => [c.title, COURSE_STATUS[c.status] ?? c.status, `${c.progress}%${c.score ? ` · тест ${c.score}%` : ''}`, c.due_date ? fmtDate(c.due_date) : '–']),
       },
       sources: [PROFILE_SOURCE],
       mode: 'kb',
@@ -301,8 +301,8 @@ async function tryPersonal(q: string): Promise<AiAnswer | null> {
     return {
       status: 'personal',
       text: ctx.profile.manager
-        ? `Ваш непосредственный руководитель — **${ctx.profile.manager}**. Он(а) первым согласует ваши заявки на отпуск и аванс.`
-        : 'В 1С:ЗУП у вас не указан непосредственный руководитель — ваши заявки сразу попадают в HR.',
+        ? `Ваш непосредственный руководитель: **${ctx.profile.manager}**. Он(а) первым согласует ваши заявки на отпуск и аванс.`
+        : 'В 1С:ЗУП у вас не указан непосредственный руководитель, поэтому заявки сразу попадают в HR.',
       sources: [PROFILE_SOURCE],
       mode: 'kb',
       actions: [{ label: 'Мой профиль', to: '/profile' }],
@@ -358,7 +358,7 @@ export async function answerLocally(question: string, opts: { role: Role; firstN
     return {
       status: 'smalltalk',
       text:
-        'Здравствуйте! Я AI Jana — HR-помощник JanaMen. Подскажу, как оформить отпуск, аванс или справку, сколько у вас дней отпуска и статус заявок, что пройти в Jana Academy. Отвечаю только по базе знаний HR и всегда показываю источник.' +
+        'Здравствуйте! Я AI Jana, HR-помощник JanaMen. Подскажу, как оформить отпуск, аванс или справку, сколько у вас дней отпуска и статус заявок, что пройти в Jana Academy. Отвечаю только по базе знаний HR и всегда показываю источник.' +
         (opts.role !== 'employee' ? ' Ещё могу показать цифры по вашей команде: кто в отпуске, у кого накопился отпуск, как идёт обучение.' : ''),
       sources: [{ kind: 'kb', title: 'Как работает AI Jana', slug: 'ai-jana', heading: 'Откуда AI Jana берёт ответы', source_title: 'Политика использования AI Jana (демо)' }],
       mode: 'kb',
@@ -368,7 +368,7 @@ export async function answerLocally(question: string, opts: { role: Role; firstN
   if (asksForOthersData(question, q, opts.firstName)) {
     return {
       status: 'refused',
-      text: 'Я не раскрываю персональные данные других сотрудников — зарплату, ИИН, адрес, сведения о здоровье. Это защищено политикой конфиденциальности и правами доступа JanaMen.',
+      text: 'Я не раскрываю персональные данные других сотрудников: зарплату, ИИН, адрес, сведения о здоровье. Это защищено политикой конфиденциальности и правами доступа JanaMen.',
       sources: [{ kind: 'kb', title: 'Как работает AI Jana', slug: 'ai-jana', heading: 'Чего AI Jana не делает', source_title: 'Политика использования AI Jana (демо)' }],
       mode: 'kb',
     }
@@ -385,7 +385,7 @@ export async function answerLocally(question: string, opts: { role: Role; firstN
 
   return {
     status: 'no_answer',
-    text: 'В базе знаний нет надёжного ответа на этот вопрос. Я не буду гадать — могу передать вопрос в HR, и ответ придёт вам в уведомления.',
+    text: 'В базе знаний нет надёжного ответа на этот вопрос. Я не буду гадать, но могу передать вопрос в HR, и ответ придёт вам в уведомления.',
     sources: [],
     mode: 'kb',
   }

@@ -150,7 +150,7 @@ export function PeopleTable({ canFollow }: { canFollow: boolean }) {
                       {p.open_tasks}
                       {p.overdue_tasks > 0 && <span className="ml-1.5 text-xs font-semibold text-rose-600">после срока {p.overdue_tasks}</span>}
                     </td>
-                    <td className="px-4 py-2.5">{p.requests_in_work > 0 ? <Badge className="bg-sky-50 text-sky-700 ring-sky-200">{p.requests_in_work} в работе</Badge> : <span className="text-muted">—</span>}</td>
+                    <td className="px-4 py-2.5">{p.requests_in_work > 0 ? <Badge className="bg-sky-50 text-sky-700 ring-sky-200">{p.requests_in_work} в работе</Badge> : <span className="text-muted">–</span>}</td>
                   </tr>
                 ))}
               </tbody>

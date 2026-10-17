@@ -28,7 +28,7 @@ function ArticleList() {
     <div>
       <PageHeader
         title="База знаний HR"
-        subtitle="Утверждённые положения и ответы HR — источник для AI Jana. Статьи для руководителей и HR видны только этим ролям."
+        subtitle="Положения HR, на которые опирается AI Jana"
       />
       <div className="relative mb-5 max-w-xl">
         <Search className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-muted" />
@@ -37,7 +37,7 @@ function ArticleList() {
       {isLoading && <PageLoader />}
       {!isLoading && filtered.length === 0 && (
         <Card>
-          <Empty icon={<BookOpen className="h-6 w-6" />} title="Ничего не найдено" text="Попробуйте спросить AI Jana — если ответа нет, вопрос уйдёт в HR" />
+          <Empty icon={<BookOpen className="h-6 w-6" />} title="Ничего не найдено" text="Спросите AI Jana. Если ответа нет, вопрос уйдёт в HR" />
         </Card>
       )}
       <div className="space-y-6">

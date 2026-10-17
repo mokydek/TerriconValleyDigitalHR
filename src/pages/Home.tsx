@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   ArrowRight,
   BadgeCheck,
@@ -52,23 +52,7 @@ import { requestSummary, TypeLabel, WaitingTimer } from '@/components/requests/R
 import { AttentionZone, WatchlistCard } from '@/components/hr/HrBlocks'
 import { ForecastBadge, HeadcountChart, LearningByDeptChart, RequestsWeeklyChart, VacationMonthlyChart } from '@/components/charts/HrCharts'
 import type { HrRequest } from '@/lib/types'
-
-/** Активная вкладка главной хранится в адресе (?tab=), вкладка по умолчанию — без параметра */
-function useTabParam<T extends string>(tabs: readonly T[], fallback: T): [T, (next: T) => void] {
-  const [params, setParams] = useSearchParams()
-  const raw = params.get('tab') as T | null
-  const tab = raw && tabs.includes(raw) ? raw : fallback
-  return [tab, (next: T) => setParams(next === fallback ? {} : { tab: next }, { replace: true })]
-}
-
-function TabLabel({ icon, children }: { icon: ReactNode; children: ReactNode }) {
-  return (
-    <>
-      {icon}
-      {children}
-    </>
-  )
-}
+import { TabLabel, useTabParam } from '@/lib/tabs'
 
 function greeting(t: ReturnType<typeof useI18n>['t']) {
   const h = new Date().getHours()
@@ -112,7 +96,7 @@ function WelcomeBanner() {
       <div className="text-4xl">👋</div>
       <div className="flex-1">
         <div className="text-lg font-semibold">Добро пожаловать в Jana Post, {me.first_name}!</div>
-        <div className="text-sm text-white/85">Начните с адаптационного курса — 25 минут о компании, ценностях и о том, как работает JanaMen.</div>
+        <div className="text-sm text-white/85">Начните с адаптационного курса: 25 минут о компании и о том, как работает JanaMen.</div>
       </div>
       <Link to="/academy/welcome" className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-brand-700 hover:bg-brand-50">
         Начать курс <ArrowRight className="h-4 w-4" />
@@ -129,7 +113,7 @@ function Greeting({ title, subtitle }: { title?: string; subtitle?: string }) {
       <div>
         <p className="text-sm font-medium text-muted">{todayLabel()}</p>
         <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-[28px]">{title ?? `${greeting(t)}, ${me?.first_name}!`}</h1>
-        <p className="mt-1 text-[15px] text-muted">{subtitle ?? t('home.subtitle')}</p>
+        {subtitle && <p className="mt-1 text-[15px] text-muted">{subtitle}</p>}
       </div>
     </div>
   )
@@ -148,7 +132,6 @@ function TeamApprovals() {
       <CardHeader
         icon={<Inbox className="h-[18px] w-[18px]" />}
         title="Ждут вашего решения"
-        subtitle="Заявки вашей команды — видите только своих сотрудников"
         action={
           <Link to="/approvals" className="text-sm font-medium text-brand-700 hover:underline">
             Все согласования
@@ -233,7 +216,7 @@ function TeamToday() {
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-medium">{x.full_name}</div>
                 <div className="text-xs text-muted">
-                  {fmtDate(x.start_date, 'd MMM')} — {fmtDate(x.end_date, 'd MMM')}
+                  {fmtDate(x.start_date, 'd MMM')} – {fmtDate(x.end_date, 'd MMM')}
                   {x.status !== 'done' && x.status !== 'processing' && ' · ещё не оформлено'}
                 </div>
               </div>
@@ -273,7 +256,7 @@ function PulseCharts() {
         <div className="px-3 pb-4">{charts.data ? <RequestsWeeklyChart data={charts.data.requests_weekly} /> : <Skeleton className="mx-2 h-[240px]" />}</div>
       </Card>
       <Card>
-        <CardHeader title="Отпуска по месяцам" subtitle="Дни отпуска: факт за год и прогноз на 3 месяца (тренд × сезонность)" action={<ForecastBadge />} />
+        <CardHeader title="Отпуска по месяцам" subtitle="Факт за год и прогноз на 3 месяца" action={<ForecastBadge />} />
         <div className="px-3 pb-4">{charts.data ? <VacationMonthlyChart data={charts.data.vacation_monthly} /> : <Skeleton className="mx-2 h-[240px]" />}</div>
       </Card>
       <Card>
@@ -308,7 +291,6 @@ function HrPulse() {
           <h1 className="mt-1 flex items-center gap-2 text-2xl font-bold tracking-tight sm:text-[28px]">
             <HeartPulse className="h-7 w-7 text-brand-600" /> Пульс компании
           </h1>
-          <p className="mt-1 text-[15px] text-muted">Тот же JanaMen, но с обзором на всю компанию</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link to="/approvals">
@@ -332,7 +314,7 @@ function HrPulse() {
           <>
             <Kpi label="Численность" value={num(d.headcount)} hint={`новичков за 90 дн.: ${d.newcomers_90d}`} icon={<Users className="h-4 w-4" />} to="/employees" />
             <Kpi label="Заявки в работе" value={num(d.requests.in_work)} hint={`у рук.: ${d.requests.at_manager} · у HR: ${d.requests.at_hr} · в 1С: ${d.requests.in_1c}`} icon={<Inbox className="h-4 w-4" />} tone="sky" to="/approvals" />
-            <Kpi label="Среднее согласование" value={d.requests.approval_hours !== null ? `${num(d.requests.approval_hours, 1)} ч` : '—'} hint="от подачи до решения руководителя" icon={<Clock3 className="h-4 w-4" />} tone="amber" to="/analytics?tab=requests" />
+            <Kpi label="Среднее согласование" value={d.requests.approval_hours !== null ? `${num(d.requests.approval_hours, 1)} ч` : '–'} hint="от подачи до решения руководителя" icon={<Clock3 className="h-4 w-4" />} tone="amber" to="/analytics?tab=requests" />
             <Kpi label="Обязательное обучение" value={`${d.learning.mandatory_pct}%`} hint={`просрочено: ${d.learning.overdue}`} icon={<GraduationCap className="h-4 w-4" />} tone="violet" to="/analytics?tab=learning" />
             <Kpi label="Использование отпусков" value={`${d.vacation.usage_pct}%`} hint={`> 30 дн. накоплено: ${d.vacation.over_30} чел.`} icon={<Palmtree className="h-4 w-4" />} tone="brand" to="/analytics?tab=vacations" />
             <Kpi label="AI Jana не ответила" value={`${d.ai.no_answer_pct}%`} hint={`вопросов за 30 дн.: ${d.ai.queries_30d}`} icon={<Bot className="h-4 w-4" />} tone="rose" to="/analytics?tab=ai" />

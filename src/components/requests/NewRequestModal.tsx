@@ -87,7 +87,7 @@ export function NewRequestModal({
     const hol = all.filter((d) => holidays.data?.has(isoDate(d)))
     const count = all.length - hol.length
     const notice = differenceInCalendarDays(s, new Date())
-    return { count, holidays: hol.map((d) => `${fmtDate(d, 'd MMM')} — ${holidays.data?.get(isoDate(d))}`), notice }
+    return { count, holidays: hol.map((d) => `${fmtDate(d, 'd MMM')}: ${holidays.data?.get(isoDate(d))}`), notice }
   }, [start, end, holidays.data])
 
   const maxAdvance = salary.data ? Math.round(salary.data * 0.5) : null
@@ -103,7 +103,7 @@ export function NewRequestModal({
   if (type === 'advance') {
     const a = Number(amount)
     if (amount && (!Number.isFinite(a) || a <= 0)) errors.push('Укажите корректную сумму')
-    if (maxAdvance && a > maxAdvance) errors.push(`Не более 50% оклада — максимум ${money(maxAdvance)}`)
+    if (maxAdvance && a > maxAdvance) errors.push(`Не более 50% оклада, максимум ${money(maxAdvance)}`)
   }
   if (type === 'data_change' && !newValue.trim()) errors.push('')
 
@@ -208,7 +208,7 @@ export function NewRequestModal({
                 <div className="mt-1 text-muted">Праздники не учитываются: {vacation.holidays.join(', ')}</div>
               )}
               {vacation.notice !== undefined && vacation.notice < 14 && vacation.notice >= 0 && (
-                <div className="mt-1 text-amber-700">Рекомендуем подавать заявку минимум за 14 дней — руководителю нужно спланировать смены.</div>
+                <div className="mt-1 text-amber-700">Лучше подавать заявку минимум за 14 дней, чтобы руководитель спланировал смены.</div>
               )}
             </div>
           )}

@@ -231,7 +231,7 @@ begin
       when 'vacation' then 'Отпуск оформлен: ' || coalesce(v_zup ->> 'document', 'приказ сформирован')
                            || '. Ознакомьтесь с приказом в Documentolog'
       when 'advance' then 'Аванс ' || public.fmt_money(r.amount) || ' ₸ передан на выплату ('
-                          || coalesce(v_zup ->> 'document', '1С:ЗУП') || '). Зачисление — до 3 рабочих дней'
+                          || coalesce(v_zup ->> 'document', '1С:ЗУП') || '). Зачисление до 3 рабочих дней'
       when 'certificate' then 'Справка готова: ' || coalesce(v_dl ->> 'document', 'Documentolog')
       else 'Изменения переданы в 1С:ЗУП: ' || coalesce(v_zup ->> 'document', '') end;
     perform public.notify(r.employee_id, 'Заявка №' || r.number || ' оформлена ✅', v_msg, '/requests', 'success');

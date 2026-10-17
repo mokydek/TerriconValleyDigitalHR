@@ -99,7 +99,7 @@ export default function EmployeeCardPage() {
       {!canSeeTeamData && (
         <Card className="mb-5 flex items-start gap-3 p-5 text-sm text-muted">
           <Lock className="mt-0.5 h-5 w-5 shrink-0 text-violet-600" />
-          Это не ваш сотрудник: доступен только рабочий профиль. Заявки, обучение и задачи видят сам сотрудник, его руководитель и HR — ограничение проверяется на сервере (RLS).
+          Это не ваш сотрудник: доступен только рабочий профиль. Заявки, обучение и задачи видят сам сотрудник, его руководитель и HR. Это проверяет сервер.
         </Card>
       )}
 
@@ -126,7 +126,7 @@ export default function EmployeeCardPage() {
               </div>
               <div>
                 <dt className="text-muted">{t('profile.manager')}</dt>
-                <dd className="font-medium">{e.manager ? fullName(e.manager) : '—'}</dd>
+                <dd className="font-medium">{e.manager ? fullName(e.manager) : '–'}</dd>
               </div>
               <div>
                 <dt className="text-muted">{t('profile.hireDate')}</dt>

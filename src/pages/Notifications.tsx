@@ -34,7 +34,6 @@ export default function NotificationsPage() {
     <div className="mx-auto max-w-3xl">
       <PageHeader
         title={t('notif.title')}
-        subtitle="Статусы заявок, назначение и завершение обучения, задачи и ответы HR"
         actions={
           unread > 0 && (
             <Button variant="outline" icon={<CheckCheck className="h-4 w-4" />} loading={markAll.isPending} onClick={() => markAll.mutate()}>

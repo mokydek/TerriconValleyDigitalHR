@@ -239,7 +239,7 @@ function AssistantBubble({ msg, compact }: { msg: ChatMessage; compact?: boolean
           {(a.status === 'no_answer' || a.status === 'refused') &&
             (msg.escalated ? (
               <span className="inline-flex items-center rounded-lg bg-brand-50 px-3 py-1.5 text-sm text-brand-700">
-                ✓ Обращение №{msg.escalated} передано в HR — ответ придёт в уведомления
+                ✓ Обращение №{msg.escalated} передано в HR. Ответ придёт в уведомления
               </span>
             ) : (
               <Button
@@ -295,7 +295,7 @@ export function AssistantChat({ compact = false }: { compact?: boolean }) {
               <div>
                 <p className="font-semibold text-ink">Здравствуйте, {me?.first_name}! Я AI Jana.</p>
                 <p className="mt-1 text-sm text-muted">
-                  Отвечаю на HR-вопросы по утверждённой базе знаний и показываю источник. Если надёжного ответа нет — честно скажу и передам вопрос в HR.
+                  Отвечаю на HR-вопросы по базе знаний и показываю источник. Если ответа нет, передам вопрос в HR.
                 </p>
               </div>
             </div>

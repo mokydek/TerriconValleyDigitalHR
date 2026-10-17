@@ -41,7 +41,7 @@ export default function TasksPage() {
     <div>
       <PageHeader
         title={t('nav.tasks')}
-        subtitle={role === 'employee' ? 'Задачи от руководителя и HR. Перетащите карточку, чтобы сменить статус.' : 'Ставьте задачи команде и следите за выполнением'}
+        subtitle={role === 'employee' ? 'Перетащите карточку, чтобы сменить статус' : 'Задачи команды'}
         actions={
           <Button icon={<Plus className="h-4 w-4" />} onClick={() => setCreating(true)} data-testid="new-task">
             Новая задача
@@ -215,7 +215,7 @@ function TaskDrawer({ task, onClose, onMove }: { task: Task | null; onClose: () 
           </div>
           <div>
             <dt className="text-muted">Срок</dt>
-            <dd className="font-medium">{task.due_date ? fmtDate(task.due_date) : '—'}</dd>
+            <dd className="font-medium">{task.due_date ? fmtDate(task.due_date) : '–'}</dd>
           </div>
           <div>
             <dt className="text-muted">Приоритет</dt>
@@ -289,7 +289,7 @@ function NewTaskModal({ open, onClose }: { open: boolean; onClose: () => void })
       onClose={onClose}
       size="lg"
       title="Новая задача"
-      subtitle={role === 'employee' ? 'Личная задача — видите вы и ваш руководитель' : 'Исполнители получат уведомление'}
+      subtitle={role === 'employee' ? 'Личная задача: видите вы и ваш руководитель' : 'Исполнители получат уведомление'}
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>

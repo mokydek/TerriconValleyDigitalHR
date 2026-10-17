@@ -43,19 +43,19 @@ export default function AssistantPage() {
           <ul className="mt-3 space-y-3 text-sm text-ink-soft">
             <li className="flex gap-2.5">
               <BookOpenCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" />
-              Только по утверждённой базе знаний HR — у каждого ответа есть ссылка на положение.
+              Отвечает по базе знаний HR, у каждого ответа есть ссылка на положение.
             </li>
             <li className="flex gap-2.5">
               <UserRound className="mt-0.5 h-4 w-4 shrink-0 text-sky-600" />
-              Ваши данные (остаток отпуска, заявки, курсы) — только ваши, из профиля и 1С:ЗУП.
+              Ваши данные (отпуск, заявки, курсы) берёт из профиля и 1С:ЗУП.
             </li>
             <li className="flex gap-2.5">
               <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-violet-600" />
-              Не раскрывает чужие персональные данные и не принимает кадровых решений{isHr ? '; цифры по компании — по вашей роли HR' : ''}.
+              Не раскрывает чужие персональные данные и не принимает кадровых решений{isHr ? '; цифры по компании показывает по роли HR' : ''}.
             </li>
             <li className="flex gap-2.5">
               <MessageCircleQuestion className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
-              Нет надёжного ответа — честно скажет и передаст вопрос в HR. Ответ HR пополнит базу знаний.
+              Если ответа нет, честно скажет и передаст вопрос в HR.
             </li>
           </ul>
           <Link to="/knowledge" className="mt-4 inline-block text-sm font-medium text-brand-700 hover:underline">

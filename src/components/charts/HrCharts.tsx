@@ -74,7 +74,7 @@ export function VacationMonthlyChart({ data }: { data: HrCharts['vacation_monthl
         <YAxis tick={axis} tickLine={false} axisLine={false} />
         <Tooltip
           {...tooltipStyle}
-          formatter={(v, name) => [v === null || v === undefined ? '—' : `${v} дн.`, name]}
+          formatter={(v, name) => [v === null || v === undefined ? '–' : `${v} дн.`, name]}
           cursor={{ fill: '#eef8ee' }}
         />
         <Legend iconType="circle" wrapperStyle={{ fontSize: 12 }} />

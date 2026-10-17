@@ -9,7 +9,7 @@ export function toDate(value: string | Date): Date {
 }
 
 export function fmtDate(value: string | Date | null | undefined, pattern = 'd MMM yyyy'): string {
-  if (!value) return '—'
+  if (!value) return '–'
   return format(toDate(value), pattern, { locale: locale() })
 }
 
@@ -28,7 +28,7 @@ export function fmtDateTime(value: string | Date | null | undefined): string {
 }
 
 export function fmtRange(start: string | null, end: string | null): string {
-  if (!start) return '—'
+  if (!start) return '–'
   if (!end || start === end) return fmtDate(start)
   const s = toDate(start)
   const e = toDate(end)
@@ -39,7 +39,7 @@ export function fmtRange(start: string | null, end: string | null): string {
 }
 
 export function timeAgo(value: string | Date | null | undefined): string {
-  if (!value) return '—'
+  if (!value) return '–'
   return formatDistanceToNowStrict(toDate(value), { addSuffix: true, locale: locale() })
 }
 
@@ -63,12 +63,12 @@ export function daysUntil(value: string | Date): number {
 }
 
 export function money(value: number | null | undefined): string {
-  if (value === null || value === undefined) return '—'
+  if (value === null || value === undefined) return '–'
   return `${Math.round(value).toLocaleString('ru-RU').replace(/,/g, ' ')} ₸`
 }
 
 export function num(value: number | null | undefined, digits = 0): string {
-  if (value === null || value === undefined || Number.isNaN(value)) return '—'
+  if (value === null || value === undefined || Number.isNaN(value)) return '–'
   return Number(value).toLocaleString('ru-RU', { maximumFractionDigits: digits, minimumFractionDigits: 0 })
 }
 
@@ -83,7 +83,7 @@ export function plural(n: number, forms: [string, string, string]): string {
 }
 
 export function days(n: number | null | undefined): string {
-  if (n === null || n === undefined) return '—'
+  if (n === null || n === undefined) return '–'
   const v = Math.round(Number(n) * 10) / 10
   if (getLang() === 'kk') return `${num(v, 1)} күн`
   return `${num(v, 1)} ${plural(Math.floor(v), ['день', 'дня', 'дней'])}`
@@ -97,7 +97,7 @@ export function entitledText(b: { entitled: number; carryover?: number | null })
 }
 
 export function fullName(e?: { first_name?: string; last_name?: string } | null, lastFirst = false): string {
-  if (!e) return '—'
+  if (!e) return '–'
   return lastFirst ? `${e.last_name ?? ''} ${e.first_name ?? ''}`.trim() : `${e.first_name ?? ''} ${e.last_name ?? ''}`.trim()
 }
 

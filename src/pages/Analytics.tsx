@@ -27,14 +27,14 @@ export default function AnalyticsPage() {
     <div>
       <PageHeader
         title="Аналитика и прогнозы"
-        subtitle={`${isHr ? 'Вся компания' : 'Ваша команда'} · прогнозы строятся по тренду и сезонности годовой истории и подписаны как «прогноз»`}
+        subtitle={`${isHr ? 'Вся компания' : 'Ваша команда'} · прогнозы помечены «прогноз»`}
       />
       {dash.data && (
         <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
           <Kpi label="Численность" value={num(dash.data.headcount)} icon={<Palmtree className="h-4 w-4" />} hint={`в отпуске сегодня: ${dash.data.on_vacation_today}`} />
           <Kpi label="Использование отпусков" value={`${dash.data.vacation.usage_pct}%`} hint={`не использовано: ${num(dash.data.vacation.available)} дн.`} icon={<Palmtree className="h-4 w-4" />} tone="sky" />
-          <Kpi label="Обязательное обучение" value={`${dash.data.learning.mandatory_pct}%`} hint={`ср. балл ${dash.data.learning.avg_score ?? '—'}%`} icon={<GraduationCap className="h-4 w-4" />} tone="violet" />
-          <Kpi label="Согласование" value={dash.data.requests.approval_hours !== null ? `${num(dash.data.requests.approval_hours, 1)} ч` : '—'} hint="среднее у руководителя" icon={<Inbox className="h-4 w-4" />} tone="amber" />
+          <Kpi label="Обязательное обучение" value={`${dash.data.learning.mandatory_pct}%`} hint={`ср. балл ${dash.data.learning.avg_score ?? '–'}%`} icon={<GraduationCap className="h-4 w-4" />} tone="violet" />
+          <Kpi label="Согласование" value={dash.data.requests.approval_hours !== null ? `${num(dash.data.requests.approval_hours, 1)} ч` : '–'} hint="среднее у руководителя" icon={<Inbox className="h-4 w-4" />} tone="amber" />
         </div>
       )}
       <Tabs<Tab>
@@ -83,7 +83,7 @@ function VacationsTab() {
       <Card>
         <CardHeader
           title={`Тепловая карта отпусков · ${heat.data?.year ?? ''}`}
-          subtitle="% сотрудников подразделения, у которых есть отпуск в этом месяце (факт + запланировано). Видно, где летом уходит пол-отдела."
+          subtitle="% сотрудников отдела в отпуске в этом месяце (факт и план)"
           action={
             heat.data && (
               <Button
@@ -137,7 +137,7 @@ function VacationsTab() {
               ['bg-brand-100', '< 15%'],
               ['bg-brand-300', '15–30%'],
               ['bg-amber-300', '30–50%'],
-              ['bg-rose-400', '≥ 50% — риск для смены'],
+              ['bg-rose-400', '≥ 50%: риск для смены'],
             ].map(([c, l]) => (
               <span key={l} className="inline-flex items-center gap-1.5">
                 <span className={cn('h-3 w-3 rounded', c)} /> {l}
@@ -147,7 +147,7 @@ function VacationsTab() {
         </div>
       </Card>
       <Card>
-        <CardHeader title="Дни отпуска по месяцам" subtitle={`Факт за 12 месяцев и прогноз на 3 месяца. Тренд год к году: ×${charts.data?.vacation_monthly.trend ?? '—'}`} action={<ForecastBadge />} />
+        <CardHeader title="Дни отпуска по месяцам" subtitle={`Факт за 12 месяцев и прогноз на 3 месяца. Тренд год к году: ×${charts.data?.vacation_monthly.trend ?? '–'}`} action={<ForecastBadge />} />
         <div className="px-3 pb-4">{charts.data ? <VacationMonthlyChart data={charts.data.vacation_monthly} /> : <Skeleton className="h-60" />}</div>
         <p className="px-5 pb-5 text-xs text-muted">
           Метод: прогноз месяца = max(уже запланированные дни, дни того же месяца год назад × тренд последних 6 месяцев к тем же месяцам прошлого года). Это оценка на демо-данных, а не обещание.
@@ -223,10 +223,10 @@ function LearningTab() {
           <div className="mx-5 mb-5 rounded-xl bg-violet-50 px-4 py-3 text-sm text-violet-900">
             {forecast.data.eta ? (
               <>
-                При текущем темпе 100% обязательного обучения будет достигнуто примерно <b>{fmtDate(forecast.data.eta)}</b> (прогноз). Ускорить — напомнить просрочившим из «Зоны внимания».
+                При текущем темпе 100% обязательного обучения будет достигнуто примерно <b>{fmtDate(forecast.data.eta)}</b> (прогноз). Ускорить можно напоминанием из «Зоны внимания».
               </>
             ) : (
-              'Темп за 4 недели нулевой — прогноз невозможен. Напомните сотрудникам о курсах.'
+              'Темп за 4 недели нулевой, прогноз невозможен. Напомните сотрудникам о курсах.'
             )}
           </div>
         )}
@@ -298,7 +298,7 @@ function RequestsTab() {
           })}
           {bottleneck && (
             <div className="flex items-start gap-2 rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-900">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /> Дольше всего заявки ждут на этапе «{STAGE_LABEL[bottleneck.stage]}» — {num(bottleneck.avg_hours, 1)} ч в среднем.
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /> Дольше всего заявки ждут на этапе «{STAGE_LABEL[bottleneck.stage]}»: в среднем {num(bottleneck.avg_hours, 1)} ч.
               {bottleneck.stage === 'manager' ? ' Используйте «Поторопить» в канбане заявок.' : ''}
             </div>
           )}

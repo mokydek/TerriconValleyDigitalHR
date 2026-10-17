@@ -57,7 +57,7 @@ export default function CoursePage() {
       const result = await submit.mutateAsync({ courseId: course.id, answers })
       setView({ kind: 'result', result })
       if (result.passed) toast.success(`Тест сдан: ${result.score}% 🎉`)
-      else toast.error(`Результат ${result.score}% — нужно ${result.pass_score}%`)
+      else toast.error(`Результат ${result.score}%, нужно ${result.pass_score}%`)
     } catch (e) {
       toast.error((e as Error).message)
     }
@@ -267,7 +267,7 @@ export default function CoursePage() {
                   <p className="mx-auto mt-3 max-w-md text-muted">успешно прошёл(ла) курс</p>
                   <p className="mt-1 text-xl font-semibold text-ink">«{course.title}»</p>
                   <p className="mt-3 text-muted">
-                    с результатом <b className="text-brand-700">{data.assignment?.score ?? '—'}%</b> · {fmtDate(data.assignment?.completed_at ?? new Date())}
+                    с результатом <b className="text-brand-700">{data.assignment?.score ?? '–'}%</b> · {fmtDate(data.assignment?.completed_at ?? new Date())}
                   </p>
                   <div className="mt-8 text-xs text-muted">ТОО «Jana Post» · JanaMen · запись в профиле сотрудника</div>
                 </div>

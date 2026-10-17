@@ -200,14 +200,14 @@ begin
     if v_is_api then
       select p.salary into v_salary from public.employee_private p where p.employee_id = new.employee_id;
       if v_salary is not null and new.amount > round(v_salary * 0.5) then
-        raise exception 'Аванс не может превышать 50%% оклада — максимум % ₸',
+        raise exception 'Аванс не может превышать 50%% оклада, максимум % ₸',
           public.fmt_money(v_salary * 0.5);
       end if;
       if exists (select 1 from public.requests r
                  where r.employee_id = new.employee_id and r.type = 'advance'
                    and r.status in ('pending', 'approved', 'processing', 'done')
                    and date_trunc('month', r.created_at) = date_trunc('month', now())) then
-        raise exception 'Аванс можно запросить один раз в месяц — заявка в этом месяце уже есть';
+        raise exception 'Аванс можно запросить один раз в месяц, заявка в этом месяце уже есть';
       end if;
     end if;
 
@@ -297,7 +297,7 @@ begin
       public.request_type_label(r.type), '/approvals', 'request');
     if v_hr is not null and v_hr <> v_me then
       perform public.notify(v_hr, 'Оформите заявку №' || r.number,
-        public.employee_name(r.employee_id) || ' · ' || public.request_type_label(r.type) || ' — согласовано руководителем',
+        public.employee_name(r.employee_id) || ' · ' || public.request_type_label(r.type) || ': согласовано руководителем',
         '/approvals', 'request');
     end if;
 
@@ -341,7 +341,7 @@ begin
     raise exception 'Заявка не найдена' using errcode = '42501';
   end if;
   if r.status not in ('pending', 'approved') then
-    raise exception 'Оформленную или закрытую заявку отменить нельзя — обратитесь в HR';
+    raise exception 'Оформленную или закрытую заявку отменить нельзя, обратитесь в HR';
   end if;
   update public.requests set status = 'cancelled' where id = r.id returning * into r;
   perform public.log_request_event(r.id, 'cancelled', r.status, r.employee_id, p_comment);
@@ -366,7 +366,7 @@ begin
   v_hours := extract(epoch from now() - coalesce((select max(created_at) from public.request_events
                                                     where request_id = r.id and action <> 'nudged'), r.created_at)) / 3600;
   perform public.notify(r.approver_id, '⏰ Заявка №' || r.number || ' ждёт вашего решения',
-    public.employee_name(r.employee_id) || ' · ' || public.request_type_label(r.type) || ' — висит ' || v_hours
+    public.employee_name(r.employee_id) || ' · ' || public.request_type_label(r.type) || ': висит ' || v_hours
       || ' ч. HR просит рассмотреть сегодня', '/approvals', 'warning');
   perform public.log_request_event(r.id, 'nudged', null, public.current_employee_id(),
     'HR напомнил согласующему: ' || public.employee_name(r.approver_id));

@@ -47,11 +47,11 @@ export function ProfileCard() {
         <dl className="mt-4 space-y-2 text-sm">
           <div className="flex justify-between gap-3">
             <dt className="text-muted">{t('profile.department')}</dt>
-            <dd className="truncate text-right font-medium">{me.department?.name ?? '—'}</dd>
+            <dd className="truncate text-right font-medium">{me.department?.name ?? '–'}</dd>
           </div>
           <div className="flex justify-between gap-3">
             <dt className="text-muted">{t('profile.manager')}</dt>
-            <dd className="truncate text-right font-medium">{me.manager ? fullName(me.manager) : '—'}</dd>
+            <dd className="truncate text-right font-medium">{me.manager ? fullName(me.manager) : '–'}</dd>
           </div>
           <div className="flex justify-between gap-3">
             <dt className="text-muted">{t('profile.hireDate')}</dt>
@@ -76,7 +76,6 @@ export function MyRequestsCard({ onOpen }: { onOpen?: (id: string) => void }) {
       <CardHeader
         icon={<FileStack className="h-[18px] w-[18px]" />}
         title={t('home.myRequests')}
-        subtitle="Статус и история каждой заявки"
         action={
           <Link to="/requests" className="text-sm font-medium text-brand-700 hover:underline">
             {t('home.allRequests')}
@@ -126,7 +125,6 @@ export function MyLearningCard() {
       <CardHeader
         icon={<GraduationCap className="h-[18px] w-[18px]" />}
         title={t('home.myLearning')}
-        subtitle="Jana Academy"
         action={
           <Link to="/academy" className="text-sm font-medium text-brand-700 hover:underline">
             {t('home.allCourses')}
@@ -193,7 +191,7 @@ export function MyTasksCard() {
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-medium text-ink">{task.title}</span>
                   <span className="text-xs text-muted">
-                    от {task.creator ? fullName(task.creator) : '—'}
+                    от {task.creator ? fullName(task.creator) : '–'}
                     {task.due_date && (
                       <span className={cn(overdue && 'font-medium text-rose-600')}>
                         {' '}

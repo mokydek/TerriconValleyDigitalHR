@@ -163,7 +163,7 @@ begin
       'Результат теста: ' || v_score || '%. Сертификат доступен в Jana Academy', '/academy/' || v_course.slug, 'course');
     if a.assigned_by is not null and a.assigned_by <> v_me then
       perform public.notify(a.assigned_by, 'Курс завершён',
-        public.employee_name(v_me) || ' прошёл(ла) «' || v_course.title || '» — ' || v_score || '%', '/academy', 'course');
+        public.employee_name(v_me) || ' прошёл(ла) «' || v_course.title || '»: ' || v_score || '%', '/academy', 'course');
     end if;
   end if;
 

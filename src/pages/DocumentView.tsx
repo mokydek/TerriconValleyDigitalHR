@@ -70,7 +70,7 @@ export default function DocumentViewPage() {
             </div>
             <div className="text-right">
               <div>{system === 'documentolog' ? 'Documentolog' : '1С:ЗУП'}</div>
-              <div className="font-semibold text-ink">{doc?.id ?? '—'}</div>
+              <div className="font-semibold text-ink">{doc?.id ?? '–'}</div>
             </div>
           </div>
           <h1 className="mt-10 text-center text-lg font-bold">{title}</h1>
@@ -112,7 +112,7 @@ export default function DocumentViewPage() {
             </div>
             <div>
               <div className="text-muted">Работник</div>
-              <div className="mt-6 border-t border-ink/30 pt-1 text-xs text-muted">{system === 'documentolog' ? 'ознакомлен(а) электронно' : '—'}</div>
+              <div className="mt-6 border-t border-ink/30 pt-1 text-xs text-muted">{system === 'documentolog' ? 'ознакомлен(а) электронно' : '–'}</div>
             </div>
           </div>
           <p className="mt-10 font-sans text-xs text-muted">

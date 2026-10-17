@@ -6,7 +6,7 @@ export default function TeamPage() {
     <div>
       <PageHeader
         title="Моя команда"
-        subtitle="Только ваши сотрудники (прямые и через руководителей ниже). Зарплаты и персональные данные руководителю недоступны."
+        subtitle="Зарплаты и персональные данные руководителю недоступны"
       />
       <PeopleTable canFollow={false} />
     </div>

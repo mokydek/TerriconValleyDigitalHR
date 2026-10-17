@@ -1,12 +1,39 @@
+import { t } from './i18n'
 import type { RequestStatus, RequestType, Task } from './types'
+
+// Подписи вычисляются при обращении (get label), поэтому всегда на текущем языке интерфейса
 
 export const REQUEST_TYPES: RequestType[] = ['vacation', 'advance', 'certificate', 'data_change']
 
-export const REQUEST_TYPE_META: Record<RequestType, { emoji: string; color: string; hint: string }> = {
-  vacation: { emoji: '🌴', color: 'bg-emerald-50 text-emerald-700 ring-emerald-200', hint: 'Ежегодный оплачиваемый отпуск' },
-  advance: { emoji: '💳', color: 'bg-sky-50 text-sky-700 ring-sky-200', hint: 'До 50% оклада, раз в месяц' },
-  certificate: { emoji: '📄', color: 'bg-violet-50 text-violet-700 ring-violet-200', hint: 'Для банка, визы и т.д.' },
-  data_change: { emoji: '✏️', color: 'bg-amber-50 text-amber-800 ring-amber-200', hint: 'Фамилия, адрес, телефон' },
+export const REQUEST_TYPE_META: Record<RequestType, { emoji: string; color: string; readonly hint: string }> = {
+  vacation: {
+    emoji: '🌴',
+    color: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+    get hint() {
+      return t('typeHint.vacation')
+    },
+  },
+  advance: {
+    emoji: '💳',
+    color: 'bg-sky-50 text-sky-700 ring-sky-200',
+    get hint() {
+      return t('typeHint.advance')
+    },
+  },
+  certificate: {
+    emoji: '📄',
+    color: 'bg-violet-50 text-violet-700 ring-violet-200',
+    get hint() {
+      return t('typeHint.certificate')
+    },
+  },
+  data_change: {
+    emoji: '✏️',
+    color: 'bg-amber-50 text-amber-800 ring-amber-200',
+    get hint() {
+      return t('typeHint.data_change')
+    },
+  },
 }
 
 export const STATUS_STYLE: Record<RequestStatus, string> = {
@@ -18,43 +45,97 @@ export const STATUS_STYLE: Record<RequestStatus, string> = {
   cancelled: 'bg-slate-100 text-slate-600 ring-slate-200',
 }
 
-export const PRIORITY_META: Record<Task['priority'], { label: string; style: string }> = {
-  low: { label: 'Не срочно', style: 'bg-slate-100 text-slate-600 ring-slate-200' },
-  medium: { label: 'Обычная', style: 'bg-sky-50 text-sky-700 ring-sky-200' },
-  high: { label: 'Важно', style: 'bg-amber-50 text-amber-800 ring-amber-200' },
-  urgent: { label: 'Срочно', style: 'bg-rose-50 text-rose-700 ring-rose-200' },
+const PRIORITY_STYLE: Record<Task['priority'], string> = {
+  low: 'bg-slate-100 text-slate-600 ring-slate-200',
+  medium: 'bg-sky-50 text-sky-700 ring-sky-200',
+  high: 'bg-amber-50 text-amber-800 ring-amber-200',
+  urgent: 'bg-rose-50 text-rose-700 ring-rose-200',
 }
 
-export const TASK_CATEGORIES: Record<string, string> = {
-  general: 'Общее',
-  logistics: 'Логистика',
-  warehouse: 'Склад',
-  delivery: 'Доставка',
-  client: 'Клиенты',
-  hr: 'HR',
-  it: 'IT',
-  training: 'Обучение',
+export const PRIORITY_META = Object.fromEntries(
+  (Object.keys(PRIORITY_STYLE) as Task['priority'][]).map((p) => [
+    p,
+    {
+      style: PRIORITY_STYLE[p],
+      get label() {
+        return t(`prio.${p}`)
+      },
+    },
+  ]),
+) as Record<Task['priority'], { readonly label: string; style: string }>
+
+/** Объект «код → подпись», подписи переводятся при чтении */
+function labels<K extends string>(codes: readonly K[], key: (code: K) => Parameters<typeof t>[0]): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const code of codes) Object.defineProperty(out, code, { enumerable: true, get: () => t(key(code)) })
+  return out
 }
 
-export const ANNOUNCEMENT_CATEGORIES: Record<string, { label: string; style: string; emoji: string }> = {
-  news: { label: 'Новости', style: 'bg-sky-50 text-sky-700 ring-sky-200', emoji: '📰' },
-  logistics: { label: 'Логистика', style: 'bg-brand-50 text-brand-700 ring-brand-200', emoji: '🚚' },
-  hr: { label: 'HR', style: 'bg-violet-50 text-violet-700 ring-violet-200', emoji: '👥' },
-  event: { label: 'События', style: 'bg-amber-50 text-amber-800 ring-amber-200', emoji: '🎉' },
-  urgent: { label: 'Срочно', style: 'bg-rose-50 text-rose-700 ring-rose-200', emoji: '⚠️' },
-}
+export const TASK_CATEGORIES = labels(
+  ['general', 'logistics', 'warehouse', 'delivery', 'client', 'hr', 'it', 'training'] as const,
+  (c) => `taskCat.${c}`,
+)
 
-export const COURSE_CATEGORIES: Record<string, string> = {
-  onboarding: 'Адаптация',
-  safety: 'Охрана труда',
-  compliance: 'Комплаенс',
-  skills: 'Навыки',
-  general: 'Общее',
-}
+const ANNOUNCEMENT_STYLE = {
+  news: { style: 'bg-sky-50 text-sky-700 ring-sky-200', emoji: '📰' },
+  logistics: { style: 'bg-brand-50 text-brand-700 ring-brand-200', emoji: '🚚' },
+  hr: { style: 'bg-violet-50 text-violet-700 ring-violet-200', emoji: '👥' },
+  event: { style: 'bg-amber-50 text-amber-800 ring-amber-200', emoji: '🎉' },
+  urgent: { style: 'bg-rose-50 text-rose-700 ring-rose-200', emoji: '⚠️' },
+} as const
 
-export const CERT_PURPOSES = ['По месту требования', 'В банк', 'Для посольства (виза)', 'В детский сад / школу', 'В госорган']
+export const ANNOUNCEMENT_CATEGORIES = Object.fromEntries(
+  (Object.keys(ANNOUNCEMENT_STYLE) as (keyof typeof ANNOUNCEMENT_STYLE)[]).map((c) => [
+    c,
+    {
+      ...ANNOUNCEMENT_STYLE[c],
+      get label() {
+        return t(`annCat.${c}`)
+      },
+    },
+  ]),
+) as Record<string, { readonly label: string; style: string; emoji: string }>
 
-export const DATA_FIELDS = ['Фамилия', 'Адрес проживания', 'Личный телефон', 'Банковские реквизиты', 'Контакт для экстренной связи', 'Другое']
+export const COURSE_CATEGORIES = labels(['onboarding', 'safety', 'compliance', 'skills', 'general'] as const, (c) => `courseCat.${c}`)
+
+/**
+ * Цели справки и поля для изменения данных: в заявку записывается русское значение
+ * (его читают HR и 1С), а на экране показывается перевод.
+ */
+export const CERT_PURPOSES: { value: string; readonly label: string }[] = (
+  [
+    ['По месту требования', 'cert.any'], // i18n-ignore
+    ['В банк', 'cert.bank'], // i18n-ignore
+    ['Для посольства (виза)', 'cert.embassy'], // i18n-ignore
+    ['В детский сад / школу', 'cert.school'], // i18n-ignore
+    ['В госорган', 'cert.gov'], // i18n-ignore
+  ] as const
+).map(([value, key]) => ({
+  value,
+  get label() {
+    return t(key)
+  },
+}))
+
+export const DATA_FIELDS: { value: string; readonly label: string }[] = (
+  [
+    ['Фамилия', 'field.lastName'], // i18n-ignore
+    ['Адрес проживания', 'field.address'], // i18n-ignore
+    ['Личный телефон', 'field.phone'], // i18n-ignore
+    ['Банковские реквизиты', 'field.bank'], // i18n-ignore
+    ['Контакт для экстренной связи', 'field.emergency'], // i18n-ignore
+    ['Другое', 'field.other'], // i18n-ignore
+  ] as const
+).map(([value, key]) => ({
+  value,
+  get label() {
+    return t(key)
+  },
+}))
+
+/** Подпись для значения из заявки; незнакомое значение (введено вручную) показываем как есть */
+export const certPurposeLabel = (value: string | null | undefined) => CERT_PURPOSES.find((p) => p.value === value)?.label ?? value ?? ''
+export const dataFieldLabel = (value: string | null | undefined) => DATA_FIELDS.find((f) => f.value === value)?.label ?? value ?? ''
 
 export const CHART_COLORS = {
   brand: '#168f12',

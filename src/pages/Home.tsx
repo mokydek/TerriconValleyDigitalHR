@@ -54,9 +54,9 @@ import { ForecastBadge, HeadcountChart, LearningByDeptChart, RequestsWeeklyChart
 import type { HrRequest } from '@/lib/types'
 import { TabLabel, useTabParam } from '@/lib/tabs'
 
-function greeting(t: ReturnType<typeof useI18n>['t']) {
+function greeting(t: ReturnType<typeof useI18n>['t'], name: string) {
   const h = new Date().getHours()
-  return h < 12 ? t('home.morning') : h < 18 ? t('home.day') : t('home.evening')
+  return h < 12 ? t('home.morning', { name }) : h < 18 ? t('home.day', { name }) : t('home.evening', { name })
 }
 
 function QuickServices() {
@@ -88,6 +88,7 @@ function QuickServices() {
 
 function WelcomeBanner() {
   const { me } = useAuth()
+  const { t } = useI18n()
   const { data } = useMyAssignments()
   const welcome = (data ?? []).find((a) => a.course?.slug === 'welcome' && a.status !== 'completed')
   if (!me || !welcome) return null
@@ -95,11 +96,11 @@ function WelcomeBanner() {
     <div className="mb-6 flex flex-col gap-4 rounded-3xl bg-gradient-to-r from-brand-600 to-brand-800 p-5 text-white sm:flex-row sm:items-center">
       <div className="text-4xl">👋</div>
       <div className="flex-1">
-        <div className="text-lg font-semibold">Добро пожаловать в Jana Post, {me.first_name}!</div>
-        <div className="text-sm text-white/85">Начните с адаптационного курса: 25 минут о компании и о том, как работает JanaMen.</div>
+        <div className="text-lg font-semibold">{t('home.welcomeTitle', { name: me.first_name })}</div>
+        <div className="text-sm text-white/85">{t('home.welcomeText')}</div>
       </div>
       <Link to="/academy/welcome" className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-brand-700 hover:bg-brand-50">
-        Начать курс <ArrowRight className="h-4 w-4" />
+        {t('home.welcomeStart')} <ArrowRight className="h-4 w-4" />
       </Link>
     </div>
   )
@@ -112,7 +113,7 @@ function Greeting({ title, subtitle }: { title?: string; subtitle?: string }) {
     <div className="mb-6 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <p className="text-sm font-medium text-muted">{todayLabel()}</p>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-[28px]">{title ?? `${greeting(t)}, ${me?.first_name}!`}</h1>
+        <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-[28px]">{title ?? greeting(t, me?.first_name ?? '')}</h1>
         {subtitle && <p className="mt-1 text-[15px] text-muted">{subtitle}</p>}
       </div>
     </div>
@@ -123,6 +124,7 @@ function Greeting({ title, subtitle }: { title?: string; subtitle?: string }) {
 
 function TeamApprovals() {
   const { me } = useAuth()
+  const { t } = useI18n()
   const { data, isLoading } = useWorkRequests(0)
   const decide = useDecideRequest()
   const [open, setOpen] = useState<HrRequest | null>(null)
@@ -131,10 +133,10 @@ function TeamApprovals() {
     <Card>
       <CardHeader
         icon={<Inbox className="h-[18px] w-[18px]" />}
-        title="Ждут вашего решения"
+        title={t('home.approvalsTitle')}
         action={
           <Link to="/approvals" className="text-sm font-medium text-brand-700 hover:underline">
-            Все согласования
+            {t('home.allApprovals')}
           </Link>
         }
       />
@@ -146,7 +148,7 @@ function TeamApprovals() {
         )}
         {!isLoading && mine.length === 0 && (
           <li>
-            <Empty icon={<BadgeCheck className="h-6 w-6" />} title="Все заявки рассмотрены" />
+            <Empty icon={<BadgeCheck className="h-6 w-6" />} title={t('home.approvalsEmpty')} />
           </li>
         )}
         {mine.map((r) => (
@@ -162,7 +164,7 @@ function TeamApprovals() {
             </button>
             <div className="flex gap-2">
               <Button size="sm" variant="outline" onClick={() => setOpen(r)}>
-                Подробнее
+                {t('common.more')}
               </Button>
               <Button
                 size="sm"
@@ -170,14 +172,14 @@ function TeamApprovals() {
                 onClick={async () => {
                   try {
                     await decide.mutateAsync({ id: r.id, action: 'approve' })
-                    toast.success(`Заявка №${r.number} согласована`, { description: 'Передана в HR на оформление' })
+                    toast.success(t('home.approvedToast', { n: r.number }), { description: t('home.approvedToastText') })
                   } catch (e) {
                     toast.error((e as Error).message)
                   }
                 }}
                 data-testid={`approve-${r.number}`}
               >
-                Согласовать
+                {t('home.approve')}
               </Button>
             </div>
           </li>
@@ -189,6 +191,7 @@ function TeamApprovals() {
 }
 
 function TeamToday() {
+  const { t } = useI18n()
   const { data, isLoading } = useQuery({
     queryKey: ['team-absences-30d'],
     queryFn: async () => {
@@ -203,10 +206,10 @@ function TeamToday() {
   const list = (data ?? []).filter((x) => x.employee_id !== me?.id)
   return (
     <Card>
-      <CardHeader icon={<CalendarDays className="h-[18px] w-[18px]" />} title="Отпуска команды" subtitle="Ближайшие 30 дней" />
+      <CardHeader icon={<CalendarDays className="h-[18px] w-[18px]" />} title={t('home.teamVacations')} subtitle={t('home.next30Days')} />
       <ul className="space-y-1 px-2 pb-3">
         {isLoading && <Skeleton className="mx-3 h-10" />}
-        {!isLoading && list.length === 0 && <p className="px-3 py-4 text-center text-sm text-muted">Никто не уходит в отпуск</p>}
+        {!isLoading && list.length === 0 && <p className="px-3 py-4 text-center text-sm text-muted">{t('home.teamNoVacations')}</p>}
         {list.map((x) => {
           const now = new Date().toISOString().slice(0, 10)
           const active = x.start_date <= now && x.end_date >= now
@@ -217,10 +220,10 @@ function TeamToday() {
                 <div className="truncate text-sm font-medium">{x.full_name}</div>
                 <div className="text-xs text-muted">
                   {fmtDate(x.start_date, 'd MMM')} – {fmtDate(x.end_date, 'd MMM')}
-                  {x.status !== 'done' && x.status !== 'processing' && ' · ещё не оформлено'}
+                  {x.status !== 'done' && x.status !== 'processing' && ` · ${t('home.notProcessed')}`}
                 </div>
               </div>
-              {active && <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">в отпуске</span>}
+              {active && <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">{t('home.onVacation')}</span>}
             </li>
           )
         })}
@@ -230,14 +233,15 @@ function TeamToday() {
 }
 
 function TeamKpis() {
+  const { t } = useI18n()
   const { data } = useHrDashboard()
   if (!data) return <Skeleton className="h-24" />
   return (
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-      <Kpi label="В команде" value={num(data.headcount)} hint={`в отпуске сегодня: ${data.on_vacation_today}`} icon={<Users className="h-4 w-4" />} to="/team" />
-      <Kpi label="Ждут решения" value={num(data.requests.at_manager)} hint="у руководителей команды" icon={<Inbox className="h-4 w-4" />} tone="amber" to="/approvals" />
-      <Kpi label="Обязательное обучение" value={`${data.learning.mandatory_pct}%`} hint={`просрочено: ${data.learning.overdue}`} icon={<GraduationCap className="h-4 w-4" />} tone="violet" to="/analytics" />
-      <Kpi label="Задачи после срока" value={num(data.tasks.overdue)} hint={`открыто: ${data.tasks.open}`} icon={<Clock3 className="h-4 w-4" />} tone="rose" to="/tasks" />
+      <Kpi label={t('home.kpi.team')} value={num(data.headcount)} hint={t('home.kpi.teamHint', { n: data.on_vacation_today })} icon={<Users className="h-4 w-4" />} to="/team" />
+      <Kpi label={t('home.kpi.waiting')} value={num(data.requests.at_manager)} hint={t('home.kpi.waitingHint')} icon={<Inbox className="h-4 w-4" />} tone="amber" to="/approvals" />
+      <Kpi label={t('home.kpi.mandatory')} value={`${data.learning.mandatory_pct}%`} hint={t('home.kpi.overdue', { n: data.learning.overdue })} icon={<GraduationCap className="h-4 w-4" />} tone="violet" to="/analytics" />
+      <Kpi label={t('home.kpi.tasksOverdue')} value={num(data.tasks.overdue)} hint={t('home.kpi.tasksOpen', { n: data.tasks.open })} icon={<Clock3 className="h-4 w-4" />} tone="rose" to="/tasks" />
     </div>
   )
 }
@@ -248,23 +252,24 @@ const PULSE_TABS = ['attention', 'watchlist', 'charts'] as const
 type PulseTab = (typeof PULSE_TABS)[number]
 
 function PulseCharts() {
+  const { t } = useI18n()
   const charts = useHrCharts()
   return (
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
       <Card>
-        <CardHeader title="Заявки по неделям" subtitle="Последние 12 недель" />
+        <CardHeader title={t('home.chart.weekly')} subtitle={t('home.chart.weeklySub')} />
         <div className="px-3 pb-4">{charts.data ? <RequestsWeeklyChart data={charts.data.requests_weekly} /> : <Skeleton className="mx-2 h-[240px]" />}</div>
       </Card>
       <Card>
-        <CardHeader title="Отпуска по месяцам" subtitle="Факт за год и прогноз на 3 месяца" action={<ForecastBadge />} />
+        <CardHeader title={t('home.chart.vacations')} subtitle={t('home.chart.vacationsSub')} action={<ForecastBadge />} />
         <div className="px-3 pb-4">{charts.data ? <VacationMonthlyChart data={charts.data.vacation_monthly} /> : <Skeleton className="mx-2 h-[240px]" />}</div>
       </Card>
       <Card>
-        <CardHeader title="Обучение по отделам" subtitle="% пройденных обязательных курсов" />
+        <CardHeader title={t('home.chart.learning')} subtitle={t('home.chart.learningSub')} />
         <div className="px-3 pb-4">{charts.data ? <LearningByDeptChart data={charts.data.learning_by_department} /> : <Skeleton className="mx-2 h-[240px]" />}</div>
       </Card>
       <Card>
-        <CardHeader title="Численность по подразделениям" subtitle="Данные 1С:ЗУП" />
+        <CardHeader title={t('home.chart.headcount')} subtitle={t('home.chart.headcountSub')} />
         <div className="px-3 pb-4">{charts.data ? <HeadcountChart data={charts.data.headcount_by_department} /> : <Skeleton className="mx-2 h-[240px]" />}</div>
       </Card>
     </div>
@@ -272,6 +277,7 @@ function PulseCharts() {
 }
 
 function HrPulse() {
+  const { t } = useI18n()
   const dash = useHrDashboard()
   const tickets = useTickets('all')
   const work = useWorkRequests(0)
@@ -279,7 +285,7 @@ function HrPulse() {
   const people = usePeople()
   const [tab, setTab] = useTabParam<PulseTab>(PULSE_TABS, 'attention')
   useRefreshWatchAlerts(true)
-  const openTickets = (tickets.data ?? []).filter((t) => t.status === 'open').length
+  const openTickets = (tickets.data ?? []).filter((x) => x.status === 'open').length
   const atHr = (work.data ?? []).filter((r) => r.status === 'approved' || (r.status === 'pending' && r.approver?.role === 'hr')).length
   const d = dash.data
 
@@ -289,18 +295,18 @@ function HrPulse() {
         <div>
           <p className="text-sm font-medium text-muted">{todayLabel()}</p>
           <h1 className="mt-1 flex items-center gap-2 text-2xl font-bold tracking-tight sm:text-[28px]">
-            <HeartPulse className="h-7 w-7 text-brand-600" /> Пульс компании
+            <HeartPulse className="h-7 w-7 text-brand-600" /> {t('nav.pulse')}
           </h1>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link to="/approvals">
             <Button variant={atHr ? 'primary' : 'outline'} icon={<Inbox className="h-4 w-4" />}>
-              Оформить заявки {atHr > 0 && <span className="rounded-full bg-white/25 px-1.5 text-xs">{atHr}</span>}
+              {t('home.processRequests')} {atHr > 0 && <span className="rounded-full bg-white/25 px-1.5 text-xs">{atHr}</span>}
             </Button>
           </Link>
           <Link to="/tickets">
             <Button variant="outline" icon={<MessageCircleQuestion className="h-4 w-4" />}>
-              Обращения {openTickets > 0 && <span className="rounded-full bg-rose-500 px-1.5 text-xs text-white">{openTickets}</span>}
+              {t('home.tickets')} {openTickets > 0 && <span className="rounded-full bg-rose-500 px-1.5 text-xs text-white">{openTickets}</span>}
             </Button>
           </Link>
         </div>
@@ -312,12 +318,12 @@ function HrPulse() {
           Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-[110px]" />)
         ) : (
           <>
-            <Kpi label="Численность" value={num(d.headcount)} hint={`новичков за 90 дн.: ${d.newcomers_90d}`} icon={<Users className="h-4 w-4" />} to="/employees" />
-            <Kpi label="Заявки в работе" value={num(d.requests.in_work)} hint={`у рук.: ${d.requests.at_manager} · у HR: ${d.requests.at_hr} · в 1С: ${d.requests.in_1c}`} icon={<Inbox className="h-4 w-4" />} tone="sky" to="/approvals" />
-            <Kpi label="Среднее согласование" value={d.requests.approval_hours !== null ? `${num(d.requests.approval_hours, 1)} ч` : '–'} hint="от подачи до решения руководителя" icon={<Clock3 className="h-4 w-4" />} tone="amber" to="/analytics?tab=requests" />
-            <Kpi label="Обязательное обучение" value={`${d.learning.mandatory_pct}%`} hint={`просрочено: ${d.learning.overdue}`} icon={<GraduationCap className="h-4 w-4" />} tone="violet" to="/analytics?tab=learning" />
-            <Kpi label="Использование отпусков" value={`${d.vacation.usage_pct}%`} hint={`> 30 дн. накоплено: ${d.vacation.over_30} чел.`} icon={<Palmtree className="h-4 w-4" />} tone="brand" to="/analytics?tab=vacations" />
-            <Kpi label="AI Jana не ответила" value={`${d.ai.no_answer_pct}%`} hint={`вопросов за 30 дн.: ${d.ai.queries_30d}`} icon={<Bot className="h-4 w-4" />} tone="rose" to="/analytics?tab=ai" />
+            <Kpi label={t('hr.headcount')} value={num(d.headcount)} hint={t('home.kpi.headcountHint', { n: d.newcomers_90d })} icon={<Users className="h-4 w-4" />} to="/employees" />
+            <Kpi label={t('home.kpi.inWork')} value={num(d.requests.in_work)} hint={t('home.kpi.inWorkHint', { mgr: d.requests.at_manager, hr: d.requests.at_hr, erp: d.requests.in_1c })} icon={<Inbox className="h-4 w-4" />} tone="sky" to="/approvals" />
+            <Kpi label={t('home.kpi.approvalTime')} value={d.requests.approval_hours !== null ? t('home.kpi.hours', { v: num(d.requests.approval_hours, 1) }) : '–'} hint={t('home.kpi.approvalTimeHint')} icon={<Clock3 className="h-4 w-4" />} tone="amber" to="/analytics?tab=requests" />
+            <Kpi label={t('home.kpi.mandatory')} value={`${d.learning.mandatory_pct}%`} hint={t('home.kpi.overdue', { n: d.learning.overdue })} icon={<GraduationCap className="h-4 w-4" />} tone="violet" to="/analytics?tab=learning" />
+            <Kpi label={t('home.kpi.vacationUsage')} value={`${d.vacation.usage_pct}%`} hint={t('home.kpi.vacationUsageHint', { n: d.vacation.over_30 })} icon={<Palmtree className="h-4 w-4" />} tone="brand" to="/analytics?tab=vacations" />
+            <Kpi label={t('home.kpi.aiNoAnswer')} value={`${d.ai.no_answer_pct}%`} hint={t('home.kpi.aiNoAnswerHint', { n: d.ai.queries_30d })} icon={<Bot className="h-4 w-4" />} tone="rose" to="/analytics?tab=ai" />
           </>
         )}
       </div>
@@ -327,9 +333,9 @@ function HrPulse() {
         onChange={setTab}
         className="mt-6 mb-4"
         items={[
-          { value: 'attention', label: <TabLabel icon={<BellRing className="h-4 w-4" />}>Зона внимания</TabLabel>, count: attention.data?.length },
-          { value: 'watchlist', label: <TabLabel icon={<Eye className="h-4 w-4" />}>Слежу</TabLabel>, count: (people.data ?? []).filter((p) => p.followed).length },
-          { value: 'charts', label: <TabLabel icon={<LineChart className="h-4 w-4" />}>Графики и прогнозы</TabLabel> },
+          { value: 'attention', label: <TabLabel icon={<BellRing className="h-4 w-4" />}>{t('hr.attention')}</TabLabel>, count: attention.data?.length },
+          { value: 'watchlist', label: <TabLabel icon={<Eye className="h-4 w-4" />}>{t('hr.watchlist')}</TabLabel>, count: (people.data ?? []).filter((p) => p.followed).length },
+          { value: 'charts', label: <TabLabel icon={<LineChart className="h-4 w-4" />}>{t('home.tabCharts')}</TabLabel> },
         ]}
       />
       {tab === 'attention' && <AttentionZone />}

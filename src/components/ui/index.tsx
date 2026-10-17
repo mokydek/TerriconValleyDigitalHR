@@ -5,6 +5,7 @@ import { Loader2, X } from 'lucide-react'
 import { cn, colorFor } from '@/lib/utils'
 import { initials } from '@/lib/format'
 import { useAvatar } from '@/lib/avatars'
+import { t } from '@/lib/i18n'
 
 /* ---------- Button ---------- */
 
@@ -205,11 +206,11 @@ export function ErrorBox({ error, onRetry }: { error: unknown; onRetry?: () => v
   const message = error instanceof Error ? error.message : String(error)
   return (
     <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
-      <p className="font-medium">Не удалось загрузить данные</p>
+      <p className="font-medium">{t('app.loadFailed')}</p>
       <p className="mt-1 text-rose-700">{message}</p>
       {onRetry && (
         <Button variant="outline" size="sm" className="mt-3" onClick={onRetry}>
-          Повторить
+          {t('common.retry')}
         </Button>
       )}
     </div>
@@ -290,7 +291,7 @@ export function Modal({
             <h2 className="text-lg font-semibold">{title}</h2>
             {subtitle && <p className="mt-0.5 text-sm text-muted">{subtitle}</p>}
           </div>
-          <button onClick={onClose} className="rounded-lg p-1.5 text-muted hover:bg-canvas hover:text-ink" aria-label="Закрыть">
+          <button onClick={onClose} className="rounded-lg p-1.5 text-muted hover:bg-canvas hover:text-ink" aria-label={t('common.close')}>
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -330,7 +331,7 @@ export function Drawer({
             <div className="text-lg font-semibold">{title}</div>
             {subtitle && <div className="mt-0.5 text-sm text-muted">{subtitle}</div>}
           </div>
-          <button onClick={onClose} className="rounded-lg p-1.5 text-muted hover:bg-canvas hover:text-ink" aria-label="Закрыть">
+          <button onClick={onClose} className="rounded-lg p-1.5 text-muted hover:bg-canvas hover:text-ink" aria-label={t('common.close')}>
             <X className="h-5 w-5" />
           </button>
         </div>

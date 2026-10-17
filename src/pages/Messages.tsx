@@ -3,25 +3,21 @@ import { useSearchParams } from 'react-router-dom'
 import { ArrowLeft, Check, CornerUpLeft, MessageCircle, Plus, Search, SendHorizontal, Users, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/auth'
-import { useI18n, type Lang } from '@/lib/i18n'
+import { useI18n } from '@/lib/i18n'
 import { useEmployeesLite } from '@/lib/api'
 import { useChatMembers, useChatMessages, useChats, useCreateGroupChat, useMarkChatRead, useOpenDirectChat, useSendMessage } from '@/lib/chat'
-import { fullName } from '@/lib/format'
+import { fmtDate, fmtTime, fullName } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { Avatar, Button, Empty, ErrorBox, Field, Modal, Skeleton } from '@/components/ui'
 import type { ChatListItem, ChatMessage } from '@/lib/types'
 
 /* ---------- Время ---------- */
 
-// часы и числа одинаковые для обоих языков; казахские месяцы задаём сами: не во всех браузерах есть данные локали kk
-const KK_MONTHS = ['қаңтар', 'ақпан', 'наурыз', 'сәуір', 'мамыр', 'маусым', 'шілде', 'тамыз', 'қыркүйек', 'қазан', 'қараша', 'желтоқсан']
+// названия месяцев и порядок даты берутся из словаря языка: данные локалей есть не во всех браузерах
+const clock = (iso: string) => fmtTime(iso)
 
-function clock(iso: string) {
-  return new Date(iso).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
-}
-
-function dayName(d: Date, lang: Lang) {
-  return lang === 'kk' ? `${d.getDate()} ${KK_MONTHS[d.getMonth()]}` : d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })
+function dayName(d: Date) {
+  return fmtDate(d, d.getFullYear() === new Date().getFullYear() ? 'd MMMM' : 'd MMMM yyyy')
 }
 
 function isSameDay(a: Date, b: Date) {
@@ -31,7 +27,7 @@ function isSameDay(a: Date, b: Date) {
 /** Время в списке чатов: сегодня часы, раньше дата */
 function listTime(iso: string) {
   const d = new Date(iso)
-  return isSameDay(d, new Date()) ? clock(iso) : d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })
+  return isSameDay(d, new Date()) ? clock(iso) : fmtDate(d, 'dd.MM')
 }
 
 function groupByDay(list: ChatMessage[]) {
@@ -182,7 +178,7 @@ function ReplyButton({ onClick, label }: { onClick: () => void; label: string })
 
 function Conversation({ chatId, chat, onBack }: { chatId: string; chat?: ChatListItem; onBack: () => void }) {
   const { me } = useAuth()
-  const { t, lang } = useI18n()
+  const { t } = useI18n()
   const messages = useChatMessages(chatId)
   const members = useChatMembers(chatId)
   const send = useSendMessage()
@@ -295,7 +291,7 @@ function Conversation({ chatId, chat, onBack }: { chatId: string; chat?: ChatLis
                   ? t('chat.today')
                   : isSameDay(day.date, new Date(Date.now() - 86_400_000))
                     ? t('chat.yesterday')
-                    : dayName(day.date, lang)}
+                    : dayName(day.date)}
               </span>
             </div>
             <ul className="space-y-1.5">

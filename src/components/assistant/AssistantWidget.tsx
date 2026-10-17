@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Maximize2, Sparkles, X } from 'lucide-react'
+import { useI18n } from '@/lib/i18n'
 import { AssistantChat } from './AssistantChat'
 
 export function AssistantWidget() {
+  const { t } = useI18n()
   const [open, setOpen] = useState(false)
   return (
     <>
@@ -14,7 +16,7 @@ export function AssistantWidget() {
           data-testid="ai-widget-open"
         >
           <Sparkles className="h-5 w-5" />
-          AI Jana
+          {t('ai.title')}
         </button>
       )}
       {open && (
@@ -25,15 +27,15 @@ export function AssistantWidget() {
                 <Sparkles className="h-4 w-4" />
               </div>
               <div>
-                <div className="text-[15px] font-semibold">AI Jana</div>
-                <div className="text-[11px] text-white/80">HR-помощник · ответы по базе знаний</div>
+                <div className="text-[15px] font-semibold">{t('ai.title')}</div>
+                <div className="text-[11px] text-white/80">{t('ai.widgetSubtitle')}</div>
               </div>
             </div>
             <div className="flex items-center gap-1">
-              <Link to="/assistant" onClick={() => setOpen(false)} className="rounded-lg p-2 hover:bg-white/15" title="Открыть на весь экран">
+              <Link to="/assistant" onClick={() => setOpen(false)} className="rounded-lg p-2 hover:bg-white/15" title={t('ai.fullscreen')}>
                 <Maximize2 className="h-4 w-4" />
               </Link>
-              <button onClick={() => setOpen(false)} className="rounded-lg p-2 hover:bg-white/15" aria-label="Закрыть">
+              <button onClick={() => setOpen(false)} className="rounded-lg p-2 hover:bg-white/15" aria-label={t('common.close')}>
                 <X className="h-4 w-4" />
               </button>
             </div>

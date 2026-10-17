@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { ArrowUp, BookOpenCheck, ChartColumnBig, CircleAlert, ShieldAlert, Sparkles, UserRound, UsersRound } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/auth'
-import { useI18n } from '@/lib/i18n'
+import { useI18n, type I18nKey } from '@/lib/i18n'
 import { askJana, logQuery, type AiAnswer } from '@/lib/assistant/engine'
 import { useCreateTicket } from '@/lib/api'
 import { cn } from '@/lib/utils'
@@ -30,6 +30,7 @@ const Ctx = createContext<AssistantCtx | null>(null)
 
 export function AssistantProvider({ children }: { children: ReactNode }) {
   const { me, role } = useAuth()
+  const { t } = useI18n()
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [busy, setBusy] = useState(false)
 
@@ -53,7 +54,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
           {
             id: crypto.randomUUID(),
             role: 'assistant',
-            text: 'Не получилось получить ответ. Попробуйте ещё раз чуть позже.',
+            text: t('ai.error'),
             answer: { status: 'no_answer', text: '', sources: [], mode: 'kb' },
           },
         ])
@@ -62,7 +63,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
         setBusy(false)
       }
     },
-    [me, role, messages],
+    [me, role, messages, t],
   )
 
   const value = useMemo<AssistantCtx>(
@@ -80,44 +81,26 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
 
 export function useAssistant() {
   const ctx = useContext(Ctx)
-  if (!ctx) throw new Error('useAssistant вне AssistantProvider')
+  if (!ctx) throw new Error('useAssistant must be used within AssistantProvider')
   return ctx
 }
 
-const SUGGESTIONS: Record<string, string[]> = {
-  employee: [
-    'Сколько у меня дней отпуска?',
-    'Как оформить аванс?',
-    'Как перенести отпуск?',
-    'Что с моими заявками?',
-    'Когда выплачивают зарплату?',
-    'Положена ли компенсация за проезд на ночную смену?',
-  ],
-  manager: [
-    'Кто в отпуске на следующей неделе?',
-    'У кого больше 30 дней отпуска?',
-    'Какой отдел хуже проходит охрану труда?',
-    'Какой срок согласования заявок?',
-    'Сколько у меня дней отпуска?',
-  ],
-  hr: [
-    'Кто в отпуске на следующей неделе?',
-    'У кого больше 30 дней отпуска?',
-    'Какой отдел хуже проходит охрану труда?',
-    'Сколько заявок висит на согласовании?',
-    'Кто не прошёл обучение вовремя?',
-    'Как оформить отпуск в 1С:ЗУП?',
-  ],
+// Примеры вопросов по ролям: ключи словаря, текст подставляется на языке интерфейса при отрисовке
+const SUGGESTIONS: Record<string, I18nKey[]> = {
+  employee: ['ai.q.myVacationDays', 'ai.q.advance', 'ai.q.moveVacation', 'ai.q.myRequests', 'ai.q.payday', 'ai.q.nightShift'],
+  manager: ['ai.q.vacationNextWeek', 'ai.q.over30Days', 'ai.q.safetyWorst', 'ai.q.approvalTime', 'ai.q.myVacationDays'],
+  hr: ['ai.q.vacationNextWeek', 'ai.q.over30Days', 'ai.q.safetyWorst', 'ai.q.pendingCount', 'ai.q.lateLearning', 'ai.q.vacationIn1c'],
 }
 
 function StatusChip({ answer }: { answer: AiAnswer }) {
+  const { t } = useI18n()
   const map: Record<AiAnswer['status'], { icon: ReactNode; label: string; cls: string }> = {
-    answered: { icon: <BookOpenCheck className="h-3.5 w-3.5" />, label: 'Ответ по базе знаний', cls: 'bg-brand-50 text-brand-700' },
-    personal: { icon: <UserRound className="h-3.5 w-3.5" />, label: 'Ваши данные', cls: 'bg-sky-50 text-sky-700' },
-    analytics: { icon: <ChartColumnBig className="h-3.5 w-3.5" />, label: 'Данные по вашей роли', cls: 'bg-violet-50 text-violet-700' },
-    no_answer: { icon: <CircleAlert className="h-3.5 w-3.5" />, label: 'Нет надёжного ответа', cls: 'bg-amber-50 text-amber-800' },
-    refused: { icon: <ShieldAlert className="h-3.5 w-3.5" />, label: 'Ограничено правами доступа', cls: 'bg-rose-50 text-rose-700' },
-    smalltalk: { icon: <Sparkles className="h-3.5 w-3.5" />, label: 'AI Jana', cls: 'bg-canvas text-ink-soft' },
+    answered: { icon: <BookOpenCheck className="h-3.5 w-3.5" />, label: t('ai.st.answered'), cls: 'bg-brand-50 text-brand-700' },
+    personal: { icon: <UserRound className="h-3.5 w-3.5" />, label: t('ai.st.personal'), cls: 'bg-sky-50 text-sky-700' },
+    analytics: { icon: <ChartColumnBig className="h-3.5 w-3.5" />, label: t('ai.st.analytics'), cls: 'bg-violet-50 text-violet-700' },
+    no_answer: { icon: <CircleAlert className="h-3.5 w-3.5" />, label: t('ai.st.noAnswer'), cls: 'bg-amber-50 text-amber-800' },
+    refused: { icon: <ShieldAlert className="h-3.5 w-3.5" />, label: t('ai.st.refused'), cls: 'bg-rose-50 text-rose-700' },
+    smalltalk: { icon: <Sparkles className="h-3.5 w-3.5" />, label: t('ai.title'), cls: 'bg-canvas text-ink-soft' },
   }
   const s = map[answer.status]
   return (
@@ -196,7 +179,7 @@ function AssistantBubble({ msg, compact }: { msg: ChatMessage; compact?: boolean
                   ))}
                 </tbody>
               </table>
-              {a.table.rows.length > (compact ? 8 : 30) && <div className="border-t border-line px-3 py-1.5 text-xs text-muted">…и ещё {a.table.rows.length - (compact ? 8 : 30)}</div>}
+              {a.table.rows.length > (compact ? 8 : 30) && <div className="border-t border-line px-3 py-1.5 text-xs text-muted">{t('ai.andMore', { n: a.table.rows.length - (compact ? 8 : 30) })}</div>}
             </div>
           )}
           {a.sources.length > 0 && (
@@ -239,7 +222,7 @@ function AssistantBubble({ msg, compact }: { msg: ChatMessage; compact?: boolean
           {(a.status === 'no_answer' || a.status === 'refused') &&
             (msg.escalated ? (
               <span className="inline-flex items-center rounded-lg bg-brand-50 px-3 py-1.5 text-sm text-brand-700">
-                ✓ Обращение №{msg.escalated} передано в HR. Ответ придёт в уведомления
+                ✓ {t('ai.ticketSent', { n: msg.escalated })}
               </span>
             ) : (
               <Button
@@ -293,22 +276,23 @@ export function AssistantChat({ compact = false }: { compact?: boolean }) {
                 <Sparkles className="h-5 w-5" />
               </div>
               <div>
-                <p className="font-semibold text-ink">Здравствуйте, {me?.first_name}! Я AI Jana.</p>
-                <p className="mt-1 text-sm text-muted">
-                  Отвечаю на HR-вопросы по базе знаний и показываю источник. Если ответа нет, передам вопрос в HR.
-                </p>
+                <p className="font-semibold text-ink">{t('ai.hello', { name: me?.first_name ?? '' })}</p>
+                <p className="mt-1 text-sm text-muted">{t('ai.intro')}</p>
               </div>
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
-              {(SUGGESTIONS[role ?? 'employee'] ?? SUGGESTIONS.employee).map((s) => (
-                <button
-                  key={s}
-                  onClick={() => submit(s)}
-                  className="rounded-full border border-line bg-white px-3 py-1.5 text-left text-[13px] text-ink-soft transition hover:border-brand-300 hover:bg-brand-50 hover:text-brand-800"
-                >
-                  {s}
-                </button>
-              ))}
+              {(SUGGESTIONS[role ?? 'employee'] ?? SUGGESTIONS.employee).map((key) => {
+                const s = t(key)
+                return (
+                  <button
+                    key={key}
+                    onClick={() => submit(s)}
+                    className="rounded-full border border-line bg-white px-3 py-1.5 text-left text-[13px] text-ink-soft transition hover:border-brand-300 hover:bg-brand-50 hover:text-brand-800"
+                  >
+                    {s}
+                  </button>
+                )
+              })}
             </div>
           </div>
         )}
@@ -326,7 +310,7 @@ export function AssistantChat({ compact = false }: { compact?: boolean }) {
             <div className="grid h-8 w-8 place-items-center rounded-full bg-brand-50 text-brand-600">
               <Sparkles className="h-4 w-4 animate-pulse" />
             </div>
-            AI Jana ищет ответ в базе знаний…
+            {t('ai.thinking')}
           </div>
         )}
         <div ref={endRef} />
@@ -351,13 +335,13 @@ export function AssistantChat({ compact = false }: { compact?: boolean }) {
             rows={1}
             placeholder={t('ai.placeholder')}
             className="max-h-32 min-h-[40px] flex-1 resize-none bg-transparent py-2 text-[15px] outline-none placeholder:text-muted/70"
-            aria-label="Вопрос для AI Jana"
+            aria-label={t('ai.inputLabel')}
           />
           <Button type="submit" size="icon" disabled={!input.trim() || busy} aria-label={t('common.send')}>
             <ArrowUp className="h-4 w-4" />
           </Button>
         </div>
-        <p className="mt-1.5 px-1 text-[11px] text-muted">AI Jana не принимает кадровых решений и не видит чужие персональные данные.</p>
+        <p className="mt-1.5 px-1 text-[11px] text-muted">{t('ai.disclaimer')}</p>
       </form>
     </div>
   )

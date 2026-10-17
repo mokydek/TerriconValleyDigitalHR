@@ -30,13 +30,13 @@ export default function AnnouncementsPage() {
         actions={
           role !== 'employee' && (
             <Button icon={<Plus className="h-4 w-4" />} onClick={() => setCreating(true)}>
-              Опубликовать
+              {t('ann.publish')}
             </Button>
           )
         }
       />
       <div className="scrollbar-thin mb-4 flex gap-2 overflow-x-auto">
-        {[['all', { label: 'Все', emoji: '📋', style: '' }] as const, ...Object.entries(ANNOUNCEMENT_CATEGORIES)].map(([k, v]) => (
+        {[['all', { label: t('common.all'), emoji: '📋', style: '' }] as const, ...Object.entries(ANNOUNCEMENT_CATEGORIES)].map(([k, v]) => (
           <button
             key={k}
             onClick={() => setFilter(k)}
@@ -50,7 +50,7 @@ export default function AnnouncementsPage() {
         {isLoading && <Skeleton className="h-32" />}
         {!isLoading && list.length === 0 && (
           <Card>
-            <Empty icon={<Megaphone className="h-6 w-6" />} title="Объявлений нет" />
+            <Empty icon={<Megaphone className="h-6 w-6" />} title={t('ann.empty')} />
           </Card>
         )}
         {list.map((a) => {
@@ -60,13 +60,13 @@ export default function AnnouncementsPage() {
               <div className="flex flex-wrap items-center gap-2">
                 {a.pinned && (
                   <Badge className="bg-brand-50 text-brand-700 ring-brand-200">
-                    <Pin className="h-3 w-3" /> закреплено
+                    <Pin className="h-3 w-3" /> {t('ann.pinned')}
                   </Badge>
                 )}
                 <Badge className={cat.style}>
                   {cat.emoji} {cat.label}
                 </Badge>
-                {a.department && <Badge className="bg-canvas text-ink-soft ring-line">для: {a.department.name}</Badge>}
+                {a.department && <Badge className="bg-canvas text-ink-soft ring-line">{t('ann.for', { name: a.department.name })}</Badge>}
               </div>
               <h2 className="mt-3 text-lg font-semibold">{a.title}</h2>
               <p className="mt-2 text-[15px] leading-relaxed whitespace-pre-line text-ink-soft">{a.body}</p>
@@ -85,6 +85,7 @@ export default function AnnouncementsPage() {
 
 function NewAnnouncement({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { role, me } = useAuth()
+  const { t } = useI18n()
   const create = useCreateAnnouncement()
   const departments = useDepartments()
   const [title, setTitle] = useState('')
@@ -97,12 +98,12 @@ function NewAnnouncement({ open, onClose }: { open: boolean; onClose: () => void
       open={open}
       onClose={onClose}
       size="lg"
-      title="Новое объявление"
-      subtitle={role === 'manager' ? 'Руководитель публикует для своего подразделения' : 'Закреплённые и срочные объявления приходят уведомлением'}
+      title={t('ann.new')}
+      subtitle={role === 'manager' ? t('ann.managerHint') : t('ann.notifyHint')}
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
-            Отмена
+            {t('common.cancel')}
           </Button>
           <Button
             loading={create.isPending}
@@ -110,7 +111,7 @@ function NewAnnouncement({ open, onClose }: { open: boolean; onClose: () => void
             onClick={async () => {
               try {
                 await create.mutateAsync({ title: title.trim(), body: body.trim(), category, pinned, audience_department_id: audience || null })
-                toast.success('Объявление опубликовано')
+                toast.success(t('ann.published'))
                 setTitle('')
                 setBody('')
                 onClose()
@@ -119,20 +120,20 @@ function NewAnnouncement({ open, onClose }: { open: boolean; onClose: () => void
               }
             }}
           >
-            Опубликовать
+            {t('ann.publish')}
           </Button>
         </>
       }
     >
       <div className="space-y-4">
-        <Field label="Заголовок">
+        <Field label={t('ann.titleLabel')}>
           <input className="field" value={title} onChange={(e) => setTitle(e.target.value)} />
         </Field>
-        <Field label="Текст">
+        <Field label={t('ann.body')}>
           <textarea className="field min-h-[140px]" value={body} onChange={(e) => setBody(e.target.value)} />
         </Field>
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Категория">
+          <Field label={t('ann.category')}>
             <select className="field" value={category} onChange={(e) => setCategory(e.target.value)}>
               {Object.entries(ANNOUNCEMENT_CATEGORIES).map(([k, v]) => (
                 <option key={k} value={k}>
@@ -141,9 +142,9 @@ function NewAnnouncement({ open, onClose }: { open: boolean; onClose: () => void
               ))}
             </select>
           </Field>
-          <Field label="Для кого">
+          <Field label={t('ann.audience')}>
             <select className="field" value={audience} onChange={(e) => setAudience(e.target.value)} disabled={role === 'manager'}>
-              <option value="">Вся компания</option>
+              <option value="">{t('ann.wholeCompany')}</option>
               {(departments.data ?? []).map((d) => (
                 <option key={d.id} value={d.id}>
                   {d.name}
@@ -154,7 +155,7 @@ function NewAnnouncement({ open, onClose }: { open: boolean; onClose: () => void
         </div>
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" className="h-4 w-4 accent-brand-600" checked={pinned} onChange={(e) => setPinned(e.target.checked)} />
-          Закрепить и отправить уведомление
+          {t('ann.pinNotify')}
         </label>
       </div>
     </Modal>

@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/auth'
 import { useI18n } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { Button, Field } from '@/components/ui'
+import { LanguageMenu } from '@/components/LanguageMenu'
 
 const DEMO_PASSWORD = 'Jana2026!'
 
@@ -12,7 +13,7 @@ const DEMO = [
   {
     email: 'employee@jana.test',
     role: 'role.employee',
-    name: 'Дана Жумабекова',
+    name: 'Дана Жумабекова', // i18n-ignore: имя из демо-данных
     position: 'login.posEmployee',
     icon: <UserRound className="h-5 w-5" />,
     tone: 'from-brand-500 to-brand-700',
@@ -20,7 +21,7 @@ const DEMO = [
   {
     email: 'manager@jana.test',
     role: 'role.manager',
-    name: 'Ерлан Сапаров',
+    name: 'Ерлан Сапаров', // i18n-ignore
     position: 'login.posManager',
     icon: <Briefcase className="h-5 w-5" />,
     tone: 'from-sky-500 to-sky-700',
@@ -28,7 +29,7 @@ const DEMO = [
   {
     email: 'hr@jana.test',
     role: 'role.hr',
-    name: 'Айгерим Нурланова',
+    name: 'Айгерим Нурланова', // i18n-ignore
     position: 'login.posHr',
     icon: <UsersRound className="h-5 w-5" />,
     tone: 'from-violet-500 to-violet-700',
@@ -39,7 +40,7 @@ const PATH = ['login.step1', 'login.step2', 'login.step3', 'login.step4', 'login
 
 export default function LoginPage() {
   const { signIn } = useAuth()
-  const { t, lang, setLang } = useI18n()
+  const { t } = useI18n()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState<string | null>(null)
@@ -105,12 +106,8 @@ export default function LoginPage() {
             <div className="text-2xl font-extrabold tracking-tight lg:hidden">
               Jana<span className="text-brand-600">Men</span>
             </div>
-            <div className="ml-auto inline-flex rounded-lg bg-white p-0.5 text-xs font-semibold ring-1 ring-line">
-              {(['ru', 'kk'] as const).map((l) => (
-                <button key={l} onClick={() => setLang(l)} className={cn('rounded-md px-2.5 py-1', lang === l ? 'bg-brand-600 text-white' : 'text-muted')}>
-                  {l === 'ru' ? 'RU' : 'ҚАЗ'}
-                </button>
-              ))}
+            <div className="ml-auto">
+              <LanguageMenu variant="login" />
             </div>
           </div>
 

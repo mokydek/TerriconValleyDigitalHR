@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import { BookOpen, FileText, Lock, Search, Sparkles } from 'lucide-react'
-import { useI18n } from '@/lib/i18n'
+import { t, useI18n } from '@/lib/i18n'
 import { useKbArticle, useKbArticles } from '@/lib/api'
 import { fmtDate } from '@/lib/format'
 import { cn } from '@/lib/utils'
@@ -27,17 +27,18 @@ function ArticleList() {
   return (
     <div>
       <PageHeader
-        title="База знаний HR"
-        subtitle="Положения HR, на которые опирается AI Jana"
+        title={t('kb.title')}
+        subtitle={t('kb.subtitle')}
       />
       <div className="relative mb-5 max-w-xl">
         <Search className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-muted" />
-        <input className="field pl-10" placeholder="Поиск по базе знаний" value={q} onChange={(e) => setQ(e.target.value)} />
+        <input className="field pl-10" placeholder={t('kb.search')} value={q} onChange={(e) => setQ(e.target.value)} />
       </div>
+      {lang !== 'ru' && <p className="-mt-2 mb-5 text-sm text-muted">{t('kb.contentNote')}</p>}
       {isLoading && <PageLoader />}
       {!isLoading && filtered.length === 0 && (
         <Card>
-          <Empty icon={<BookOpen className="h-6 w-6" />} title="Ничего не найдено" text="Спросите AI Jana. Если ответа нет, вопрос уйдёт в HR" />
+          <Empty icon={<BookOpen className="h-6 w-6" />} title={t('kb.notFound')} text={t('kb.notFoundText')} />
         </Card>
       )}
       <div className="space-y-6">
@@ -51,7 +52,7 @@ function ArticleList() {
                     <FileText className="h-5 w-5 text-brand-600" />
                     {a.visibility !== 'all' && (
                       <Badge className="bg-violet-50 text-violet-700 ring-violet-200">
-                        <Lock className="h-3 w-3" /> {a.visibility === 'hr' ? 'только HR' : 'для руководителей'}
+                        <Lock className="h-3 w-3" /> {a.visibility === 'hr' ? t('kb.onlyHr') : t('kb.managers')}
                       </Badge>
                     )}
                   </div>
@@ -69,6 +70,7 @@ function ArticleList() {
 }
 
 function Article({ slug }: { slug: string }) {
+  const { lang } = useI18n()
   const { data, isLoading } = useKbArticle(slug)
   const location = useLocation()
   const anchor = decodeURIComponent(location.hash.replace(/^#/, ''))
@@ -83,7 +85,7 @@ function Article({ slug }: { slug: string }) {
   if (!data)
     return (
       <Card>
-        <Empty title="Статья недоступна" text="Её нет или она не предназначена для вашей роли" />
+        <Empty title={t('kb.unavailable')} text={t('kb.unavailableText')} />
       </Card>
     )
 
@@ -91,17 +93,18 @@ function Article({ slug }: { slug: string }) {
   return (
     <div className="mx-auto max-w-3xl">
       <Link to="/knowledge" className="mb-3 inline-flex items-center gap-1 text-sm text-muted hover:text-brand-700">
-        ← База знаний
+        ← {t('kb.back')}
       </Link>
       <Card className="p-6 sm:p-8">
         <div className="flex flex-wrap items-center gap-2">
           <Badge className="bg-canvas text-ink-soft ring-line">{data.category}</Badge>
-          {data.visibility !== 'all' && <Badge className="bg-violet-50 text-violet-700 ring-violet-200">{data.visibility === 'hr' ? 'только HR' : 'для руководителей'}</Badge>}
+          {data.visibility !== 'all' && <Badge className="bg-violet-50 text-violet-700 ring-violet-200">{data.visibility === 'hr' ? t('kb.onlyHr') : t('kb.managers')}</Badge>}
         </div>
         <h1 className="mt-3 text-2xl font-bold">{data.title}</h1>
-        {data.title_kk && <p className="mt-1 text-muted">{data.title_kk}</p>}
+        {data.title_kk && (lang === 'ru' || lang === 'kk') && <p className="mt-1 text-muted">{data.title_kk}</p>}
+        {lang !== 'ru' && <p className="mt-2 text-sm text-muted">{t('kb.contentNote')}</p>}
         <div className="mt-4 rounded-xl bg-brand-50 px-4 py-3 text-sm text-brand-900">
-          <span className="font-semibold">Источник:</span> {data.source_title} · обновлено {fmtDate(data.updated_at)}
+          <span className="font-semibold">{t('kb.source')}</span> {data.source_title} · {t('kb.updated', { date: fmtDate(data.updated_at) })}
         </div>
         <div className="mt-6 space-y-2">
           {sections.map((sec, i) => {
@@ -119,7 +122,7 @@ function Article({ slug }: { slug: string }) {
           })}
         </div>
         <div className="mt-8 flex items-center gap-2 border-t border-line pt-5 text-sm text-muted">
-          <Sparkles className="h-4 w-4 text-brand-600" /> AI Jana ссылается на этот раздел, когда отвечает на вопросы по теме.
+          <Sparkles className="h-4 w-4 text-brand-600" /> {t('kb.aiRefers')}
         </div>
       </Card>
     </div>

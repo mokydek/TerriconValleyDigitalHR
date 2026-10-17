@@ -1,0 +1,28 @@
+import type ru from '../ru/chat'
+
+export default {
+  'chat.new': 'Чати нав',
+  'chat.search': 'Ҷустуҷӯ дар чатҳо',
+  'chat.empty': 'Ҳоло мукотиба нест',
+  'chat.emptyText': 'Тугмаи «Чати нав»-ро пахш кунед ва ҳамкорро интихоб кунед.',
+  'chat.pick': 'Аз тарафи чап чатро интихоб кунед ё чати нав оғоз намоед',
+  'chat.placeholder': 'Паём…',
+  'chat.send': 'Фиристодан',
+  'chat.reply': 'Ҷавоб додан',
+  'chat.replying': 'Ҷавоб ба паём',
+  'chat.cancelReply': 'Ҷавобро бекор кардан',
+  'chat.you': 'Шумо',
+  'chat.today': 'Имрӯз',
+  'chat.yesterday': 'Дирӯз',
+  'chat.members': 'Иштирокчиён: {n}',
+  'chat.back': 'Ба чатҳо',
+  'chat.newHint': 'Як ҳамкор: чати шахсӣ. Якчанд: гурӯҳ.',
+  'chat.findPeople': 'Ном ё вазифа',
+  'chat.groupName': 'Номи гурӯҳ',
+  'chat.write': 'Навиштан',
+  'chat.createGroup': 'Гурӯҳ сохтан',
+  'chat.selected': 'Интихоб шуд: {n}',
+  'chat.noPeople': 'Ҳеҷ кас ёфт нашуд',
+  'chat.noMessages': 'Ҳоло паёме нест. Аввалин шуда нависед.',
+  'chat.sendHint': 'Enter: фиристодан, Shift+Enter: сатри нав',
+} satisfies Record<keyof typeof ru, string>

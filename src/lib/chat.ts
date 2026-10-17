@@ -111,7 +111,7 @@ export function useRealtimeChats() {
         })
         .subscribe()
     } catch (error) {
-      console.warn('Realtime недоступен', error)
+      console.warn('Realtime unavailable', error)
     }
     return () => {
       if (channel) void supabase.removeChannel(channel)

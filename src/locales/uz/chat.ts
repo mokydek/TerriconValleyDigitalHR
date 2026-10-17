@@ -1,0 +1,28 @@
+import type ru from '../ru/chat'
+
+export default {
+  'chat.new': 'Yangi chat',
+  'chat.search': 'Chatlardan qidirish',
+  'chat.empty': 'Hozircha yozishmalar yoʻq',
+  'chat.emptyText': '“Yangi chat” tugmasini bosing va hamkasbni tanlang.',
+  'chat.pick': 'Chapdan chatni tanlang yoki yangisini boshlang',
+  'chat.placeholder': 'Xabar…',
+  'chat.send': 'Yuborish',
+  'chat.reply': 'Javob berish',
+  'chat.replying': 'Xabarga javob',
+  'chat.cancelReply': 'Javobni bekor qilish',
+  'chat.you': 'Siz',
+  'chat.today': 'Bugun',
+  'chat.yesterday': 'Kecha',
+  'chat.members': 'Ishtirokchilar: {n}',
+  'chat.back': 'Chatlarga',
+  'chat.newHint': 'Bitta hamkasb: shaxsiy chat. Bir nechta: guruh.',
+  'chat.findPeople': 'Ism yoki lavozim',
+  'chat.groupName': 'Guruh nomi',
+  'chat.write': 'Yozish',
+  'chat.createGroup': 'Guruh yaratish',
+  'chat.selected': 'Tanlandi: {n}',
+  'chat.noPeople': 'Hech kim topilmadi',
+  'chat.noMessages': 'Hozircha xabarlar yoʻq. Birinchi boʻlib yozing.',
+  'chat.sendHint': 'Enter: yuborish, Shift+Enter: yangi qator',
+} satisfies Record<keyof typeof ru, string>

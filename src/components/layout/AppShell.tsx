@@ -7,13 +7,14 @@ import {
   Camera,
   ChartColumnBig,
   CheckCheck,
+  ChevronDown,
   ClipboardList,
   FileStack,
   GraduationCap,
   HeartPulse,
   Home,
+  Globe,
   Inbox,
-  Languages,
   Loader2,
   LogOut,
   Megaphone,
@@ -29,7 +30,8 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/auth'
-import { useI18n, type I18nKey } from '@/lib/i18n'
+import { LANGS, useI18n, type I18nKey } from '@/lib/i18n'
+import { serverText } from '@/lib/serverText'
 import { useMarkAllRead, useMarkNotificationRead, useNotifications, useRealtimeNotifications } from '@/lib/api'
 import { useAvatar, useRemoveAvatar } from '@/lib/avatars'
 import { useChatUnread, useRealtimeChats } from '@/lib/chat'
@@ -38,6 +40,7 @@ import { cn } from '@/lib/utils'
 import { Avatar, Badge } from '@/components/ui'
 import { usePhotoPicker } from '@/components/profile/PhotoPicker'
 import { AssistantWidget } from '@/components/assistant/AssistantWidget'
+import { LanguageList, LanguageMenu } from '@/components/LanguageMenu'
 import type { Role } from '@/lib/types'
 
 interface NavItem {
@@ -61,7 +64,6 @@ const NAV: NavGroup[] = [
     items: [
       { to: '/', key: 'nav.home', icon: <Home className={ICON} />, roles: ['employee', 'manager'], end: true },
       { to: '/', key: 'nav.pulse', icon: <HeartPulse className={ICON} />, roles: ['hr'], end: true },
-      { to: '/profile', key: 'nav.profile', icon: <UserRound className={ICON} /> },
       { to: '/requests', key: 'nav.requests', icon: <FileStack className={ICON} /> },
       { to: '/academy', key: 'nav.academy', icon: <GraduationCap className={ICON} /> },
       { to: '/assistant', key: 'nav.assistant', icon: <Sparkles className={ICON} /> },
@@ -92,13 +94,14 @@ function visible<T extends { roles?: Role[] }>(items: T[], role: Role): T[] {
   return items.filter((i) => !i.roles || i.roles.includes(role))
 }
 
-export function Logo({ className }: { className?: string }) {
+/** compact: на самых узких телефонах в шапке остаётся только значок, чтобы поместились кнопки справа */
+export function Logo({ className, compact = false }: { className?: string; compact?: boolean }) {
   return (
-    <Link to="/" className={cn('flex items-center gap-2.5', className)}>
+    <Link to="/" className={cn('flex items-center gap-2.5', className)} aria-label="JanaMen">
       <div className="grid h-9 w-9 place-items-center rounded-xl bg-brand-600 text-white shadow-sm">
         <span className="text-[15px] font-extrabold tracking-tight">J</span>
       </div>
-      <div className="leading-none">
+      <div className={cn('leading-none', compact && 'max-[399px]:hidden')}>
         <div className="text-[17px] font-extrabold tracking-tight text-ink">
           Jana<span className="text-brand-600">Men</span>
         </div>
@@ -160,23 +163,6 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           </button>
         </div>
       </div>
-    </div>
-  )
-}
-
-function LangSwitch() {
-  const { lang, setLang } = useI18n()
-  return (
-    <div className="inline-flex rounded-lg bg-canvas p-0.5 text-xs font-semibold" role="group" aria-label="Язык интерфейса">
-      {(['ru', 'kk'] as const).map((l) => (
-        <button
-          key={l}
-          onClick={() => setLang(l)}
-          className={cn('rounded-md px-2 py-1 transition', lang === l ? 'bg-white text-ink shadow-sm' : 'text-muted hover:text-ink')}
-        >
-          {l === 'ru' ? 'RU' : 'ҚАЗ'}
-        </button>
-      ))}
     </div>
   )
 }
@@ -247,15 +233,15 @@ function NotificationsBell() {
                 >
                   <span className={cn('mt-1.5 h-2 w-2 shrink-0 rounded-full', n.read_at ? 'bg-line' : KIND_DOT[n.kind] ?? 'bg-slate-400')} />
                   <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-medium text-ink">{n.title}</span>
-                    {n.body && <span className="mt-0.5 line-clamp-2 block text-[13px] text-muted">{n.body}</span>}
+                    <span className="block text-sm font-medium text-ink">{serverText(n.title)}</span>
+                    {n.body && <span className="mt-0.5 line-clamp-2 block text-[13px] text-muted">{serverText(n.body)}</span>}
                     <span className="mt-1 block text-[11px] text-muted/80">{timeAgo(n.created_at)}</span>
                   </span>
                 </button>
               ))}
             </div>
             <Link to="/notifications" onClick={() => setOpen(false)} className="block border-t border-line px-4 py-2.5 text-center text-sm font-medium text-brand-700 hover:bg-canvas">
-              Все уведомления
+              {t('notif.all')}
             </Link>
           </div>
         </>
@@ -306,8 +292,9 @@ function MenuItem({ icon, children, onClick, to, danger }: { icon: ReactNode; ch
 /** Профиль справа сверху: фото, переход в профиль, смена фото, язык, выход */
 function ProfileMenu() {
   const { me, role, signOut } = useAuth()
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
   const [open, setOpen] = useState(false)
+  const [langOpen, setLangOpen] = useState(false)
   const photo = usePhotoPicker()
   const hasPhoto = Boolean(useAvatar(me?.id))
   const removePhoto = useRemoveAvatar()
@@ -318,13 +305,16 @@ function ProfileMenu() {
     return () => window.removeEventListener('keydown', onKey)
   }, [open])
   if (!me || !role) return null
-  const close = () => setOpen(false)
+  const close = () => {
+    setOpen(false)
+    setLangOpen(false)
+  }
   return (
     <div className="relative">
       {photo.input}
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => (open ? close() : setOpen(true))}
         className="relative ml-0.5 rounded-full ring-2 ring-transparent transition hover:ring-brand-200 focus-visible:ring-brand-400"
         aria-haspopup="menu"
         aria-expanded={open}
@@ -394,13 +384,23 @@ function ProfileMenu() {
                   {t('menu.removePhoto')}
                 </MenuItem>
               )}
-              <div className="flex items-center justify-between gap-3 px-3 py-2 text-[14.5px] font-medium text-ink-soft">
-                <span className="inline-flex items-center gap-3">
-                  <Languages className="h-4 w-4" />
-                  {t('menu.language')}
-                </span>
-                <LangSwitch />
-              </div>
+              <button
+                type="button"
+                onClick={() => setLangOpen((o) => !o)}
+                aria-expanded={langOpen}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-[14.5px] font-medium text-ink-soft transition hover:bg-canvas hover:text-ink"
+                data-testid="menu-language"
+              >
+                <Globe className="h-4 w-4" />
+                <span className="flex-1">{t('menu.language')}</span>
+                <span className="text-xs text-muted">{LANGS.find((l) => l.code === lang)?.name}</span>
+                <ChevronDown className={cn('h-4 w-4 text-muted transition', langOpen && 'rotate-180')} />
+              </button>
+              {langOpen && (
+                <div className="mx-1 mb-1 rounded-xl bg-canvas/60">
+                  <LanguageList onPicked={close} />
+                </div>
+              )}
             </div>
             <div className="border-t border-line p-1.5">
               <MenuItem danger onClick={() => void signOut()} icon={<LogOut className="h-4 w-4" />}>
@@ -424,7 +424,7 @@ function MobileTabBar() {
       : { to: '/approvals', key: role === 'hr' ? 'nav.hrRequests' : 'nav.approvals', icon: <Inbox className="h-5 w-5" /> },
     { to: '/academy', key: 'nav.academy', icon: <GraduationCap className="h-5 w-5" /> },
     { to: '/assistant', key: 'nav.assistant', icon: <Sparkles className="h-5 w-5" /> },
-    { to: '/profile', key: 'nav.profile', icon: <UserRound className="h-5 w-5" /> },
+    { to: '/tasks', key: 'nav.tasks', icon: <ClipboardList className="h-5 w-5" /> },
   ]
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
@@ -467,7 +467,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="fixed inset-0 z-50 lg:hidden">
           <div className="absolute inset-0 bg-ink/40" onClick={() => setMobileOpen(false)} />
           <aside className="absolute inset-y-0 left-0 w-[280px] bg-white shadow-[var(--shadow-pop)] animate-slide-in">
-            <button className="absolute top-4 right-3 rounded-lg p-2 text-muted" onClick={() => setMobileOpen(false)} aria-label="Закрыть меню">
+            <button className="absolute top-4 right-3 rounded-lg p-2 text-muted" onClick={() => setMobileOpen(false)} aria-label={t('shell.closeMenu')}>
               <X className="h-5 w-5" />
             </button>
             <Sidebar onNavigate={() => setMobileOpen(false)} />
@@ -478,11 +478,11 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="lg:pl-[264px]">
         <header className="sticky top-0 z-20 border-b border-line/80 bg-canvas/85 backdrop-blur">
           <div className="mx-auto flex h-16 max-w-[1400px] items-center gap-3 px-4 sm:px-6">
-            <button className="rounded-xl p-2 text-ink-soft hover:bg-white lg:hidden" onClick={() => setMobileOpen(true)} aria-label="Меню">
+            <button className="rounded-xl p-2 text-ink-soft hover:bg-white lg:hidden" onClick={() => setMobileOpen(true)} aria-label={t('shell.menu')}>
               <Menu className="h-5 w-5" />
             </button>
             <div className="lg:hidden">
-              <Logo />
+              <Logo compact />
             </div>
             <div className="hidden min-w-0 items-center gap-2 text-sm text-muted lg:flex">
               <Building2 className="h-4 w-4" />
@@ -491,9 +491,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </div>
             <div className="ml-auto flex items-center gap-1 sm:gap-2">
               {role && <Badge className="hidden bg-white text-ink-soft ring-line xl:inline-flex">{t(`role.${role}` as I18nKey)}</Badge>}
-              <div className="hidden sm:block">
-                <LangSwitch />
-              </div>
+              <LanguageMenu />
               <ChatButton />
               <NotificationsBell />
               <ProfileMenu />

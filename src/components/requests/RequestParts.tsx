@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom'
 import { Ban, Check, Clock3, FileText, Loader2, X } from 'lucide-react'
-import { useI18n, type I18nKey } from '@/lib/i18n'
-import { REQUEST_TYPE_META, STATUS_STYLE } from '@/lib/constants'
+import { t, useI18n, type I18nKey } from '@/lib/i18n'
+import { CERT_PURPOSES, certPurposeLabel, dataFieldLabel, REQUEST_TYPE_META, STATUS_STYLE } from '@/lib/constants'
 import { days, duration, fmtDateTime, fmtRange, fullName, money } from '@/lib/format'
+import { serverText } from '@/lib/serverText'
 import type { HrRequest, RequestEvent, RequestStatus, RequestType } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui'
@@ -34,8 +35,8 @@ export function TypeLabel({ type, withHint = false }: { type: RequestType; withH
 export function requestSummary(r: HrRequest): string {
   if (r.type === 'vacation') return `${fmtRange(r.start_date, r.end_date)} · ${days(r.days)}`
   if (r.type === 'advance') return money(r.amount)
-  if (r.type === 'certificate') return `${r.details.purpose ?? 'По месту требования'} · ${String(r.details.language ?? 'ru').toUpperCase()}`
-  return `${r.details.field ?? 'Данные'} → ${r.details.new_value ?? ''}`
+  if (r.type === 'certificate') return `${certPurposeLabel(String(r.details.purpose ?? CERT_PURPOSES[0].value))} · ${String(r.details.language ?? 'ru').toUpperCase()}`
+  return `${r.details.field == null ? t('req.summaryData') : dataFieldLabel(String(r.details.field))} → ${r.details.new_value ?? ''}`
 }
 
 type StepState = 'done' | 'current' | 'todo' | 'skipped' | 'failed'
@@ -131,7 +132,7 @@ export function RequestStepper({ request, events }: { request: HrRequest; events
           </div>
           <span className={cn('mt-1.5 text-[11.5px] font-medium', s.state === 'current' ? 'text-brand-700' : s.state === 'failed' ? 'text-rose-600' : 'text-muted')}>
             {t(s.labelKey)}
-            {s.state === 'skipped' && <span className="block text-[10px] font-normal">не требуется</span>}
+            {s.state === 'skipped' && <span className="block text-[10px] font-normal">{t('req.stepSkipped')}</span>}
           </span>
         </li>
       ))}
@@ -139,17 +140,21 @@ export function RequestStepper({ request, events }: { request: HrRequest; events
   )
 }
 
-const EVENT_LABEL: Record<RequestEvent['action'], string> = {
-  created: 'Заявка создана',
-  approved: 'Согласовано руководителем',
-  rejected: 'Отклонено',
-  processed: 'HR оформил и передал во внешнюю систему',
-  completed: 'Оформлено, документы готовы',
-  cancelled: 'Заявка отозвана',
-  integration: 'Ответ внешней системы',
-  nudged: 'HR напомнил согласующему',
-  comment: 'Комментарий',
+const EVENT_LABEL: Record<RequestEvent['action'], I18nKey> = {
+  created: 'req.ev.created',
+  approved: 'req.ev.approved',
+  rejected: 'req.ev.rejected',
+  processed: 'req.ev.processed',
+  completed: 'req.ev.completed',
+  cancelled: 'req.ev.cancelled',
+  integration: 'req.ev.integration',
+  nudged: 'req.ev.nudged',
+  comment: 'req.comment',
 }
+
+// Комментарий к этим событиям пишет база (decide_request, complete_request_integration, nudge_approver);
+// у остальных это текст, который ввёл человек, он показывается как есть
+const SERVER_NOTES = new Set<RequestEvent['action']>(['processed', 'integration', 'nudged'])
 
 const EVENT_ICON: Record<RequestEvent['action'], string> = {
   created: 'bg-sky-500',
@@ -164,18 +169,19 @@ const EVENT_ICON: Record<RequestEvent['action'], string> = {
 }
 
 export function RequestTimeline({ events }: { events: RequestEvent[] }) {
+  const { t } = useI18n()
   return (
     <ol className="relative ml-1.5 space-y-4 border-l border-line pl-5">
       {events.map((e) => (
         <li key={e.id} className="relative">
           <span className={cn('absolute top-1.5 -left-[26px] h-3 w-3 rounded-full ring-4 ring-white', EVENT_ICON[e.action])} />
-          <div className="text-sm font-medium text-ink">{EVENT_LABEL[e.action]}</div>
+          <div className="text-sm font-medium text-ink">{t(EVENT_LABEL[e.action])}</div>
           <div className="text-xs text-muted">
             {fmtDateTime(e.created_at)}
             {e.actor && ` · ${fullName(e.actor)}`}
-            {!e.actor && e.action === 'integration' && ' · интеграция'}
+            {!e.actor && e.action === 'integration' && ` · ${t('req.integration')}`}
           </div>
-          {e.comment && <div className="mt-1 rounded-lg bg-canvas px-3 py-2 text-sm text-ink-soft">{e.comment}</div>}
+          {e.comment && <div className="mt-1 rounded-lg bg-canvas px-3 py-2 text-sm text-ink-soft">{SERVER_NOTES.has(e.action) ? serverText(e.comment) : e.comment}</div>}
         </li>
       ))}
     </ol>
@@ -183,26 +189,27 @@ export function RequestTimeline({ events }: { events: RequestEvent[] }) {
 }
 
 export function IntegrationDocs({ request }: { request: HrRequest }) {
+  const { t } = useI18n()
   const docs = [
-    request.integration?.zup && { system: '1С:ЗУП', ...request.integration.zup },
-    request.integration?.documentolog && { system: 'Documentolog', ...request.integration.documentolog },
-  ].filter(Boolean) as { system: string; id: string; document: string }[]
+    request.integration?.zup && { key: 'zup', system: t('req.zup'), ...request.integration.zup },
+    request.integration?.documentolog && { key: 'documentolog', system: 'Documentolog', ...request.integration.documentolog },
+  ].filter(Boolean) as { key: 'zup' | 'documentolog'; system: string; id: string; document: string }[]
   if (!docs.length) return null
   return (
     <div className="space-y-2">
       {docs.map((d) => (
         <Link
           key={d.id}
-          to={`/documents/${request.id}?system=${d.system === '1С:ЗУП' ? 'zup' : 'documentolog'}`}
+          to={`/documents/${request.id}?system=${d.key}`}
           className="flex items-center gap-3 rounded-xl border border-line bg-white p-3 transition hover:border-brand-300 hover:bg-brand-50/40"
         >
           <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand-700">
             <FileText className="h-5 w-5" />
           </div>
           <div className="min-w-0">
-            <div className="truncate text-sm font-medium text-ink">{d.document}</div>
+            <div className="truncate text-sm font-medium text-ink">{serverText(d.document)}</div>
             <div className="text-xs text-muted">
-              {d.system} · {d.id} · <span className="text-brand-700">открыть</span>
+              {d.system} · {d.id} · <span className="text-brand-700">{t('req.open')}</span>
             </div>
           </div>
         </Link>
@@ -212,6 +219,7 @@ export function IntegrationDocs({ request }: { request: HrRequest }) {
 }
 
 export function WaitingTimer({ since, warnHours = 24, alertHours = 48 }: { since: string; warnHours?: number; alertHours?: number }) {
+  const { t } = useI18n()
   const hours = (Date.now() - new Date(since).getTime()) / 3600_000
   return (
     <span
@@ -219,7 +227,7 @@ export function WaitingTimer({ since, warnHours = 24, alertHours = 48 }: { since
         'inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11.5px] font-semibold tabular-nums',
         hours >= alertHours ? 'bg-rose-50 text-rose-700' : hours >= warnHours ? 'bg-amber-50 text-amber-700' : 'bg-canvas text-muted',
       )}
-      title="Сколько заявка находится на текущем этапе"
+      title={t('req.waitingTitle')}
     >
       <Clock3 className="h-3 w-3" />
       {duration(since)}

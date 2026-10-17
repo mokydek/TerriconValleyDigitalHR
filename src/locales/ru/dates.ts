@@ -1,0 +1,43 @@
+/**
+ * Даты и время. Списки месяцев и дней недели через запятую (неделя с воскресенья).
+ * Шаблоны: d, dd, M, MM, MMM (кратко), MMMM (в дате), LLL / LLLL (отдельно, «Октябрь 2026»),
+ * yyyy, EEE / EEEE (день недели), HH, mm; текст в одинарных кавычках выводится как есть.
+ * {n|форма1|форма2|форма3}: число с нужной формой слова (в русском 3 формы, в английском 2).
+ */
+export default {
+  'date.months': 'января,февраля,марта,апреля,мая,июня,июля,августа,сентября,октября,ноября,декабря',
+  'date.monthsShort': 'янв.,февр.,мар.,апр.,мая,июн.,июл.,авг.,сент.,окт.,нояб.,дек.',
+  'date.monthsNom': 'январь,февраль,март,апрель,май,июнь,июль,август,сентябрь,октябрь,ноябрь,декабрь',
+  'date.monthsNomShort': 'янв.,февр.,март,апр.,май,июнь,июль,авг.,сент.,окт.,нояб.,дек.',
+  'date.weekdays': 'воскресенье,понедельник,вторник,среда,четверг,пятница,суббота',
+  'date.weekdaysShort': 'вс,пн,вт,ср,чт,пт,сб',
+  'date.p.dMMM': 'd MMM',
+  'date.p.dMMMyyyy': 'd MMM yyyy',
+  'date.p.dMMMM': 'd MMMM',
+  'date.p.dMMMMyyyy': 'd MMMM yyyy',
+  'date.p.EEEEdMMMM': 'EEEE, d MMMM',
+  'date.p.dMMMyyyyHHmm': 'd MMM yyyy, HH:mm',
+  'date.p.dMMMHHmm': 'd MMM, HH:mm',
+  'date.p.LLLLyyyy': 'LLLL yyyy',
+  'date.p.ddMM': 'dd.MM',
+  'date.p.ddMMyyyy': 'dd.MM.yyyy',
+  'date.p.rangeStartSameMonth': 'd',
+  'date.p.rangeStartSameYear': 'd MMM',
+  'date.p.rangeEnd': 'd MMM yyyy',
+  'time.justNow': 'только что',
+  'time.ago.m': '{n} {n|минуту|минуты|минут} назад',
+  'time.ago.h': '{n} {n|час|часа|часов} назад',
+  'time.ago.d': '{n} {n|день|дня|дней} назад',
+  'time.ago.mo': '{n} {n|месяц|месяца|месяцев} назад',
+  'time.ago.y': '{n} {n|год|года|лет} назад',
+  'time.in.m': 'через {n} {n|минуту|минуты|минут}',
+  'time.in.h': 'через {n} {n|час|часа|часов}',
+  'time.in.d': 'через {n} {n|день|дня|дней}',
+  'time.in.mo': 'через {n} {n|месяц|месяца|месяцев}',
+  'time.in.y': 'через {n} {n|год|года|лет}',
+  'time.dur.dh': '{d} д {h} ч',
+  'time.dur.hm': '{h} ч {m} мин',
+  'time.dur.m': '{m} мин',
+  'fmt.days': '{v} {c|день|дня|дней}',
+  'fmt.carryover': '{base} + {c} перенос',
+}

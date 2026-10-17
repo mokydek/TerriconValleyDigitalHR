@@ -2,12 +2,16 @@ import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Printer } from 'lucide-react'
 import { must, supabase } from '@/lib/supabase'
+import { CERT_PURPOSES, certPurposeLabel, dataFieldLabel } from '@/lib/constants'
 import { days, fmtDate, money } from '@/lib/format'
+import { tr, useI18n } from '@/lib/i18n'
+import { serverText } from '@/lib/serverText'
 import type { Employee, HrRequest } from '@/lib/types'
 import { Button, Card, Empty, PageLoader } from '@/components/ui'
 
 /** Демо-представление документа, сформированного во внешней системе (mock 1С:ЗУП / Documentolog) */
 export default function DocumentViewPage() {
+  const { t } = useI18n()
   const { requestId } = useParams()
   const [params] = useSearchParams()
   const system = params.get('system') === 'documentolog' ? 'documentolog' : 'zup'
@@ -30,94 +34,102 @@ export default function DocumentViewPage() {
   if (!data)
     return (
       <Card>
-        <Empty title="Документ недоступен" text="Документ виден только сотруднику, его руководителю и HR" />
+        <Empty title={t('doc.unavailable')} text={t('doc.unavailableText')} />
       </Card>
     )
 
   const e = data.employee
-  const fio = [e.last_name, e.first_name, e.middle_name].filter(Boolean).join(' ')
+  const fio = <b>{[e.last_name, e.first_name, e.middle_name].filter(Boolean).join(' ')}</b>
   const doc = system === 'documentolog' ? data.integration.documentolog : data.integration.zup
+  const systemName = system === 'documentolog' ? 'Documentolog' : t('req.zup')
   const title =
     system === 'documentolog'
       ? data.type === 'certificate'
-        ? 'СПРАВКА С МЕСТА РАБОТЫ'
-        : 'ЛИСТ ОЗНАКОМЛЕНИЯ С ПРИКАЗОМ'
+        ? t('doc.titleCertificate')
+        : t('doc.titleAcquaintance')
       : data.type === 'vacation'
-        ? 'ПРИКАЗ О ПРЕДОСТАВЛЕНИИ ЕЖЕГОДНОГО ОПЛАЧИВАЕМОГО ТРУДОВОГО ОТПУСКА'
+        ? t('doc.titleVacation')
         : data.type === 'advance'
-          ? 'ВЕДОМОСТЬ НА ВЫПЛАТУ АВАНСА'
-          : 'ЗАЯВЛЕНИЕ НА ИЗМЕНЕНИЕ ПЕРСОНАЛЬНЫХ ДАННЫХ'
+          ? t('doc.titleAdvance')
+          : t('doc.titleDataChange')
 
   return (
     <div className="mx-auto max-w-3xl">
       <div className="no-print mb-3 flex items-center justify-between">
         <Link to="/requests" className="text-sm text-muted hover:text-brand-700">
-          ← Назад
+          ← {t('common.back')}
         </Link>
         <Button variant="outline" size="sm" icon={<Printer className="h-4 w-4" />} onClick={() => window.print()}>
-          Печать / PDF
+          {t('doc.print')}
         </Button>
       </div>
       <div className="print-sheet relative overflow-hidden rounded-2xl border border-line bg-white p-8 font-serif text-[15px] leading-relaxed text-ink shadow-[var(--shadow-card)] sm:p-12">
         <div className="pointer-events-none absolute inset-0 grid place-items-center text-6xl font-black tracking-widest text-ink/[0.04] select-none" style={{ transform: 'rotate(-24deg)' }}>
-          ДЕМО · MOCK
+          {t('doc.watermark')}
         </div>
         <div className="relative">
           <div className="flex items-start justify-between gap-4 font-sans text-xs text-muted">
             <div>
               <div className="font-bold text-ink">{e.company}</div>
-              <div>г. Алматы</div>
+              <div>{t('doc.city')}</div>
             </div>
             <div className="text-right">
-              <div>{system === 'documentolog' ? 'Documentolog' : '1С:ЗУП'}</div>
+              <div>{systemName}</div>
               <div className="font-semibold text-ink">{doc?.id ?? '–'}</div>
             </div>
           </div>
           <h1 className="mt-10 text-center text-lg font-bold">{title}</h1>
-          <p className="mt-1 text-center text-sm text-muted">{doc?.document ?? ''}</p>
+          <p className="mt-1 text-center text-sm text-muted">{serverText(doc?.document)}</p>
 
           <div className="mt-8 space-y-4">
             {system === 'documentolog' && data.type === 'certificate' ? (
               <p>
-                Настоящая справка выдана <b>{fio}</b> в том, что он(а) действительно работает в {e.company} в должности «{e.position}»
-                {e.department ? ` (подразделение «${e.department.name}»)` : ''} с {fmtDate(e.hire_date, 'dd.MM.yyyy')} по настоящее время.
+                {e.department
+                  ? tr('doc.certTextDept', { fio, company: e.company, position: e.position, dept: e.department.name, date: fmtDate(e.hire_date, 'dd.MM.yyyy') })
+                  : tr('doc.certText', { fio, company: e.company, position: e.position, date: fmtDate(e.hire_date, 'dd.MM.yyyy') })}
                 <br />
-                Справка выдана для предъявления: {String(data.details.purpose ?? 'по месту требования').toLowerCase()}.
+                {t('doc.certPurpose', { purpose: certPurposeLabel(String(data.details.purpose ?? CERT_PURPOSES[0].value)).toLowerCase() })}
               </p>
             ) : data.type === 'vacation' ? (
               <>
                 <p>
-                  Предоставить <b>{fio}</b>, {e.position}
-                  {e.department ? `, ${e.department.name}` : ''} (таб. № {e.zup_id}), ежегодный оплачиваемый трудовой отпуск продолжительностью {days(data.days)} с{' '}
-                  {fmtDate(data.start_date, 'dd.MM.yyyy')} по {fmtDate(data.end_date, 'dd.MM.yyyy')}.
+                  {tr('doc.vacText', {
+                    fio,
+                    position: e.department ? `${e.position}, ${e.department.name}` : e.position,
+                    tab: e.zup_id ?? '',
+                    days: days(data.days),
+                    from: fmtDate(data.start_date, 'dd.MM.yyyy'),
+                    to: fmtDate(data.end_date, 'dd.MM.yyyy'),
+                  })}
                 </p>
-                <p>Основание: заявление работника № {data.number}, согласованное руководителем в JanaMen.</p>
-                {system === 'documentolog' && <p>С приказом ознакомлен(а) электронно в Documentolog.</p>}
+                <p>{t('doc.vacBasis', { n: data.number })}</p>
+                {system === 'documentolog' && <p>{t('doc.vacAck')}</p>}
               </>
             ) : data.type === 'advance' ? (
-              <p>
-                Выплатить <b>{fio}</b>, {e.position} (таб. № {e.zup_id}), аванс в счёт заработной платы в размере <b>{money(data.amount)}</b>. Основание: заявка № {data.number}.
-              </p>
+              <p>{tr('doc.advText', { fio, position: e.position, tab: e.zup_id ?? '', amount: <b>{money(data.amount)}</b>, n: data.number })}</p>
             ) : (
               <p>
-                Работник <b>{fio}</b> просит внести изменения: {String(data.details.field ?? '')} → «{String(data.details.new_value ?? '')}». Основание: заявка № {data.number}.
+                {tr('doc.dataText', {
+                  fio,
+                  field: data.details.field == null ? '' : dataFieldLabel(String(data.details.field)),
+                  value: String(data.details.new_value ?? ''),
+                  n: data.number,
+                })}
               </p>
             )}
           </div>
 
           <div className="mt-14 grid grid-cols-2 gap-8 font-sans text-sm">
             <div>
-              <div className="text-muted">HR-директор</div>
-              <div className="mt-6 border-t border-ink/30 pt-1 text-xs text-muted">подписано ЭЦП в Documentolog (демо)</div>
+              <div className="text-muted">{t('doc.hrDirector')}</div>
+              <div className="mt-6 border-t border-ink/30 pt-1 text-xs text-muted">{t('doc.signedDemo')}</div>
             </div>
             <div>
-              <div className="text-muted">Работник</div>
-              <div className="mt-6 border-t border-ink/30 pt-1 text-xs text-muted">{system === 'documentolog' ? 'ознакомлен(а) электронно' : '–'}</div>
+              <div className="text-muted">{t('doc.employee')}</div>
+              <div className="mt-6 border-t border-ink/30 pt-1 text-xs text-muted">{system === 'documentolog' ? t('doc.ackElectronic') : '–'}</div>
             </div>
           </div>
-          <p className="mt-10 font-sans text-xs text-muted">
-            Демонстрационный документ, сформированный mock-адаптером. В промышленной версии документ создаётся в {system === 'documentolog' ? 'Documentolog' : '1С:ЗУП'} и открывается по ссылке из системы.
-          </p>
+          <p className="mt-10 font-sans text-xs text-muted">{t('doc.demoNote', { system: systemName })}</p>
         </div>
       </div>
     </div>

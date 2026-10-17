@@ -1,4 +1,5 @@
 import { toast } from 'sonner'
+import { t } from './i18n'
 
 type Cell = string | number | null | undefined
 
@@ -13,9 +14,9 @@ export async function exportXlsx(title: string, columns: string[], rows: Cell[][
       columns: columns.map((c) => ({ width: Math.max(12, Math.min(40, c.length + 6)) })),
       stickyRowsCount: 1,
     }).toFile(`${title} ${new Date().toISOString().slice(0, 10)}.xlsx`)
-    toast.success('Файл Excel сформирован')
+    toast.success(t('excel.done'))
   } catch (e) {
     console.error(e)
-    toast.error('Не удалось сформировать Excel')
+    toast.error(t('excel.failed'))
   }
 }

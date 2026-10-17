@@ -16,7 +16,8 @@
     "db:apply": "node scripts/apply-to-supabase.mjs",
     "test:e2e": "node tests/e2e-walkthrough.mjs",
     "test:api": "node tests/api-smoke.mjs",
-    "check:stand": "node scripts/check-stand.mjs"
+    "check:stand": "node scripts/check-stand.mjs",
+    "check:i18n": "node scripts/check-i18n.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.135.0",

@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { reloadFresh } from '@/lib/reload'
+import { t } from '@/lib/i18n'
 
 const CHUNK_ERROR = /dynamically imported module|Importing a module script failed|Loading chunk/i
 export const RELOAD_FLAG = 'janamen-chunk-reload'
@@ -44,8 +45,8 @@ export class ErrorBoundary extends Component<Props, { error: Error | null }> {
     if (!error) return this.props.children
     return (
       <div className="mx-auto max-w-lg px-4 py-16 text-center">
-        <h1 className="text-xl font-bold text-ink">Не удалось открыть раздел</h1>
-        <p className="mt-3 text-[15px] text-muted">Попробуйте обновить страницу. Если ошибка повторится, откройте сайт в другом браузере.</p>
+        <h1 className="text-xl font-bold text-ink">{t('err.sectionTitle')}</h1>
+        <p className="mt-3 text-[15px] text-muted">{t('err.sectionText')}</p>
         <button
           type="button"
           className="mt-6 rounded-xl bg-brand-600 px-5 py-2.5 font-semibold text-white"
@@ -58,7 +59,7 @@ export class ErrorBoundary extends Component<Props, { error: Error | null }> {
             reloadFresh()
           }}
         >
-          Обновить
+          {t('common.refresh')}
         </button>
         <p className="mt-6 text-xs break-words text-muted/80">{error.message}</p>
       </div>

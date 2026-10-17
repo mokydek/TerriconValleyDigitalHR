@@ -265,7 +265,7 @@ export function useRealtimeNotifications() {
         .subscribe()
     } catch (error) {
       // Realtime — улучшение, а не обязательная часть: без него уведомления обновляются опросом
-      console.warn('Realtime недоступен', error)
+      console.warn('Realtime unavailable', error)
     }
     return () => {
       if (channel) void supabase.removeChannel(channel)

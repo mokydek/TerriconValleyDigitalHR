@@ -1,4 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
+import { t } from './i18n'
+import { serverText } from './serverText'
 
 // Значения из /config.js (Docker) имеют приоритет над переменными сборки (Vercel, dev)
 const runtime = window.__JANAMEN__ ?? {}
@@ -15,12 +17,12 @@ export const supabase = createClient(url ?? 'http://localhost:54321', key ?? 'mi
 
 /** Сообщение об ошибке PostgREST/RPC в человекочитаемом виде */
 export function errorMessage(error: unknown): string {
-  if (!error) return 'Неизвестная ошибка'
-  if (typeof error === 'string') return error
+  if (!error) return t('err.unknown')
+  if (typeof error === 'string') return serverText(error)
   const e = error as { message?: string; details?: string; hint?: string; code?: string }
-  if (e.code === '42501' && !e.message) return 'Недостаточно прав'
-  if (e.message === 'Failed to fetch') return 'Нет связи с сервером. Проверьте интернет.'
-  return e.message || e.details || 'Ошибка запроса'
+  if (e.code === '42501' && !e.message) return t('err.forbidden')
+  if (e.message === 'Failed to fetch' || e.message === 'Load failed') return t('err.offline')
+  return serverText(e.message || e.details) || t('err.request')
 }
 
 /** Обёртка: бросает исключение, если запрос вернул ошибку */

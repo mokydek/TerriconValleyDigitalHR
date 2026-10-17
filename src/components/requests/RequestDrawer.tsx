@@ -3,7 +3,9 @@ import { RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/auth'
 import { useCancelRequest, useDecideRequest, useRequestEvents, useRunIntegrationWorker, useVacationBalance } from '@/lib/api'
+import { certPurposeLabel, dataFieldLabel } from '@/lib/constants'
 import { days, entitledText, fmtDate, fmtDateTime, fullName, money } from '@/lib/format'
+import { tr, useI18n } from '@/lib/i18n'
 import type { HrRequest } from '@/lib/types'
 import { sleep } from '@/lib/utils'
 import { Button, Drawer, Skeleton } from '@/components/ui'
@@ -19,6 +21,7 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 export function RequestDrawer({ request, onClose }: { request: HrRequest | null; onClose: () => void }) {
+  const { t } = useI18n()
   const { me, isHr } = useAuth()
   const events = useRequestEvents(request?.id)
   const decide = useDecideRequest()
@@ -36,12 +39,12 @@ export function RequestDrawer({ request, onClose }: { request: HrRequest | null;
     try {
       await decide.mutateAsync({ id: r.id, action, comment: action === 'reject' ? comment : comment || undefined })
       if (action === 'process') {
-        toast.success('Передано в 1С:ЗУП, ждём ответ…')
+        toast.success(t('req.toastTo1c'))
         await sleep(2500)
         await worker.mutateAsync()
-        toast.success('1С:ЗУП подтвердила: документы сформированы')
+        toast.success(t('req.toast1cDone'))
       } else {
-        toast.success(action === 'approve' ? 'Заявка согласована' : 'Заявка отклонена')
+        toast.success(action === 'approve' ? t('req.toastApproved') : t('req.toastRejected'))
       }
       setRejecting(false)
       setComment('')
@@ -62,24 +65,24 @@ export function RequestDrawer({ request, onClose }: { request: HrRequest | null;
       onClose={onClose}
       title={
         <span className="flex flex-wrap items-center gap-2">
-          <TypeLabel type={r.type} /> <span className="text-muted">№{r.number}</span>
+          <TypeLabel type={r.type} /> <span className="text-muted">{t('req.no', { n: r.number })}</span>
         </span>
       }
       subtitle={
         <span className="flex flex-wrap items-center gap-2">
-          <StatusBadge status={r.status} /> <span>создана {fmtDateTime(r.created_at)}</span>
+          <StatusBadge status={r.status} /> <span>{t('req.createdAt', { date: fmtDateTime(r.created_at) })}</span>
         </span>
       }
       footer={
         rejecting ? (
           <div className="w-full space-y-2">
-            <textarea className="field min-h-[72px]" placeholder="Причина отказа и альтернатива (обязательно)" value={comment} onChange={(e) => setComment(e.target.value)} autoFocus />
+            <textarea className="field min-h-[72px]" placeholder={t('req.rejectPh')} value={comment} onChange={(e) => setComment(e.target.value)} autoFocus />
             <div className="flex justify-end gap-2">
               <Button variant="ghost" onClick={() => setRejecting(false)}>
-                Назад
+                {t('common.back')}
               </Button>
               <Button variant="danger" loading={decide.isPending} disabled={!comment.trim()} onClick={() => void act('reject')}>
-                Отклонить
+                {t('req.reject')}
               </Button>
             </div>
           </div>
@@ -92,39 +95,39 @@ export function RequestDrawer({ request, onClose }: { request: HrRequest | null;
                 onClick={async () => {
                   try {
                     await cancel.mutateAsync(r.id)
-                    toast.success('Заявка отозвана')
+                    toast.success(t('req.ev.cancelled'))
                     onClose()
                   } catch (e) {
                     toast.error((e as Error).message)
                   }
                 }}
               >
-                Отозвать заявку
+                {t('req.cancel')}
               </Button>
             )}
             {canReject && (
               <Button variant="outline" className="text-rose-700" onClick={() => setRejecting(true)}>
-                Отклонить
+                {t('req.reject')}
               </Button>
             )}
             {canManagerApprove && (
               <Button loading={decide.isPending} onClick={() => void act('approve')} data-testid="drawer-approve">
-                Согласовать
+                {t('req.approve')}
               </Button>
             )}
             {canProcess && (
               <Button loading={decide.isPending || worker.isPending} onClick={() => void act('process')} data-testid="drawer-process">
-                Оформить в 1С:ЗУП
+                {t('req.process1c')}
               </Button>
             )}
             {isHr && r.status === 'processing' && (
               <Button variant="soft" icon={<RefreshCw className="h-4 w-4" />} loading={worker.isPending} onClick={() => worker.mutate()}>
-                Запросить статус из 1С
+                {t('req.status1c')}
               </Button>
             )}
             {!canCancel && !canReject && !canManagerApprove && !canProcess && (
               <Button variant="outline" onClick={onClose}>
-                Закрыть
+                {t('common.close')}
               </Button>
             )}
           </>
@@ -137,52 +140,52 @@ export function RequestDrawer({ request, onClose }: { request: HrRequest | null;
         </section>
 
         <section>
-          <h4 className="mb-1 text-sm font-semibold text-ink">Детали</h4>
+          <h4 className="mb-1 text-sm font-semibold text-ink">{t('req.details')}</h4>
           <div className="divide-y divide-line">
-            {!isMine && r.employee && <Row label="Сотрудник" value={`${fullName(r.employee)} · ${r.employee.position}`} />}
+            {!isMine && r.employee && <Row label={t('req.employee')} value={`${fullName(r.employee)} · ${r.employee.position}`} />}
             {r.type === 'vacation' && (
               <>
-                <Row label="Период" value={`${fmtDate(r.start_date)} – ${fmtDate(r.end_date)}`} />
-                <Row label="Дней (без праздников)" value={days(r.days)} />
+                <Row label={t('req.period')} value={`${fmtDate(r.start_date)} – ${fmtDate(r.end_date)}`} />
+                <Row label={t('req.daysNoHolidays')} value={days(r.days)} />
               </>
             )}
-            {r.type === 'advance' && <Row label="Сумма" value={money(r.amount)} />}
+            {r.type === 'advance' && <Row label={t('req.amount')} value={money(r.amount)} />}
             {r.type === 'certificate' && (
               <>
-                <Row label="Цель" value={String(r.details.purpose ?? '–')} />
-                <Row label="Язык / экземпляров" value={`${String(r.details.language ?? 'ru').toUpperCase()} / ${r.details.copies ?? 1}`} />
+                <Row label={t('req.purpose')} value={r.details.purpose == null ? '–' : certPurposeLabel(String(r.details.purpose))} />
+                <Row label={t('req.langCopies')} value={`${String(r.details.language ?? 'ru').toUpperCase()} / ${r.details.copies ?? 1}`} />
               </>
             )}
             {r.type === 'data_change' && (
               <>
-                <Row label="Что изменить" value={String(r.details.field ?? '–')} />
-                <Row label="Новое значение" value={String(r.details.new_value ?? '–')} />
+                <Row label={t('req.whatChange')} value={r.details.field == null ? '–' : dataFieldLabel(String(r.details.field))} />
+                <Row label={t('req.newValue')} value={String(r.details.new_value ?? '–')} />
               </>
             )}
-            {r.comment && <Row label="Комментарий" value={r.comment} />}
-            {r.approver && ['pending', 'approved'].includes(r.status) && <Row label="Сейчас у" value={`${fullName(r.approver)} (${r.approver.role === 'hr' ? 'HR' : 'руководитель'})`} />}
+            {r.comment && <Row label={t('req.comment')} value={r.comment} />}
+            {r.approver && ['pending', 'approved'].includes(r.status) && (
+              <Row label={t('req.nowAt')} value={r.approver.role === 'hr' ? `${fullName(r.approver)} (HR)` : t('req.atManager', { name: fullName(r.approver) })} />
+            )}
           </div>
           {!isMine && r.type === 'vacation' && balance.data && (
             <div className="mt-3 rounded-xl bg-brand-50 px-3.5 py-2.5 text-sm text-brand-800">
-              Остаток отпуска сотрудника: <b>{days(balance.data.available)}</b> (с учётом этой заявки), положено {entitledText(balance.data)}
+              {tr('req.empBalance', { days: <b>{days(balance.data.available)}</b>, entitled: entitledText(balance.data) })}
             </div>
           )}
         </section>
 
         {(r.integration?.zup || r.integration?.documentolog) && (
           <section>
-            <h4 className="mb-2 text-sm font-semibold text-ink">Документы</h4>
+            <h4 className="mb-2 text-sm font-semibold text-ink">{t('req.documents')}</h4>
             <IntegrationDocs request={r} />
           </section>
         )}
         {r.status === 'processing' && (
-          <div className="rounded-xl border border-indigo-200 bg-indigo-50 px-3.5 py-2.5 text-sm text-indigo-800">
-            Заявка передана в 1С:ЗУП. Как только система вернёт номер документа, статус сменится на «Оформлено», а сотрудник получит уведомление.
-          </div>
+          <div className="rounded-xl border border-indigo-200 bg-indigo-50 px-3.5 py-2.5 text-sm text-indigo-800">{t('req.processingInfo', { status: t('status.done') })}</div>
         )}
 
         <section>
-          <h4 className="mb-3 text-sm font-semibold text-ink">История</h4>
+          <h4 className="mb-3 text-sm font-semibold text-ink">{t('req.history')}</h4>
           {events.isLoading ? <Skeleton className="h-24" /> : <RequestTimeline events={events.data ?? []} />}
         </section>
       </div>

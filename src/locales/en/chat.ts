@@ -1,0 +1,28 @@
+import type ru from '../ru/chat'
+
+export default {
+  'chat.new': 'New chat',
+  'chat.search': 'Search chats',
+  'chat.empty': 'No conversations yet',
+  'chat.emptyText': 'Click “New chat” and choose a colleague.',
+  'chat.pick': 'Select a chat on the left or start a new one',
+  'chat.placeholder': 'Message…',
+  'chat.send': 'Send',
+  'chat.reply': 'Reply',
+  'chat.replying': 'Reply to message',
+  'chat.cancelReply': 'Cancel reply',
+  'chat.you': 'You',
+  'chat.today': 'Today',
+  'chat.yesterday': 'Yesterday',
+  'chat.members': 'Members: {n}',
+  'chat.back': 'Back to chats',
+  'chat.newHint': 'One colleague: a private chat. Several: a group.',
+  'chat.findPeople': 'Name or position',
+  'chat.groupName': 'Group name',
+  'chat.write': 'Message',
+  'chat.createGroup': 'Create group',
+  'chat.selected': 'Selected: {n}',
+  'chat.noPeople': 'No one found',
+  'chat.noMessages': 'No messages yet. Be the first to write.',
+  'chat.sendHint': 'Enter: send, Shift+Enter: new line',
+} satisfies Record<keyof typeof ru, string>

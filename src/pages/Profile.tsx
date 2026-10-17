@@ -124,7 +124,7 @@ export default function ProfilePage() {
             </dl>
             <div className="mx-5 mb-5 flex items-start gap-2.5 rounded-xl bg-canvas px-4 py-3 text-sm text-muted">
               <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" />
-              Нашли ошибку? Оформите заявку «Изменение данных», HR исправит её в 1С:ЗУП.
+              {t('profile.errorHint', { type: t('type.data_change') })}
             </div>
           </Card>
 
@@ -133,10 +133,10 @@ export default function ProfilePage() {
               <CardHeader
                 icon={<Lock className="h-[18px] w-[18px]" />}
                 title={t('profile.private')}
-                subtitle="Видите только вы и HR"
+                subtitle={t('profile.privateHint')}
                 action={
                   <Button size="sm" variant="ghost" icon={<Pencil className="h-3.5 w-3.5" />} onClick={() => setEditing(true)}>
-                    Изменить
+                    {t('profile.edit')}
                   </Button>
                 }
               />
@@ -144,16 +144,16 @@ export default function ProfilePage() {
                 <Skeleton className="mx-5 mb-5 h-20" />
               ) : (
                 <dl className="px-5 pb-4">
-                  <Item label="ИИН" value={priv?.iin ? `${priv.iin.slice(0, 4)}••••${priv.iin.slice(-2)}` : null} mono />
-                  <Item label="Дата рождения" value={priv?.birth_date ? fmtDate(priv.birth_date) : null} />
-                  <Item label="Личный телефон" value={priv?.personal_phone} />
-                  <Item label="Адрес" value={priv?.address} />
-                  <Item label="Контакт для экстренной связи" value={priv?.emergency_contact} />
+                  <Item label={t('profile.iin')} value={priv?.iin ? `${priv.iin.slice(0, 4)}••••${priv.iin.slice(-2)}` : null} mono />
+                  <Item label={t('profile.birthDate')} value={priv?.birth_date ? fmtDate(priv.birth_date) : null} />
+                  <Item label={t('field.phone')} value={priv?.personal_phone} />
+                  <Item label={t('profile.address')} value={priv?.address} />
+                  <Item label={t('field.emergency')} value={priv?.emergency_contact} />
                 </dl>
               )}
             </Card>
             <Card className="p-5">
-              <div className="text-sm font-semibold">Рабочие контакты</div>
+              <div className="text-sm font-semibold">{t('profile.workContacts')}</div>
               <div className="mt-3 space-y-2 text-sm">
                 <div className="flex items-center gap-2 text-ink-soft">
                   <Mail className="h-4 w-4 text-muted" /> {me.email}
@@ -200,8 +200,8 @@ export default function ProfilePage() {
             )}
           </Card>
           <Card className="min-w-0">
-            <CardHeader title="Мои отпуска" />
-            <RequestList items={vacations} empty="Заявок на отпуск пока нет" />
+            <CardHeader title={t('profile.myVacations')} />
+            <RequestList items={vacations} empty={t('profile.noVacations')} />
           </Card>
         </div>
       )}
@@ -217,7 +217,7 @@ export default function ProfilePage() {
             }
           />
           <ul className="space-y-4 px-5 pb-5">
-            {(assignments.data ?? []).length === 0 && <li className="py-4 text-center text-sm text-muted">Назначенных курсов нет</li>}
+            {(assignments.data ?? []).length === 0 && <li className="py-4 text-center text-sm text-muted">{t('profile.noCourses')}</li>}
             {(assignments.data ?? []).map((a) => (
               <li key={a.id}>
                 <Link to={`/academy/${a.course?.slug}`} className="block">
@@ -225,7 +225,7 @@ export default function ProfilePage() {
                     <span className="min-w-0 truncate font-medium">
                       {a.course?.emoji} {a.course?.title}
                     </span>
-                    <span className="shrink-0 text-xs text-muted">{a.status === 'completed' ? `тест ${a.score}%` : `${a.progress}%`}</span>
+                    <span className="shrink-0 text-xs text-muted">{a.status === 'completed' ? t('profile.testScore', { score: a.score ?? 0 }) : `${a.progress}%`}</span>
                   </div>
                   <Progress value={a.progress} className="mt-1.5 h-1.5" />
                 </Link>
@@ -284,6 +284,7 @@ function EditContacts({
   initial: { personal_phone: string | null; address: string | null; emergency_contact: string | null } | null
 }) {
   const { me } = useAuth()
+  const { t } = useI18n()
   const qc = useQueryClient()
   const [phone, setPhone] = useState(initial?.personal_phone ?? '')
   const [address, setAddress] = useState(initial?.address ?? '')
@@ -293,12 +294,12 @@ function EditContacts({
     <Modal
       open={open}
       onClose={onClose}
-      title="Личные контакты"
-      subtitle="Эти поля вы можете менять сами. ИИН, дату рождения и оклад меняет только 1С:ЗУП."
+      title={t('profile.contactsTitle')}
+      subtitle={t('profile.contactsHint')}
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
-            Отмена
+            {t('common.cancel')}
           </Button>
           <Button
             loading={busy}
@@ -312,7 +313,7 @@ function EditContacts({
                     .eq('employee_id', me!.id),
                 )
                 await qc.invalidateQueries({ queryKey: ['employee', me!.id] })
-                toast.success('Контакты сохранены')
+                toast.success(t('profile.contactsSaved'))
                 onClose()
               } catch (e) {
                 toast.error((e as Error).message)
@@ -321,20 +322,20 @@ function EditContacts({
               }
             }}
           >
-            Сохранить
+            {t('common.save')}
           </Button>
         </>
       }
     >
       <div className="space-y-3">
-        <Field label="Личный телефон">
+        <Field label={t('field.phone')}>
           <input className="field" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+7 7xx xxx xx xx" />
         </Field>
-        <Field label="Адрес проживания">
+        <Field label={t('field.address')}>
           <input className="field" value={address} onChange={(e) => setAddress(e.target.value)} />
         </Field>
-        <Field label="Контакт для экстренной связи">
-          <input className="field" value={emergency} onChange={(e) => setEmergency(e.target.value)} placeholder="ФИО, кем приходится, телефон" />
+        <Field label={t('field.emergency')}>
+          <input className="field" value={emergency} onChange={(e) => setEmergency(e.target.value)} placeholder={t('profile.emergencyPlaceholder')} />
         </Field>
       </div>
     </Modal>

@@ -1,0 +1,25 @@
+import type ru from '../ru/login'
+
+export default {
+  'login.title': 'Sign in to JanaMen',
+  'login.subtitle': 'Jana Post HR platform',
+  'login.tagline': 'One platform for employees: profile, requests, learning and HR help.',
+  'login.step1': 'Sign-in and role',
+  'login.step2': 'Profile',
+  'login.step3': 'Request',
+  'login.step4': 'Learning',
+  'login.step5': 'HR assistant',
+  'login.feature1': 'Data from 1C:ZUP',
+  'login.feature2': 'Jana Academy',
+  'login.feature3': 'AI Jana with sources',
+  'login.posEmployee': 'Senior sorting operator',
+  'login.posManager': 'Warehouse and sorting manager',
+  'login.posHr': 'HR director',
+  'login.newbie': 'or sign in as a new employee (day 5 at the company)',
+  'login.orEmail': 'or with email',
+  'login.footer': 'Demo environment, all data is fictional. Test account password: {password}',
+  'login.email': 'Work email',
+  'login.password': 'Password',
+  'login.submit': 'Sign in',
+  'login.demo': 'Demo access: sign in as',
+} satisfies Record<keyof typeof ru, string>

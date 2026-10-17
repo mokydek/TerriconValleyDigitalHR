@@ -1,21 +1,22 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Bell, CheckCheck } from 'lucide-react'
-import { useI18n } from '@/lib/i18n'
+import { useI18n, type I18nKey } from '@/lib/i18n'
+import { serverText } from '@/lib/serverText'
 import { useMarkAllRead, useMarkNotificationRead, useNotifications } from '@/lib/api'
 import { fmtDateTime, timeAgo } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { Button, Card, Empty, PageHeader, Skeleton, Tabs } from '@/components/ui'
 
-const KIND_LABEL: Record<string, { label: string; cls: string }> = {
-  request: { label: 'Заявки', cls: 'bg-sky-50 text-sky-700' },
-  success: { label: 'Готово', cls: 'bg-brand-50 text-brand-700' },
-  warning: { label: 'Важно', cls: 'bg-amber-50 text-amber-800' },
-  course: { label: 'Обучение', cls: 'bg-violet-50 text-violet-700' },
-  task: { label: 'Задачи', cls: 'bg-indigo-50 text-indigo-700' },
-  ticket: { label: 'Вопросы', cls: 'bg-rose-50 text-rose-700' },
-  announcement: { label: 'Объявления', cls: 'bg-teal-50 text-teal-700' },
-  info: { label: 'Инфо', cls: 'bg-slate-100 text-slate-600' },
+const KIND_LABEL: Record<string, { label: I18nKey; cls: string }> = {
+  request: { label: 'notif.kind.request', cls: 'bg-sky-50 text-sky-700' },
+  success: { label: 'notif.kind.success', cls: 'bg-brand-50 text-brand-700' },
+  warning: { label: 'notif.kind.warning', cls: 'bg-amber-50 text-amber-800' },
+  course: { label: 'notif.kind.course', cls: 'bg-violet-50 text-violet-700' },
+  task: { label: 'notif.kind.task', cls: 'bg-indigo-50 text-indigo-700' },
+  ticket: { label: 'notif.kind.ticket', cls: 'bg-rose-50 text-rose-700' },
+  announcement: { label: 'notif.kind.announcement', cls: 'bg-teal-50 text-teal-700' },
+  info: { label: 'notif.kind.info', cls: 'bg-slate-100 text-slate-600' },
 }
 
 type Filter = 'all' | 'unread'
@@ -47,8 +48,8 @@ export default function NotificationsPage() {
         onChange={setFilter}
         className="mb-4"
         items={[
-          { value: 'all', label: 'Все', count: data?.length },
-          { value: 'unread', label: 'Непрочитанные', count: unread },
+          { value: 'all', label: t('common.all'), count: data?.length },
+          { value: 'unread', label: t('notif.unread'), count: unread },
         ]}
       />
       <Card className="overflow-hidden">
@@ -75,10 +76,10 @@ export default function NotificationsPage() {
                     <span className={cn('mt-2 h-2 w-2 shrink-0 rounded-full', n.read_at ? 'bg-line' : 'bg-brand-500')} />
                     <span className="min-w-0 flex-1">
                       <span className="flex flex-wrap items-center gap-2">
-                        <span className={cn('rounded-md px-1.5 py-0.5 text-[11px] font-semibold', k.cls)}>{k.label}</span>
-                        <span className="font-medium text-ink">{n.title}</span>
+                        <span className={cn('rounded-md px-1.5 py-0.5 text-[11px] font-semibold', k.cls)}>{t(k.label)}</span>
+                        <span className="font-medium text-ink">{serverText(n.title)}</span>
                       </span>
-                      {n.body && <span className="mt-1 block text-sm text-muted">{n.body}</span>}
+                      {n.body && <span className="mt-1 block text-sm text-muted">{serverText(n.body)}</span>}
                       <span className="mt-1 block text-xs text-muted/80" title={fmtDateTime(n.created_at)}>
                         {timeAgo(n.created_at)}
                       </span>

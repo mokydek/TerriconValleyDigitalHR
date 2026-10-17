@@ -26,6 +26,22 @@
       // долгой загрузке показываем понятное сообщение и кнопку вместо пустой страницы.
       ;(function () {
         var KEY = 'janamen-boot-reload'
+        // тексты заглушки на языке, выбранном в прошлый раз (сам словарь приложения ещё не загружен)
+        var TEXTS = {
+          ru: ['Загрузка JanaMen…', 'Не удалось загрузить JanaMen', 'Обновите страницу. Файл: ', 'Не удалось запустить JanaMen', 'Обновите страницу или откройте ссылку в другом браузере. ', 'Обновите страницу. ', 'Произошла ошибка', 'Загрузка идёт дольше обычного', 'Проверьте интернет. Если ничего не меняется, обновите страницу.', 'Обновить страницу'],
+          kk: ['JanaMen жүктелуде…', 'JanaMen жүктелмеді', 'Бетті жаңартыңыз. Файл: ', 'JanaMen іске қосылмады', 'Бетті жаңартыңыз немесе сілтемені басқа браузерде ашыңыз. ', 'Бетті жаңартыңыз. ', 'Қате орын алды', 'Жүктеу әдеттегіден ұзағырақ созылып жатыр', 'Интернетті тексеріңіз. Ештеңе өзгермесе, бетті жаңартыңыз.', 'Бетті жаңарту'],
+          en: ['Loading JanaMen…', 'JanaMen failed to load', 'Refresh the page. File: ', 'JanaMen failed to start', 'Refresh the page or open the link in another browser. ', 'Refresh the page. ', 'Something went wrong', 'Loading is taking longer than usual', 'Check your internet connection. If nothing changes, refresh the page.', 'Refresh page'],
+          ky: ['JanaMen жүктөлүүдө…', 'JanaMen жүктөлгөн жок', 'Баракты жаңыртыңыз. Файл: ', 'JanaMen иштеген жок', 'Баракты жаңыртыңыз же шилтемени башка браузерде ачыңыз. ', 'Баракты жаңыртыңыз. ', 'Ката кетти', 'Жүктөө адаттагыдан узакка созулууда', 'Интернетти текшериңиз. Эч нерсе өзгөрбөсө, баракты жаңыртыңыз.', 'Баракты жаңыртуу'],
+          uz: ['JanaMen yuklanmoqda…', 'JanaMen yuklanmadi', 'Sahifani yangilang. Fayl: ', 'JanaMen ishga tushmadi', 'Sahifani yangilang yoki havolani boshqa brauzerda oching. ', 'Sahifani yangilang. ', 'Xatolik yuz berdi', 'Yuklash odatdagidan uzoqroq davom etmoqda', 'Internetni tekshiring. Hech narsa oʻzgarmasa, sahifani yangilang.', 'Sahifani yangilash'],
+          tg: ['JanaMen бор шуда истодааст…', 'JanaMen бор нашуд', 'Саҳифаро нав кунед. Файл: ', 'JanaMen оғоз нашуд', 'Саҳифаро нав кунед ё истинодро дар браузери дигар кушоед. ', 'Саҳифаро нав кунед. ', 'Хатогӣ рух дод', 'Боркунӣ аз маъмулӣ дарозтар идома дорад', 'Интернетро санҷед. Агар ҳеҷ чиз тағйир наёбад, саҳифаро нав кунед.', 'Саҳифаро нав кардан'],
+          mn: ['JanaMen ачаалж байна…', 'JanaMen ачаалагдсангүй', 'Хуудсаа шинэчилнэ үү. Файл: ', 'JanaMen эхэлсэнгүй', 'Хуудсаа шинэчлэх эсвэл холбоосыг өөр хөтчөөр нээнэ үү. ', 'Хуудсаа шинэчилнэ үү. ', 'Алдаа гарлаа', 'Ачаалал ердийнхөөс удаж байна', 'Интернэтээ шалгана уу. Юу ч өөрчлөгдөхгүй бол хуудсаа шинэчилнэ үү.', 'Хуудсаа шинэчлэх'],
+        }
+        var LANG = 'ru'
+        try {
+          LANG = TEXTS[localStorage.getItem('janamen-lang')] ? localStorage.getItem('janamen-lang') : 'ru'
+        } catch (e) {}
+        var T = TEXTS[LANG]
+        document.documentElement.lang = LANG
         // метка обхода кэша CDN (см. reloadFresh) — убираем из адреса до запуска приложения
         if (/[?&]_r=/.test(location.search) && window.history && history.replaceState) {
           var query = location.search.replace(/([?&])_r=[^&]*&?/, '$1').replace(/[?&]$/, '')
@@ -67,33 +83,37 @@
             if (asset) {
               var src = el.src || el.href || ''
               if (src.indexOf('/assets/') === -1) return
-              if (!reloadOnce()) show('Не удалось загрузить JanaMen', 'Обновите страницу. Файл: ' + src.split('/').pop())
+              if (!reloadOnce()) show(T[1], T[2] + src.split('/').pop())
               return
             }
-            show('Не удалось запустить JanaMen', 'Обновите страницу или откройте ссылку в другом браузере. ' + lastError)
+            show(T[3], T[4] + lastError)
           },
           true,
         )
         window.addEventListener('unhandledrejection', function (event) {
           var reason = event.reason
           if (started()) return
-          show('Не удалось запустить JanaMen', 'Обновите страницу. ' + ((reason && reason.message) || reason || ''))
+          show(T[3], T[5] + ((reason && reason.message) || reason || ''))
         })
         // Последний рубеж: если приложение упало целиком и React очистил страницу — возвращаем экран
         // с текстом ошибки и кнопкой, а не оставляем пустой фон (вызывается сразу после разметки #root)
         window.__janamenWatchRoot = function () {
           var root = document.getElementById('root')
           var boot = document.getElementById('boot')
+          if (boot && LANG !== 'ru') {
+            document.getElementById('boot-title').textContent = T[0]
+            boot.querySelector('button').textContent = T[9]
+          }
           if (!root || !boot || !window.MutationObserver) return
           var template = boot.cloneNode(true)
           new MutationObserver(function () {
             if (root.childElementCount > 0) return
             root.appendChild(template.cloneNode(true))
-            show('Произошла ошибка', 'Обновите страницу. ' + lastError)
+            show(T[6], T[5] + lastError)
           }).observe(root, { childList: true })
         }
         setTimeout(function () {
-          if (!started()) show('Загрузка идёт дольше обычного', 'Проверьте интернет. Если ничего не меняется, обновите страницу.', 'slow')
+          if (!started()) show(T[7], T[8], 'slow')
         }, 15000)
         setTimeout(function () {
           try {

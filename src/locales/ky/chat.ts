@@ -1,0 +1,28 @@
+import type ru from '../ru/chat'
+
+export default {
+  'chat.new': 'Жаңы чат',
+  'chat.search': 'Чаттардан издөө',
+  'chat.empty': 'Азырынча кат алышуу жок',
+  'chat.emptyText': '«Жаңы чат» баскычын басып, кесиптешиңизди тандаңыз.',
+  'chat.pick': 'Сол жактан чатты тандаңыз же жаңысын баштаңыз',
+  'chat.placeholder': 'Билдирүү…',
+  'chat.send': 'Жөнөтүү',
+  'chat.reply': 'Жооп берүү',
+  'chat.replying': 'Билдирүүгө жооп',
+  'chat.cancelReply': 'Жоопту жокко чыгаруу',
+  'chat.you': 'Сиз',
+  'chat.today': 'Бүгүн',
+  'chat.yesterday': 'Кечээ',
+  'chat.members': 'Катышуучулар: {n}',
+  'chat.back': 'Чаттарга',
+  'chat.newHint': 'Бир кесиптеш: жеке чат. Бир нечөө: топ.',
+  'chat.findPeople': 'Аты же кызмат орду',
+  'chat.groupName': 'Топтун аталышы',
+  'chat.write': 'Жазуу',
+  'chat.createGroup': 'Топ түзүү',
+  'chat.selected': 'Тандалды: {n}',
+  'chat.noPeople': 'Эч ким табылган жок',
+  'chat.noMessages': 'Азырынча билдирүүлөр жок. Биринчи болуп жазыңыз.',
+  'chat.sendHint': 'Enter: жөнөтүү, Shift+Enter: жаңы сап',
+} satisfies Record<keyof typeof ru, string>

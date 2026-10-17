@@ -22,11 +22,11 @@ function columnOf(r: HrRequest): Column | null {
   return null
 }
 
-const COLUMNS: { key: Column; title: string; hint: string; tone: string }[] = [
-  { key: 'manager', title: 'У руководителя', hint: 'Ждут согласования', tone: 'bg-amber-500' },
-  { key: 'hr', title: 'У HR', hint: 'Оформить в 1 клик', tone: 'bg-sky-500' },
-  { key: '1c', title: 'В 1С:ЗУП', hint: 'Ждём ответ системы', tone: 'bg-indigo-500' },
-  { key: 'done', title: 'Готово', hint: 'За 14 дней', tone: 'bg-brand-500' },
+const COLUMNS: { key: Column; title: I18nKey; hint: I18nKey; tone: string }[] = [
+  { key: 'manager', title: 'appr.colManager', hint: 'appr.colManagerHint', tone: 'bg-amber-500' },
+  { key: 'hr', title: 'appr.colHr', hint: 'appr.colHrHint', tone: 'bg-sky-500' },
+  { key: '1c', title: 'appr.col1c', hint: 'appr.col1cHint', tone: 'bg-indigo-500' },
+  { key: 'done', title: 'req.stepDone', hint: 'appr.colDoneHint', tone: 'bg-brand-500' },
 ]
 
 export default function ApprovalsPage() {
@@ -63,10 +63,10 @@ function HrKanban() {
   const process = async (r: HrRequest) => {
     try {
       await decide.mutateAsync({ id: r.id, action: 'process' })
-      toast.success(`Заявка №${r.number} передана в 1С:ЗУП`, { description: 'Ждём ответ внешней системы…' })
+      toast.success(t('appr.toastSent', { n: r.number }), { description: t('appr.toastSentHint') })
       await sleep(2500)
       await worker.mutateAsync()
-      toast.success(`1С:ЗУП подтвердила заявку №${r.number}`, { description: 'Документы сформированы, сотрудник получил уведомление' })
+      toast.success(t('appr.toastDone', { n: r.number }), { description: t('appr.toastDoneHint') })
     } catch (e) {
       toast.error((e as Error).message)
     }
@@ -75,21 +75,21 @@ function HrKanban() {
   return (
     <div>
       <PageHeader
-        title="Заявки компании"
-        subtitle="Руководитель → HR → 1С:ЗУП → готово"
+        title={t('appr.title')}
+        subtitle={t('appr.subtitle')}
         actions={
           <Button variant="outline" icon={<RefreshCw className="h-4 w-4" />} loading={worker.isPending} onClick={() => worker.mutate()}>
-            Запросить статусы из 1С
+            {t('appr.statuses1c')}
           </Button>
         }
       />
       <div className="mb-4 flex flex-col gap-3 sm:flex-row">
         <div className="relative flex-1 sm:max-w-sm">
           <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted" />
-          <input className="field pl-9" placeholder="Сотрудник или № заявки" value={query} onChange={(e) => setQuery(e.target.value)} />
+          <input className="field pl-9" placeholder={t('appr.searchPh')} value={query} onChange={(e) => setQuery(e.target.value)} />
         </div>
         <select className="field sm:w-60" value={type} onChange={(e) => setType(e.target.value as RequestType | 'all')}>
-          <option value="all">Все типы</option>
+          <option value="all">{t('appr.allTypes')}</option>
           {REQUEST_TYPES.map((rt) => (
             <option key={rt} value={rt}>
               {t(`type.${rt}` as I18nKey)}
@@ -107,20 +107,20 @@ function HrKanban() {
                 <div className="px-2 pt-1 pb-2.5">
                   <div className="flex items-center gap-2">
                     <span className={cn('h-2.5 w-2.5 shrink-0 rounded-full', col.tone)} />
-                    <span className="font-semibold whitespace-nowrap">{col.title}</span>
+                    <span className="font-semibold whitespace-nowrap">{t(col.title)}</span>
                     <span className="rounded-full bg-canvas px-2 text-xs font-semibold text-muted">{items.length}</span>
                   </div>
-                  <div className="mt-0.5 pl-[18px] text-xs text-muted">{col.hint}</div>
+                  <div className="mt-0.5 pl-[18px] text-xs text-muted">{t(col.hint)}</div>
                 </div>
                 <div className="flex-1 space-y-2">
                   {isLoading && <Skeleton className="h-28" />}
-                  {!isLoading && items.length === 0 && <div className="rounded-xl border border-dashed border-line px-3 py-8 text-center text-sm text-muted">Пусто</div>}
+                  {!isLoading && items.length === 0 && <div className="rounded-xl border border-dashed border-line px-3 py-8 text-center text-sm text-muted">{t('appr.colEmpty')}</div>}
                   {items.map((r) => (
                     <div key={r.id} className="rounded-xl border border-line bg-white p-3 shadow-[var(--shadow-card)] transition hover:border-brand-300" data-testid={`card-${r.number}`}>
                       <button className="w-full text-left" onClick={() => setOpen(r)}>
                         <div className="flex items-center justify-between gap-2">
                           <TypeLabel type={r.type} />
-                          <span className="text-xs text-muted">№{r.number}</span>
+                          <span className="text-xs text-muted">{t('req.no', { n: r.number })}</span>
                         </div>
                         <div className="mt-2 flex items-center gap-2">
                           <Avatar id={r.employee?.id} name={fullName(r.employee)} size={24} />
@@ -143,23 +143,23 @@ function HrKanban() {
                             onClick={async () => {
                               try {
                                 await nudge.mutateAsync(r.id)
-                                toast.success(`Напомнили: ${fullName(r.approver)}`)
+                                toast.success(t('appr.nudged', { name: fullName(r.approver) }))
                               } catch (e) {
                                 toast.error((e as Error).message)
                               }
                             }}
                           >
-                            Поторопить
+                            {t('appr.nudge')}
                           </Button>
                         )}
                         {col.key === 'hr' && (
                           <Button size="sm" icon={<Zap className="h-3.5 w-3.5" />} loading={decide.isPending && decide.variables?.id === r.id} onClick={() => void process(r)} data-testid={`process-${r.number}`}>
-                            Оформить
+                            {t('appr.process')}
                           </Button>
                         )}
                         {col.key === '1c' && (
                           <span className="inline-flex items-center gap-1 text-xs text-indigo-700">
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" /> ждём 1С
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" /> {t('appr.waiting1c')}
                           </span>
                         )}
                         {col.key === 'done' && (r.integration?.zup || r.integration?.documentolog) && (
@@ -168,7 +168,7 @@ function HrKanban() {
                           </button>
                         )}
                       </div>
-                      {col.key === 'manager' && r.approver && <div className="mt-1.5 text-[11.5px] text-muted">согласующий: {fullName(r.approver)}</div>}
+                      {col.key === 'manager' && r.approver && <div className="mt-1.5 text-[11.5px] text-muted">{t('appr.approver', { name: fullName(r.approver) })}</div>}
                     </div>
                   ))}
                 </div>
@@ -187,6 +187,7 @@ function HrKanban() {
 type MgrTab = 'mine' | 'progress' | 'closed'
 
 function ManagerApprovals() {
+  const { t } = useI18n()
   const { me } = useAuth()
   const { data, isLoading, error, refetch } = useWorkRequests(14)
   const decide = useDecideRequest()
@@ -200,15 +201,15 @@ function ManagerApprovals() {
 
   return (
     <div>
-      <PageHeader title="Согласования" subtitle="Заявки вашей команды" />
+      <PageHeader title={t('nav.approvals')} subtitle={t('appr.mgrSubtitle')} />
       <Tabs<MgrTab>
         value={tab}
         onChange={setTab}
         className="mb-4"
         items={[
-          { value: 'mine', label: 'Ждут меня', count: mine.length },
-          { value: 'progress', label: 'В работе', count: progress.length },
-          { value: 'closed', label: 'Завершённые (14 дн.)', count: closed.length },
+          { value: 'mine', label: t('appr.tabMine'), count: mine.length },
+          { value: 'progress', label: t('req.tabActive'), count: progress.length },
+          { value: 'closed', label: t('appr.tabClosed'), count: closed.length },
         ]}
       />
       {error && <ErrorBox error={error} onRetry={() => void refetch()} />}
@@ -219,7 +220,7 @@ function ManagerApprovals() {
             <Skeleton className="h-14" />
           </div>
         ) : rows.length === 0 ? (
-          <Empty icon={<BadgeCheck className="h-6 w-6" />} title="Здесь пусто" text={tab === 'mine' ? 'Все заявки команды рассмотрены' : undefined} />
+          <Empty icon={<BadgeCheck className="h-6 w-6" />} title={t('appr.empty')} text={tab === 'mine' ? t('appr.emptyMine') : undefined} />
         ) : (
           <ul className="divide-y divide-line">
             {rows.map((r) => (
@@ -232,7 +233,7 @@ function ManagerApprovals() {
                       <span className="text-xs text-muted">{r.employee?.position}</span>
                     </div>
                     <div className="mt-0.5 flex flex-wrap items-center gap-2 text-sm text-muted">
-                      <TypeLabel type={r.type} /> · {requestSummary(r)} · №{r.number}
+                      <TypeLabel type={r.type} /> · {requestSummary(r)} · {t('req.no', { n: r.number })}
                     </div>
                   </div>
                 </button>
@@ -241,7 +242,7 @@ function ManagerApprovals() {
                     <>
                       <WaitingTimer since={r.created_at} />
                       <Button size="sm" variant="outline" onClick={() => setOpen(r)}>
-                        Отклонить…
+                        {t('appr.rejectMore')}
                       </Button>
                       <Button
                         size="sm"
@@ -249,14 +250,14 @@ function ManagerApprovals() {
                         onClick={async () => {
                           try {
                             await decide.mutateAsync({ id: r.id, action: 'approve' })
-                            toast.success(`Заявка №${r.number} согласована`, { description: 'Передана в HR на оформление' })
+                            toast.success(t('appr.toastApproved', { n: r.number }), { description: t('appr.toastApprovedHint') })
                           } catch (e) {
                             toast.error((e as Error).message)
                           }
                         }}
                         data-testid={`approve-${r.number}`}
                       >
-                        Согласовать
+                        {t('req.approve')}
                       </Button>
                     </>
                   ) : (

@@ -1,0 +1,28 @@
+import type ru from '../ru/chat'
+
+export default {
+  'chat.new': 'Шинэ чат',
+  'chat.search': 'Чатуудаас хайх',
+  'chat.empty': 'Одоогоор чат байхгүй',
+  'chat.emptyText': '«Шинэ чат» товчийг дараад хамтран ажиллагчаа сонгоно уу.',
+  'chat.pick': 'Зүүн талаас чат сонгоно уу, эсвэл шинээр эхлүүлнэ үү',
+  'chat.placeholder': 'Мессеж…',
+  'chat.send': 'Илгээх',
+  'chat.reply': 'Хариулах',
+  'chat.replying': 'Мессежид хариулж байна',
+  'chat.cancelReply': 'Хариултыг цуцлах',
+  'chat.you': 'Та',
+  'chat.today': 'Өнөөдөр',
+  'chat.yesterday': 'Өчигдөр',
+  'chat.members': 'Гишүүд: {n}',
+  'chat.back': 'Чат руу буцах',
+  'chat.newHint': 'Нэг хүн: хувийн чат. Хэд хэдэн хүн: бүлэг.',
+  'chat.findPeople': 'Нэр эсвэл албан тушаал',
+  'chat.groupName': 'Бүлгийн нэр',
+  'chat.write': 'Бичих',
+  'chat.createGroup': 'Бүлэг үүсгэх',
+  'chat.selected': 'Сонгосон: {n}',
+  'chat.noPeople': 'Хэн ч олдсонгүй',
+  'chat.noMessages': 'Одоогоор мессеж байхгүй. Та эхэлж бичнэ үү.',
+  'chat.sendHint': 'Enter: илгээх, Shift+Enter: шинэ мөр',
+} satisfies Record<keyof typeof ru, string>

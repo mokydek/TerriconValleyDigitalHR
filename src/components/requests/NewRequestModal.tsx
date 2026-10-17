@@ -4,14 +4,18 @@ import { addDays, differenceInCalendarDays, eachDayOfInterval, parseISO } from '
 import { CalendarDays, Info } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/auth'
-import { useI18n, type I18nKey } from '@/lib/i18n'
+import { LANGS, useI18n, type I18nKey } from '@/lib/i18n'
 import { must, supabase } from '@/lib/supabase'
+import { serverText } from '@/lib/serverText'
 import { useCreateRequest, useVacationBalance } from '@/lib/api'
 import { CERT_PURPOSES, DATA_FIELDS, REQUEST_TYPE_META, REQUEST_TYPES } from '@/lib/constants'
-import { days, entitledText, fmtDate, isoDate, money } from '@/lib/format'
+import { days, entitledText, fmtDate, isoDate, money, num } from '@/lib/format'
 import type { HrRequest, RequestType } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { Button, Field, Modal } from '@/components/ui'
+
+/** Языки, на которых выдаётся справка (в заявку записывается код языка) */
+const CERT_LANGS: readonly string[] = ['ru', 'kk', 'en']
 
 function useHolidays() {
   return useQuery({
@@ -47,7 +51,7 @@ export function NewRequestModal({
   initialType?: RequestType | null
   onCreated?: (r: HrRequest) => void
 }) {
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
   const { me } = useAuth()
   const create = useCreateRequest()
   const holidays = useHolidays()
@@ -59,10 +63,10 @@ export function NewRequestModal({
   const [end, setEnd] = useState('')
   const [amount, setAmount] = useState('')
   const [comment, setComment] = useState('')
-  const [purpose, setPurpose] = useState(CERT_PURPOSES[0])
+  const [purpose, setPurpose] = useState(CERT_PURPOSES[0].value)
   const [language, setLanguage] = useState('ru')
   const [copies, setCopies] = useState(1)
-  const [field, setField] = useState(DATA_FIELDS[0])
+  const [field, setField] = useState(DATA_FIELDS[0].value)
   const [newValue, setNewValue] = useState('')
 
   useEffect(() => {
@@ -82,28 +86,28 @@ export function NewRequestModal({
     if (!start || !end) return null
     const s = parseISO(start)
     const e = parseISO(end)
-    if (e < s) return { error: 'Дата окончания раньше даты начала' }
+    if (e < s) return { error: t('req.err.endBeforeStart') }
     const all = eachDayOfInterval({ start: s, end: e })
     const hol = all.filter((d) => holidays.data?.has(isoDate(d)))
     const count = all.length - hol.length
     const notice = differenceInCalendarDays(s, new Date())
-    return { count, holidays: hol.map((d) => `${fmtDate(d, 'd MMM')}: ${holidays.data?.get(isoDate(d))}`), notice }
-  }, [start, end, holidays.data])
+    return { count, holidays: hol.map((d) => `${fmtDate(d, 'd MMM')}: ${serverText(holidays.data?.get(isoDate(d)))}`), notice }
+  }, [start, end, holidays.data, t, lang])
 
   const maxAdvance = salary.data ? Math.round(salary.data * 0.5) : null
 
   const errors: string[] = []
   if (type === 'vacation' && vacation) {
     if ('error' in vacation && vacation.error) errors.push(vacation.error)
-    if (start && parseISO(start) < parseISO(isoDate(new Date()))) errors.push('Нельзя оформить отпуск задним числом')
+    if (start && parseISO(start) < parseISO(isoDate(new Date()))) errors.push(t('req.err.pastStart'))
     if ('count' in vacation && balance.data && (vacation.count ?? 0) > balance.data.available) {
-      errors.push(`Недостаточно дней: доступно ${days(balance.data.available)}`)
+      errors.push(t('req.err.notEnoughDays', { days: days(balance.data.available) }))
     }
   }
   if (type === 'advance') {
     const a = Number(amount)
-    if (amount && (!Number.isFinite(a) || a <= 0)) errors.push('Укажите корректную сумму')
-    if (maxAdvance && a > maxAdvance) errors.push(`Не более 50% оклада, максимум ${money(maxAdvance)}`)
+    if (amount && (!Number.isFinite(a) || a <= 0)) errors.push(t('req.err.badAmount'))
+    if (maxAdvance && a > maxAdvance) errors.push(t('req.err.advanceMax', { max: money(maxAdvance) }))
   }
   if (type === 'data_change' && !newValue.trim()) errors.push('')
 
@@ -127,7 +131,7 @@ export function NewRequestModal({
               : { type, comment: comment || null, details: { field, new_value: newValue.trim() } }
       const created = await create.mutateAsync(payload)
       const who = created.approver ? `${created.approver.first_name} ${created.approver.last_name}` : 'HR'
-      toast.success(`Заявка №${created.number} отправлена`, { description: `Сейчас у: ${who}. О решении придёт уведомление.` })
+      toast.success(t('req.sent', { n: created.number }), { description: t('req.sentHint', { who }) })
       onCreated?.(created)
       onClose()
     } catch (e) {
@@ -147,7 +151,7 @@ export function NewRequestModal({
           <>
             {!initialType && (
               <Button variant="ghost" onClick={() => setType(null)}>
-                ← Другой тип
+                {t('req.otherType')}
               </Button>
             )}
             <Button onClick={() => void submit()} loading={create.isPending} disabled={!canSubmit} data-testid="request-submit">
@@ -181,13 +185,13 @@ export function NewRequestModal({
           {balance.data && (
             <div className="flex items-center justify-between rounded-2xl bg-brand-50 px-4 py-3">
               <div>
-                <div className="text-sm text-brand-800">Доступно на {balance.data.year} год</div>
+                <div className="text-sm text-brand-800">{t('req.availableFor', { year: balance.data.year })}</div>
                 <div className="text-2xl font-bold text-brand-800">{days(balance.data.available)}</div>
               </div>
               <div className="text-right text-xs text-brand-800/80">
-                положено {entitledText(balance.data)}
+                {t('req.entitled', { days: entitledText(balance.data) })}
                 <br />
-                оформлено {days(balance.data.used)} · в работе {days(balance.data.reserved)}
+                {t('req.usedReserved', { used: days(balance.data.used), reserved: days(balance.data.reserved) })}
               </div>
             </div>
           )}
@@ -202,29 +206,29 @@ export function NewRequestModal({
           {vacation && 'count' in vacation && (
             <div className="rounded-xl border border-line px-4 py-3 text-sm">
               <div className="flex items-center gap-2 font-medium text-ink">
-                <CalendarDays className="h-4 w-4 text-brand-600" /> Будет списано: {days(vacation.count)}
+                <CalendarDays className="h-4 w-4 text-brand-600" /> {t('req.willDeduct', { days: days(vacation.count) })}
               </div>
               {vacation.holidays && vacation.holidays.length > 0 && (
-                <div className="mt-1 text-muted">Праздники не учитываются: {vacation.holidays.join(', ')}</div>
+                <div className="mt-1 text-muted">{t('req.holidaysExcluded', { list: vacation.holidays.join(', ') })}</div>
               )}
               {vacation.notice !== undefined && vacation.notice < 14 && vacation.notice >= 0 && (
-                <div className="mt-1 text-amber-700">Лучше подавать заявку минимум за 14 дней, чтобы руководитель спланировал смены.</div>
+                <div className="mt-1 text-amber-700">{t('req.noticeHint')}</div>
               )}
             </div>
           )}
-          <Field label={t('req.comment')} hint="Необязательно">
-            <textarea className="field min-h-[72px]" value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Например: семейная поездка" />
+          <Field label={t('req.comment')} hint={t('req.optional')}>
+            <textarea className="field min-h-[72px]" value={comment} onChange={(e) => setComment(e.target.value)} placeholder={t('req.vacCommentPh')} />
           </Field>
           <p className="flex items-start gap-2 text-xs text-muted">
-            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" /> Маршрут: {me?.manager ? `руководитель (${me.manager.first_name} ${me.manager.last_name})` : 'HR'} → HR → приказ в 1С:ЗУП → ознакомление в Documentolog.
+            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {t('req.vacRoute', { first: me?.manager ? t('req.routeManager', { name: `${me.manager.first_name} ${me.manager.last_name}` }) : 'HR' })}
           </p>
         </div>
       )}
 
       {type === 'advance' && (
         <div className="space-y-4">
-          <Field label={`${t('req.amount')}, ₸`} hint={maxAdvance ? `Не более 50% оклада: до ${money(maxAdvance)}, один раз в месяц` : 'Не более 50% оклада, один раз в месяц'}>
-            <input type="number" inputMode="numeric" min={1} step={1000} className="field text-lg font-semibold" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="100 000" data-testid="advance-amount" />
+          <Field label={`${t('req.amount')}, ₸`} hint={maxAdvance ? t('req.advanceHintMax', { max: money(maxAdvance) }) : t('req.advanceHint')}>
+            <input type="number" inputMode="numeric" min={1} step={1000} className="field text-lg font-semibold" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={num(100_000)} data-testid="advance-amount" />
           </Field>
           {maxAdvance && (
             <div className="flex flex-wrap gap-2">
@@ -235,33 +239,37 @@ export function NewRequestModal({
               ))}
             </div>
           )}
-          <Field label={t('req.comment')} hint="Необязательно">
-            <textarea className="field min-h-[72px]" value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Например: непредвиденные расходы" />
+          <Field label={t('req.comment')} hint={t('req.optional')}>
+            <textarea className="field min-h-[72px]" value={comment} onChange={(e) => setComment(e.target.value)} placeholder={t('req.advCommentPh')} />
           </Field>
           <p className="flex items-start gap-2 text-xs text-muted">
-            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" /> После оформления HR передаёт заявку в 1С:ЗУП (ведомость на выплату). Деньги поступят на карту в течение 3 рабочих дней.
+            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {t('req.advanceInfo')}
           </p>
         </div>
       )}
 
       {type === 'certificate' && (
         <div className="space-y-4">
-          <Field label="Для чего нужна справка">
+          <Field label={t('req.certPurpose')}>
             <select className="field" value={purpose} onChange={(e) => setPurpose(e.target.value)}>
               {CERT_PURPOSES.map((p) => (
-                <option key={p}>{p}</option>
+                <option key={p.value} value={p.value}>
+                  {p.label}
+                </option>
               ))}
             </select>
           </Field>
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Язык">
+            <Field label={t('req.language')}>
               <select className="field" value={language} onChange={(e) => setLanguage(e.target.value)}>
-                <option value="ru">Русский</option>
-                <option value="kk">Қазақша</option>
-                <option value="en">English</option>
+                {LANGS.filter((l) => CERT_LANGS.includes(l.code)).map((l) => (
+                  <option key={l.code} value={l.code}>
+                    {l.name}
+                  </option>
+                ))}
               </select>
             </Field>
-            <Field label="Экземпляров">
+            <Field label={t('req.copies')}>
               <select className="field" value={copies} onChange={(e) => setCopies(Number(e.target.value))}>
                 {[1, 2, 3].map((n) => (
                   <option key={n}>{n}</option>
@@ -269,7 +277,7 @@ export function NewRequestModal({
               </select>
             </Field>
           </div>
-          <Field label={t('req.comment')} hint="Необязательно">
+          <Field label={t('req.comment')} hint={t('req.optional')}>
             <textarea className="field min-h-[60px]" value={comment} onChange={(e) => setComment(e.target.value)} />
           </Field>
         </div>
@@ -277,20 +285,20 @@ export function NewRequestModal({
 
       {type === 'data_change' && (
         <div className="space-y-4">
-          <div className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            Официальные кадровые данные ведутся в 1С:ЗУП и в JanaMen доступны только для чтения. HR внесёт изменение в 1С:ЗУП, и оно появится в профиле после синхронизации.
-          </div>
-          <Field label="Что изменить">
+          <div className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">{t('req.dataInfo')}</div>
+          <Field label={t('req.whatChange')}>
             <select className="field" value={field} onChange={(e) => setField(e.target.value)}>
               {DATA_FIELDS.map((f) => (
-                <option key={f}>{f}</option>
+                <option key={f.value} value={f.value}>
+                  {f.label}
+                </option>
               ))}
             </select>
           </Field>
-          <Field label="Новое значение">
+          <Field label={t('req.newValue')}>
             <input className="field" value={newValue} onChange={(e) => setNewValue(e.target.value)} />
           </Field>
-          <Field label={t('req.comment')} hint="Например, какой документ подтверждает изменение">
+          <Field label={t('req.comment')} hint={t('req.dataCommentHint')}>
             <textarea className="field min-h-[60px]" value={comment} onChange={(e) => setComment(e.target.value)} />
           </Field>
         </div>

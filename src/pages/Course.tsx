@@ -4,6 +4,7 @@ import ReactMarkdown from 'react-markdown'
 import { Award, Check, CheckCircle2, ChevronRight, Clock, Lock, Printer, RotateCcw, XCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/auth'
+import { tr, useI18n } from '@/lib/i18n'
 import { useCompleteLesson, useCourse, useSubmitQuiz } from '@/lib/api'
 import { fmtDate, fullName } from '@/lib/format'
 import type { QuizResult } from '@/lib/types'
@@ -15,6 +16,7 @@ type View = { kind: 'lesson'; index: number } | { kind: 'quiz' } | { kind: 'resu
 export default function CoursePage() {
   const { slug } = useParams()
   const { me } = useAuth()
+  const { t } = useI18n()
   const { data, isLoading, error, refetch } = useCourse(slug)
   const complete = useCompleteLesson()
   const submit = useSubmitQuiz()
@@ -56,8 +58,8 @@ export default function CoursePage() {
     try {
       const result = await submit.mutateAsync({ courseId: course.id, answers })
       setView({ kind: 'result', result })
-      if (result.passed) toast.success(`Тест сдан: ${result.score}% 🎉`)
-      else toast.error(`Результат ${result.score}%, нужно ${result.pass_score}%`)
+      if (result.passed) toast.success(t('course.passedToast', { score: result.score }))
+      else toast.error(t('course.failedToast', { score: result.score, pass: result.pass_score }))
     } catch (e) {
       toast.error((e as Error).message)
     }
@@ -73,12 +75,12 @@ export default function CoursePage() {
           <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-brand-50 text-3xl">{course.emoji}</div>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap gap-1.5">
-              {course.is_mandatory && <Badge className="bg-amber-50 text-amber-800 ring-amber-200">обязательный</Badge>}
+              {course.is_mandatory && <Badge className="bg-amber-50 text-amber-800 ring-amber-200">{t('academy.mandatory')}</Badge>}
               <Badge className="bg-canvas text-ink-soft ring-line">
-                <Clock className="h-3 w-3" /> {course.duration_minutes} мин
+                <Clock className="h-3 w-3" /> {t('academy.minutes', { n: course.duration_minutes })}
               </Badge>
-              <Badge className="bg-canvas text-ink-soft ring-line">проходной балл {course.pass_score}%</Badge>
-              {data.assignment?.due_date && !completed && <Badge className="bg-canvas text-ink-soft ring-line">до {fmtDate(data.assignment.due_date)}</Badge>}
+              <Badge className="bg-canvas text-ink-soft ring-line">{t('course.passScore', { n: course.pass_score })}</Badge>
+              {data.assignment?.due_date && !completed && <Badge className="bg-canvas text-ink-soft ring-line">{t('academy.dueDate', { date: fmtDate(data.assignment.due_date) })}</Badge>}
             </div>
             <h1 className="mt-2 text-xl font-bold sm:text-2xl">{course.title}</h1>
             <p className="mt-1 text-sm text-muted">{course.description}</p>
@@ -105,7 +107,7 @@ export default function CoursePage() {
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate font-medium">{l.title}</span>
-                      <span className="text-xs text-muted">{l.duration_minutes} мин</span>
+                      <span className="text-xs text-muted">{t('academy.minutes', { n: l.duration_minutes })}</span>
                     </span>
                   </button>
                 </li>
@@ -124,17 +126,15 @@ export default function CoursePage() {
                   {completed ? <Award className="h-3.5 w-3.5" /> : allLessonsDone ? '✎' : <Lock className="h-3 w-3" />}
                 </span>
                 <span className="font-medium">
-                  {completed ? 'Сертификат' : 'Итоговый тест'}
-                  <span className="block text-xs font-normal text-muted">{questions.length} вопросов</span>
+                  {completed ? t('course.certificate') : t('academy.test')}
+                  <span className="block text-xs font-normal text-muted">{t('course.questions', { n: questions.length })}</span>
                 </span>
               </button>
             </li>
           </ol>
           <div className="px-3 pt-2 pb-3">
             <Progress value={progress} className="h-1.5" />
-            <div className="mt-1.5 text-xs text-muted">
-              Уроков пройдено: {doneCount} из {lessons.length}
-            </div>
+            <div className="mt-1.5 text-xs text-muted">{t('course.lessonsDone', { done: doneCount, total: lessons.length })}</div>
           </div>
         </Card>
 
@@ -142,19 +142,17 @@ export default function CoursePage() {
         <div className="min-w-0">
           {view.kind === 'lesson' && lessons[view.index] && (
             <Card className="p-6 sm:p-8" data-testid="lesson-view">
-              <div className="text-xs font-semibold tracking-wide text-brand-700 uppercase">
-                Урок {view.index + 1} из {lessons.length}
-              </div>
+              <div className="text-xs font-semibold tracking-wide text-brand-700 uppercase">{t('course.lessonOf', { n: view.index + 1, total: lessons.length })}</div>
               <h2 className="mt-1 text-xl font-bold">{lessons[view.index].title}</h2>
               <div className="prose-jana mt-4">
                 <ReactMarkdown>{lessons[view.index].content}</ReactMarkdown>
               </div>
               <div className="mt-8 flex flex-col-reverse gap-2 border-t border-line pt-5 sm:flex-row sm:justify-between">
                 <Button variant="ghost" disabled={view.index === 0} onClick={() => setView({ kind: 'lesson', index: view.index - 1 })}>
-                  ← Назад
+                  ← {t('common.back')}
                 </Button>
                 <Button onClick={() => void markDone(view.index)} loading={complete.isPending} icon={done.has(lessons[view.index].id) ? <CheckCircle2 className="h-4 w-4" /> : undefined} data-testid="lesson-next">
-                  {done.has(lessons[view.index].id) ? 'Пройдено · далее' : view.index + 1 < lessons.length ? 'Изучил(а), дальше' : 'Изучил(а), к тесту'}
+                  {done.has(lessons[view.index].id) ? t('course.doneNext') : view.index + 1 < lessons.length ? t('course.studiedNext') : t('course.studiedToTest')}
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
@@ -163,10 +161,8 @@ export default function CoursePage() {
 
           {view.kind === 'quiz' && (
             <Card className="p-6 sm:p-8" data-testid="quiz-view">
-              <h2 className="text-xl font-bold">Итоговый тест</h2>
-              <p className="mt-1 text-sm text-muted">
-                {questions.length} вопросов · проходной балл {course.pass_score}% · ответы проверяются на сервере
-              </p>
+              <h2 className="text-xl font-bold">{t('academy.test')}</h2>
+              <p className="mt-1 text-sm text-muted">{t('course.quizInfo', { n: questions.length, pass: course.pass_score })}</p>
               <ol className="mt-6 space-y-6">
                 {questions.map((q, qi) => (
                   <li key={q.id}>
@@ -191,11 +187,9 @@ export default function CoursePage() {
                 ))}
               </ol>
               <div className="mt-8 flex items-center justify-between border-t border-line pt-5">
-                <span className="text-sm text-muted">
-                  Отвечено: {Object.keys(answers).length} из {questions.length}
-                </span>
+                <span className="text-sm text-muted">{t('course.answered', { n: Object.keys(answers).length, total: questions.length })}</span>
                 <Button disabled={Object.keys(answers).length < questions.length} loading={submit.isPending} onClick={() => void sendQuiz()} data-testid="quiz-submit">
-                  Проверить
+                  {t('course.submit')}
                 </Button>
               </div>
             </Card>
@@ -208,12 +202,8 @@ export default function CoursePage() {
                 <h2 className="mt-3 text-2xl font-bold" data-testid="quiz-score">
                   {view.result.score}%
                 </h2>
-                <p className="mt-1 text-muted">
-                  {view.result.passed ? 'Тест сдан! Курс засчитан в вашем профиле.' : `Нужно ${view.result.pass_score}%. Повторите материал и попробуйте ещё раз.`}
-                </p>
-                <p className="mt-1 text-sm text-muted">
-                  Правильных ответов: {view.result.correct} из {view.result.total} · попытка {view.result.attempts}
-                </p>
+                <p className="mt-1 text-muted">{view.result.passed ? t('course.passedText') : t('course.failedText', { pass: view.result.pass_score })}</p>
+                <p className="mt-1 text-sm text-muted">{t('course.resultStats', { correct: view.result.correct, total: view.result.total, attempt: view.result.attempts })}</p>
               </div>
               <ol className="mt-6 space-y-3">
                 {questions.map((q, i) => {
@@ -232,12 +222,12 @@ export default function CoursePage() {
               <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
                 {view.result.passed ? (
                   <Button icon={<Award className="h-4 w-4" />} onClick={() => setView({ kind: 'certificate' })}>
-                    Мой сертификат
+                    {t('course.myCertificate')}
                   </Button>
                 ) : (
                   <>
                     <Button variant="outline" onClick={() => setView({ kind: 'lesson', index: 0 })}>
-                      Повторить материал
+                      {t('course.review')}
                     </Button>
                     <Button
                       icon={<RotateCcw className="h-4 w-4" />}
@@ -246,7 +236,7 @@ export default function CoursePage() {
                         setView({ kind: 'quiz' })
                       }}
                     >
-                      Пересдать
+                      {t('course.retake')}
                     </Button>
                   </>
                 )}
@@ -262,22 +252,25 @@ export default function CoursePage() {
                 <div className="relative">
                   <div className="text-sm font-extrabold tracking-[0.3em] text-brand-700">JANA ACADEMY</div>
                   <Award className="mx-auto mt-5 h-14 w-14 text-brand-600" />
-                  <div className="mt-4 text-sm tracking-wide text-muted uppercase">Сертификат</div>
+                  <div className="mt-4 text-sm tracking-wide text-muted uppercase">{t('course.certificate')}</div>
                   <div className="mt-2 text-2xl font-bold sm:text-3xl">{fullName(me)}</div>
-                  <p className="mx-auto mt-3 max-w-md text-muted">успешно прошёл(ла) курс</p>
-                  <p className="mt-1 text-xl font-semibold text-ink">«{course.title}»</p>
+                  <p className="mx-auto mt-3 max-w-md text-muted">{t('course.certCompleted')}</p>
+                  <p className="mt-1 text-xl font-semibold text-ink">{t('course.certTitle', { title: course.title })}</p>
                   <p className="mt-3 text-muted">
-                    с результатом <b className="text-brand-700">{data.assignment?.score ?? '–'}%</b> · {fmtDate(data.assignment?.completed_at ?? new Date())}
+                    {tr('course.certScore', {
+                      score: <b className="text-brand-700">{data.assignment?.score ?? '–'}%</b>,
+                      date: fmtDate(data.assignment?.completed_at ?? new Date()),
+                    })}
                   </p>
-                  <div className="mt-8 text-xs text-muted">ТОО «Jana Post» · JanaMen · запись в профиле сотрудника</div>
+                  <div className="mt-8 text-xs text-muted">{t('course.certFooter')}</div>
                 </div>
               </div>
               <div className="no-print mt-4 flex justify-center gap-2">
                 <Button variant="outline" icon={<Printer className="h-4 w-4" />} onClick={() => window.print()}>
-                  Распечатать / PDF
+                  {t('course.print')}
                 </Button>
                 <Link to="/academy">
-                  <Button>К курсам</Button>
+                  <Button>{t('course.toCourses')}</Button>
                 </Link>
               </div>
             </div>

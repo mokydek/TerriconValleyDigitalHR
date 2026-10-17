@@ -5,6 +5,7 @@ import { useI18n } from '@/lib/i18n'
 import { useAnnouncements, useMarkNotificationRead, useMyAssignments, useMyRequests, useNotifications, useTasks, useVacationBalance } from '@/lib/api'
 import { ANNOUNCEMENT_CATEGORIES, PRIORITY_META } from '@/lib/constants'
 import { days, entitledText, fmtDate, fullName, timeAgo } from '@/lib/format'
+import { serverText } from '@/lib/serverText'
 import { cn } from '@/lib/utils'
 import { Avatar, Badge, Card, CardHeader, Empty, Progress, ProgressRing, Skeleton } from '@/components/ui'
 import { requestSummary, StatusBadge, TypeLabel } from '@/components/requests/RequestParts'
@@ -101,7 +102,7 @@ export function MyRequestsCard({ onOpen }: { onOpen?: (id: string) => void }) {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 text-sm">
                       <TypeLabel type={r.type} />
-                      <span className="text-xs text-muted">№{r.number}</span>
+                      <span className="text-xs text-muted">{t('home.number', { n: r.number })}</span>
                     </div>
                     <div className="mt-0.5 truncate text-[13px] text-muted">{requestSummary(r)}</div>
                   </div>
@@ -133,7 +134,7 @@ export function MyLearningCard() {
       />
       <div className="space-y-3 px-5 pb-5">
         {isLoading && <Skeleton className="h-16" />}
-        {!isLoading && list.length === 0 && <p className="py-4 text-center text-sm text-muted">Назначенных курсов нет</p>}
+        {!isLoading && list.length === 0 && <p className="py-4 text-center text-sm text-muted">{t('home.noCourses')}</p>}
         {list.map((a) => {
           const overdue = a.status !== 'completed' && a.due_date && new Date(a.due_date) < new Date()
           return (
@@ -146,9 +147,9 @@ export function MyLearningCard() {
                 {a.status === 'completed' ? (
                   <Badge className="bg-brand-50 text-brand-700 ring-brand-200">✓ {a.score}%</Badge>
                 ) : overdue ? (
-                  <Badge className="bg-rose-50 text-rose-700 ring-rose-200">просрочен</Badge>
+                  <Badge className="bg-rose-50 text-rose-700 ring-rose-200">{t('home.courseOverdue')}</Badge>
                 ) : a.due_date ? (
-                  <span className="shrink-0 text-xs text-muted">до {fmtDate(a.due_date, 'd MMM')}</span>
+                  <span className="shrink-0 text-xs text-muted">{t('home.dueBy', { date: fmtDate(a.due_date, 'd MMM') })}</span>
                 ) : null}
               </div>
               <div className="mt-2 flex items-center gap-2">
@@ -172,7 +173,7 @@ export function MyTasksCard() {
       <CardHeader
         icon={<ClipboardList className="h-[18px] w-[18px]" />}
         title={t('home.myTasks')}
-        subtitle={`${open.length ? `${(data ?? []).filter((x) => x.status !== 'done').length} открыто` : 'Все задачи выполнены'}`}
+        subtitle={open.length ? t('home.tasksOpenCount', { n: (data ?? []).filter((x) => x.status !== 'done').length }) : t('home.tasksAllDone')}
         action={
           <Link to="/tasks" className="text-sm font-medium text-brand-700 hover:underline">
             {t('home.allTasks')}
@@ -181,7 +182,7 @@ export function MyTasksCard() {
       />
       <ul className="px-2 pb-3">
         {isLoading && <Skeleton className="mx-3 h-12" />}
-        {!isLoading && open.length === 0 && <Empty title="Задач нет" text="Новые задачи от руководителя появятся здесь" />}
+        {!isLoading && open.length === 0 && <Empty title={t('home.noTasks')} text={t('home.noTasksText')} />}
         {open.map((task) => {
           const overdue = task.due_date && new Date(task.due_date) < new Date(new Date().toDateString())
           return (
@@ -191,7 +192,7 @@ export function MyTasksCard() {
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-medium text-ink">{task.title}</span>
                   <span className="text-xs text-muted">
-                    от {task.creator ? fullName(task.creator) : '–'}
+                    {t('home.taskFrom', { name: task.creator ? fullName(task.creator) : '–' })}
                     {task.due_date && (
                       <span className={cn(overdue && 'font-medium text-rose-600')}>
                         {' '}
@@ -237,7 +238,7 @@ export function NewsCard({ limit = 3 }: { limit?: number }) {
                   <Badge className={cat.style}>
                     {cat.emoji} {cat.label}
                   </Badge>
-                  {!a.read && <span className="h-2 w-2 rounded-full bg-brand-500" title="Не прочитано" />}
+                  {!a.read && <span className="h-2 w-2 rounded-full bg-brand-500" title={t('home.unread')} />}
                   <span className="ml-auto text-xs text-muted">{timeAgo(a.created_at)}</span>
                 </div>
                 <div className="mt-1.5 text-sm font-medium text-ink">{a.title}</div>
@@ -263,10 +264,10 @@ export function NotificationsCard() {
       <CardHeader
         icon={<Bell className="h-[18px] w-[18px]" />}
         title={t('home.notifications')}
-        subtitle={unread ? `${unread} новых` : 'Всё прочитано'}
+        subtitle={unread ? t('home.notifNew', { n: unread }) : t('home.notifAllRead')}
         action={
           <Link to="/notifications" className="text-sm font-medium text-brand-700 hover:underline">
-            Все
+            {t('common.all')}
           </Link>
         }
       />
@@ -283,8 +284,8 @@ export function NotificationsCard() {
             >
               <span className={cn('mt-1.5 h-2 w-2 shrink-0 rounded-full', n.read_at ? 'bg-line' : 'bg-brand-500')} />
               <span className="min-w-0">
-                <span className="block truncate text-sm font-medium text-ink">{n.title}</span>
-                <span className="block truncate text-xs text-muted">{n.body}</span>
+                <span className="block truncate text-sm font-medium text-ink">{serverText(n.title)}</span>
+                <span className="block truncate text-xs text-muted">{serverText(n.body)}</span>
               </span>
             </button>
           </li>

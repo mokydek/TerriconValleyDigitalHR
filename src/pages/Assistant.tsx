@@ -22,13 +22,13 @@ export default function AssistantPage() {
               <Sparkles className="h-5 w-5" />
             </div>
             <div>
-              <h1 className="text-lg font-bold">AI Jana</h1>
+              <h1 className="text-lg font-bold">{t('ai.title')}</h1>
               <p className="text-sm text-muted">{t('ai.subtitle')}</p>
             </div>
           </div>
           {messages.length > 0 && (
             <Button variant="ghost" size="sm" icon={<RotateCcw className="h-4 w-4" />} onClick={reset}>
-              Новый диалог
+              {t('ai.newChat')}
             </Button>
           )}
         </div>
@@ -39,34 +39,34 @@ export default function AssistantPage() {
 
       <div className="space-y-4">
         <Card className="p-5">
-          <h3 className="font-semibold">Как AI Jana отвечает</h3>
+          <h3 className="font-semibold">{t('ai.howTitle')}</h3>
           <ul className="mt-3 space-y-3 text-sm text-ink-soft">
             <li className="flex gap-2.5">
               <BookOpenCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" />
-              Отвечает по базе знаний HR, у каждого ответа есть ссылка на положение.
+              {t('ai.how1')}
             </li>
             <li className="flex gap-2.5">
               <UserRound className="mt-0.5 h-4 w-4 shrink-0 text-sky-600" />
-              Ваши данные (отпуск, заявки, курсы) берёт из профиля и 1С:ЗУП.
+              {t('ai.how2')}
             </li>
             <li className="flex gap-2.5">
               <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-violet-600" />
-              Не раскрывает чужие персональные данные и не принимает кадровых решений{isHr ? '; цифры по компании показывает по роли HR' : ''}.
+              {isHr ? t('ai.how3Hr') : t('ai.how3')}
             </li>
             <li className="flex gap-2.5">
               <MessageCircleQuestion className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
-              Если ответа нет, честно скажет и передаст вопрос в HR.
+              {t('ai.how4')}
             </li>
           </ul>
           <Link to="/knowledge" className="mt-4 inline-block text-sm font-medium text-brand-700 hover:underline">
-            Открыть базу знаний →
+            {t('ai.openKb')} →
           </Link>
         </Card>
 
         <Card>
-          <CardHeader title="Мои вопросы в HR" subtitle="Эскалации, на которые ответит HR" />
+          <CardHeader title={t('ai.myTickets')} subtitle={t('ai.myTicketsHint')} />
           <ul className="divide-y divide-line border-t border-line">
-            {(tickets.data ?? []).length === 0 && <li className="px-5 py-5 text-center text-sm text-muted">Пока нет обращений</li>}
+            {(tickets.data ?? []).length === 0 && <li className="px-5 py-5 text-center text-sm text-muted">{t('ai.noTickets')}</li>}
             {(tickets.data ?? []).slice(0, 6).map((tk) => (
               <li key={tk.id} className="px-5 py-3">
                 <div className="flex items-center justify-between gap-2">
@@ -74,7 +74,7 @@ export default function AssistantPage() {
                     №{tk.number} · {fmtDate(tk.created_at, 'd MMM')}
                   </span>
                   <Badge className={tk.status === 'open' ? 'bg-amber-50 text-amber-800 ring-amber-200' : 'bg-brand-50 text-brand-700 ring-brand-200'}>
-                    {tk.status === 'open' ? 'ждёт ответа' : 'есть ответ'}
+                    {tk.status === 'open' ? t('ai.tkOpen') : t('ai.tkAnswered')}
                   </Badge>
                 </div>
                 <div className="mt-1 text-sm font-medium text-ink">{tk.question}</div>

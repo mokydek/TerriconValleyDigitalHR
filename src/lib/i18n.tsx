@@ -1,439 +1,145 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
+import { createContext, Fragment, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
+import { toast } from 'sonner'
+import ru, { type Dict, type I18nKey } from '@/locales/ru'
+import { LANGS, type Lang } from '@/locales/langs'
 
-export type Lang = 'ru' | 'kk'
+export type { Dict, I18nKey, Lang }
+export { LANGS }
 
-const ru = {
-  'app.tagline': 'Единая HR-платформа Jana Post',
-  'nav.home': 'Главная',
-  'nav.pulse': 'Пульс компании',
-  'nav.profile': 'Мой профиль',
-  'nav.requests': 'Мои заявки',
-  'nav.approvals': 'Согласования',
-  'nav.hrRequests': 'Заявки',
-  'nav.academy': 'Jana Academy',
-  'nav.assistant': 'AI Jana',
-  'nav.knowledge': 'База знаний',
-  'nav.notifications': 'Уведомления',
-  'nav.tasks': 'Задачи',
-  'nav.announcements': 'Объявления',
-  'nav.team': 'Моя команда',
-  'nav.employees': 'Сотрудники',
-  'nav.analytics': 'Аналитика и прогнозы',
-  'nav.tickets': 'Обращения в HR',
-  'nav.integrations': 'Интеграции',
-  'nav.more': 'Ещё',
-  'nav.personal': 'Личное',
-  'nav.company': 'Компания',
-  'nav.management': 'Управление',
-  'nav.logout': 'Выйти',
-  'role.employee': 'Работник',
-  'role.manager': 'Руководитель',
-  'role.hr': 'HR / администратор',
-  'common.save': 'Сохранить',
-  'common.cancel': 'Отмена',
-  'common.send': 'Отправить',
-  'common.create': 'Создать',
-  'common.close': 'Закрыть',
-  'common.loading': 'Загрузка…',
-  'common.search': 'Поиск',
-  'common.all': 'Все',
-  'common.open': 'Открыть',
-  'common.back': 'Назад',
-  'common.empty': 'Пока пусто',
-  'common.today': 'Сегодня',
-  'common.days': 'дн.',
-  'common.more': 'Подробнее',
-  'common.error': 'Что-то пошло не так',
-  'common.retry': 'Повторить',
-  'common.readOnly': 'только чтение',
-  'type.vacation': 'Отпуск',
-  'type.advance': 'Аванс',
-  'type.certificate': 'Справка с места работы',
-  'type.data_change': 'Изменение данных',
-  'status.pending': 'На согласовании',
-  'status.approved': 'Согласовано, у HR',
-  'status.processing': 'Оформляется в 1С',
-  'status.done': 'Оформлено',
-  'status.rejected': 'Отклонено',
-  'status.cancelled': 'Отменено',
-  'home.morning': 'Доброе утро',
-  'home.day': 'Добрый день',
-  'home.evening': 'Добрый вечер',
-  'home.subtitle': 'Всё по работе в одном окне',
-  'home.quick': 'Быстрые сервисы',
-  'home.qVacation': 'Оформить отпуск',
-  'home.qAdvance': 'Запросить аванс',
-  'home.qCertificate': 'Заказать справку',
-  'home.qAsk': 'Спросить AI Jana',
-  'home.myRequests': 'Мои заявки',
-  'home.myLearning': 'Моё обучение',
-  'home.myTasks': 'Мои задачи',
-  'home.news': 'Объявления',
-  'home.notifications': 'Уведомления',
-  'home.tabOverview': 'Обзор',
-  'home.tabTeam': 'Команда',
-  'home.tabTasks': 'Задачи',
-  'home.tabLearning': 'Обучение',
-  'home.tabNews': 'Объявления',
-  'home.tabNotifications': 'Уведомления',
-  'home.allRequests': 'Все заявки',
-  'home.allCourses': 'Все курсы',
-  'home.allTasks': 'Все задачи',
-  'home.allNews': 'Все объявления',
-  'home.noRequests': 'Заявок пока нет. Первая оформляется за минуту',
-  'vac.balance': 'Остаток отпуска',
-  'vac.available': 'доступно',
-  'vac.entitled': 'Положено за год',
-  'vac.used': 'Оформлено',
-  'vac.reserved': 'На согласовании',
-  'profile.title': 'Личный кабинет',
-  'profile.official': 'Кадровые данные',
-  'profile.source': 'Источник: 1С:ЗУП',
-  'profile.fullName': 'Ф.И.О.',
-  'profile.company': 'Компания',
-  'profile.position': 'Должность',
-  'profile.department': 'Подразделение',
-  'profile.manager': 'Руководитель',
-  'profile.hireDate': 'Дата приёма',
-  'profile.tabNo': 'Табельный номер',
-  'profile.location': 'Место работы',
-  'profile.contacts': 'Контакты',
-  'profile.private': 'Персональные данные',
-  'profile.requestChange': 'Запросить изменение',
-  'profile.tabData': 'Данные',
-  'profile.tabVacation': 'Отпуск',
-  'profile.tabLearning': 'Обучение',
-  'profile.tabRequests': 'Заявки',
-  'req.new': 'Новая заявка',
-  'req.chooseType': 'Что оформляем?',
-  'req.dates': 'Даты отпуска',
-  'req.from': 'С',
-  'req.to': 'По',
-  'req.amount': 'Сумма',
-  'req.comment': 'Комментарий',
-  'req.submit': 'Отправить заявку',
-  'req.track': 'Трек заявки',
-  'req.history': 'История',
-  'req.cancel': 'Отозвать заявку',
-  'req.stepManager': 'Руководитель',
-  'req.stepHr': 'HR',
-  'req.step1c': '1С:ЗУП',
-  'req.stepDone': 'Готово',
-  'req.documents': 'Документы',
-  'academy.subtitle': 'Обучение и развитие',
-  'academy.assigned': 'Назначено мне',
-  'academy.catalog': 'Каталог курсов',
-  'academy.start': 'Начать',
-  'academy.continue': 'Продолжить',
-  'academy.completed': 'Пройден',
-  'academy.lessons': 'уроков',
-  'academy.min': 'мин',
-  'academy.test': 'Итоговый тест',
-  'academy.due': 'до',
-  'ai.title': 'AI Jana',
-  'ai.subtitle': 'Ответы по базе знаний с источником',
-  'ai.placeholder': 'Спросите про отпуск, аванс, справки…',
-  'ai.source': 'Источник',
-  'ai.noAnswer': 'В базе знаний нет надёжного ответа на этот вопрос.',
-  'ai.escalate': 'Задать вопрос HR',
-  'ai.escalated': 'Вопрос передан в HR, ответ придёт в уведомлениях',
-  'notif.title': 'Уведомления',
-  'notif.markAll': 'Прочитать все',
-  'notif.empty': 'Новых уведомлений нет',
-  'nav.messages': 'Сообщения',
-  'menu.open': 'Меню профиля',
-  'menu.changePhoto': 'Сменить фото',
-  'menu.removePhoto': 'Удалить фото',
-  'menu.language': 'Язык',
-  'photo.updated': 'Фото обновлено',
-  'photo.removed': 'Фото удалено',
-  'photo.bad': 'Не удалось прочитать картинку. Выберите фото в формате JPG, PNG или WebP.',
-  'chat.new': 'Новый чат',
-  'chat.search': 'Поиск по чатам',
-  'chat.empty': 'Переписок пока нет',
-  'chat.emptyText': 'Нажмите «Новый чат» и выберите коллегу.',
-  'chat.pick': 'Выберите чат слева или начните новый',
-  'chat.placeholder': 'Сообщение…',
-  'chat.send': 'Отправить',
-  'chat.reply': 'Ответить',
-  'chat.replying': 'Ответ на сообщение',
-  'chat.cancelReply': 'Не отвечать',
-  'chat.you': 'Вы',
-  'chat.today': 'Сегодня',
-  'chat.yesterday': 'Вчера',
-  'chat.members': 'Участников: {n}',
-  'chat.back': 'К чатам',
-  'chat.newHint': 'Один коллега: личный чат. Несколько: группа.',
-  'chat.findPeople': 'Имя или должность',
-  'chat.groupName': 'Название группы',
-  'chat.write': 'Написать',
-  'chat.createGroup': 'Создать группу',
-  'chat.selected': 'Выбрано: {n}',
-  'chat.noPeople': 'Никого не нашли',
-  'chat.noMessages': 'Сообщений пока нет. Напишите первым.',
-  'chat.sendHint': 'Enter: отправить, Shift+Enter: новая строка',
-  'tasks.todo': 'К выполнению',
-  'tasks.in_progress': 'В работе',
-  'tasks.review': 'На проверке',
-  'tasks.done': 'Готово',
-  'login.title': 'Вход в JanaMen',
-  'login.subtitle': 'HR-платформа Jana Post',
-  'login.tagline': 'Одна платформа для сотрудника: профиль, заявки, обучение и HR-помощь.',
-  'login.step1': 'Вход и роль',
-  'login.step2': 'Профиль',
-  'login.step3': 'Заявка',
-  'login.step4': 'Обучение',
-  'login.step5': 'HR-ассистент',
-  'login.feature1': 'Данные из 1С:ЗУП',
-  'login.feature2': 'Jana Academy',
-  'login.feature3': 'AI Jana с источниками',
-  'login.posEmployee': 'Старший оператор сортировки',
-  'login.posManager': 'Руководитель склада и сортировки',
-  'login.posHr': 'HR-директор',
-  'login.newbie': 'или войти как новый сотрудник (5-й день в компании)',
-  'login.orEmail': 'или по почте',
-  'login.footer': 'Демо-стенд, все данные вымышленные. Пароль тестовых аккаунтов: {password}',
-  'login.email': 'Рабочая почта',
-  'login.password': 'Пароль',
-  'login.submit': 'Войти',
-  'login.demo': 'Демо-доступ: войти как',
-} as const
+const STORAGE_KEY = 'janamen-lang'
 
-export type I18nKey = keyof typeof ru
+// Русский встроен в сборку, остальные языки скачиваются отдельным файлом при выборе
+const loaders: Record<Exclude<Lang, 'ru'>, () => Promise<{ default: Dict }>> = {
+  kk: () => import('@/locales/kk'),
+  en: () => import('@/locales/en'),
+  ky: () => import('@/locales/ky'),
+  uz: () => import('@/locales/uz'),
+  tg: () => import('@/locales/tg'),
+  mn: () => import('@/locales/mn'),
+}
+const dicts: Partial<Record<Lang, Dict>> = { ru }
 
-const kk: Partial<Record<I18nKey, string>> = {
-  'app.tagline': 'Jana Post бірыңғай HR-платформасы',
-  'nav.home': 'Басты бет',
-  'nav.pulse': 'Компания пульсі',
-  'nav.profile': 'Менің профилім',
-  'nav.requests': 'Менің өтінімдерім',
-  'nav.approvals': 'Келісу',
-  'nav.hrRequests': 'Өтінімдер',
-  'nav.knowledge': 'Білім қоры',
-  'nav.notifications': 'Хабарламалар',
-  'nav.tasks': 'Тапсырмалар',
-  'nav.announcements': 'Хабарландырулар',
-  'nav.team': 'Менің командам',
-  'nav.employees': 'Қызметкерлер',
-  'nav.analytics': 'Талдау және болжам',
-  'nav.tickets': 'HR-ге сұрақтар',
-  'nav.integrations': 'Интеграциялар',
-  'nav.more': 'Тағы',
-  'nav.personal': 'Жеке',
-  'nav.company': 'Компания',
-  'nav.management': 'Басқару',
-  'nav.logout': 'Шығу',
-  'role.employee': 'Қызметкер',
-  'role.manager': 'Басшы',
-  'role.hr': 'HR / әкімші',
-  'common.save': 'Сақтау',
-  'common.cancel': 'Болдырмау',
-  'common.send': 'Жіберу',
-  'common.create': 'Құру',
-  'common.close': 'Жабу',
-  'common.loading': 'Жүктелуде…',
-  'common.search': 'Іздеу',
-  'common.all': 'Барлығы',
-  'common.open': 'Ашу',
-  'common.back': 'Артқа',
-  'common.empty': 'Әзірге бос',
-  'common.today': 'Бүгін',
-  'common.days': 'күн',
-  'common.more': 'Толығырақ',
-  'common.error': 'Бірдеңе дұрыс болмады',
-  'common.retry': 'Қайталау',
-  'common.readOnly': 'тек оқу үшін',
-  'type.vacation': 'Демалыс',
-  'type.advance': 'Аванс',
-  'type.certificate': 'Жұмыс орнынан анықтама',
-  'type.data_change': 'Деректерді өзгерту',
-  'status.pending': 'Келісуде',
-  'status.approved': 'Келісілді, HR-да',
-  'status.processing': '1С-та рәсімделуде',
-  'status.done': 'Рәсімделді',
-  'status.rejected': 'Қабылданбады',
-  'status.cancelled': 'Кері қайтарылды',
-  'home.morning': 'Қайырлы таң',
-  'home.day': 'Қайырлы күн',
-  'home.evening': 'Қайырлы кеш',
-  'home.subtitle': 'Жұмысқа қатыстының бәрі бір терезеде',
-  'home.quick': 'Жылдам қызметтер',
-  'home.qVacation': 'Демалыс рәсімдеу',
-  'home.qAdvance': 'Аванс сұрау',
-  'home.qCertificate': 'Анықтама алу',
-  'home.qAsk': 'AI Jana-дан сұрау',
-  'home.myRequests': 'Менің өтінімдерім',
-  'home.myLearning': 'Менің оқуым',
-  'home.myTasks': 'Менің тапсырмаларым',
-  'home.news': 'Хабарландырулар',
-  'home.notifications': 'Хабарламалар',
-  'home.tabOverview': 'Шолу',
-  'home.tabTeam': 'Команда',
-  'home.tabTasks': 'Тапсырмалар',
-  'home.tabLearning': 'Оқу',
-  'home.tabNews': 'Хабарландырулар',
-  'home.tabNotifications': 'Хабарламалар',
-  'home.allRequests': 'Барлық өтінімдер',
-  'home.allCourses': 'Барлық курстар',
-  'home.allTasks': 'Барлық тапсырмалар',
-  'home.allNews': 'Барлық хабарландырулар',
-  'home.noRequests': 'Өтінім әлі жоқ. Біріншісін бір минутта рәсімдеуге болады',
-  'vac.balance': 'Демалыс қалдығы',
-  'vac.available': 'қолжетімді',
-  'vac.entitled': 'Жылына тиесілі',
-  'vac.used': 'Рәсімделген',
-  'vac.reserved': 'Келісуде',
-  'profile.title': 'Жеке кабинет',
-  'profile.official': 'Кадрлық деректер',
-  'profile.source': 'Дереккөз: 1С:ЗУП',
-  'profile.fullName': 'Т.А.Ә.',
-  'profile.company': 'Компания',
-  'profile.position': 'Лауазымы',
-  'profile.department': 'Бөлімше',
-  'profile.manager': 'Басшы',
-  'profile.hireDate': 'Жұмысқа қабылданған күні',
-  'profile.tabNo': 'Табель нөмірі',
-  'profile.location': 'Жұмыс орны',
-  'profile.contacts': 'Байланыс',
-  'profile.private': 'Дербес деректер',
-  'profile.requestChange': 'Өзгертуді сұрау',
-  'profile.tabData': 'Деректер',
-  'profile.tabVacation': 'Демалыс',
-  'profile.tabLearning': 'Оқу',
-  'profile.tabRequests': 'Өтінімдер',
-  'req.new': 'Жаңа өтінім',
-  'req.chooseType': 'Не рәсімдейміз?',
-  'req.dates': 'Демалыс күндері',
-  'req.from': 'Бастап',
-  'req.to': 'Дейін',
-  'req.amount': 'Сома',
-  'req.comment': 'Түсініктеме',
-  'req.submit': 'Өтінімді жіберу',
-  'req.track': 'Өтінім жолы',
-  'req.history': 'Тарих',
-  'req.cancel': 'Өтінімді кері қайтару',
-  'req.stepManager': 'Басшы',
-  'req.stepHr': 'HR',
-  'req.step1c': '1С:ЗУП',
-  'req.stepDone': 'Дайын',
-  'req.documents': 'Құжаттар',
-  'academy.subtitle': 'Оқу және даму',
-  'academy.assigned': 'Маған тағайындалған',
-  'academy.catalog': 'Курстар каталогы',
-  'academy.start': 'Бастау',
-  'academy.continue': 'Жалғастыру',
-  'academy.completed': 'Өтті',
-  'academy.lessons': 'сабақ',
-  'academy.min': 'мин',
-  'academy.test': 'Қорытынды тест',
-  'academy.due': 'мерзімі',
-  'ai.subtitle': 'Білім қоры бойынша дереккөзі бар жауаптар',
-  'ai.placeholder': 'Демалыс, аванс, анықтама туралы сұраңыз…',
-  'ai.source': 'Дереккөз',
-  'ai.noAnswer': 'Білім қорында бұл сұраққа сенімді жауап жоқ.',
-  'ai.escalate': 'HR-ге сұрақ қою',
-  'ai.escalated': 'Сұрақ HR-ге жіберілді, жауап хабарламада келеді',
-  'notif.title': 'Хабарламалар',
-  'notif.markAll': 'Барлығын оқу',
-  'notif.empty': 'Жаңа хабарлама жоқ',
-  'nav.messages': 'Чаттар',
-  'menu.open': 'Профиль мәзірі',
-  'menu.changePhoto': 'Фотоны ауыстыру',
-  'menu.removePhoto': 'Фотоны жою',
-  'menu.language': 'Тіл',
-  'photo.updated': 'Фото жаңартылды',
-  'photo.removed': 'Фото жойылды',
-  'photo.bad': 'Суретті оқу мүмкін болмады. JPG, PNG немесе WebP форматындағы фото таңдаңыз.',
-  'chat.new': 'Жаңа чат',
-  'chat.search': 'Чаттардан іздеу',
-  'chat.empty': 'Әзірге хат алмасу жоқ',
-  'chat.emptyText': '«Жаңа чат» батырмасын басып, әріптесті таңдаңыз.',
-  'chat.pick': 'Сол жақтан чатты таңдаңыз немесе жаңасын бастаңыз',
-  'chat.placeholder': 'Хабарлама…',
-  'chat.send': 'Жіберу',
-  'chat.reply': 'Жауап беру',
-  'chat.replying': 'Хабарламаға жауап',
-  'chat.cancelReply': 'Жауап бермеу',
-  'chat.you': 'Сіз',
-  'chat.today': 'Бүгін',
-  'chat.yesterday': 'Кеше',
-  'chat.members': 'Қатысушылар: {n}',
-  'chat.back': 'Чаттарға',
-  'chat.newHint': 'Бір әріптес: жеке чат. Бірнешеу: топ.',
-  'chat.findPeople': 'Аты немесе лауазымы',
-  'chat.groupName': 'Топ атауы',
-  'chat.write': 'Жазу',
-  'chat.createGroup': 'Топ құру',
-  'chat.selected': 'Таңдалды: {n}',
-  'chat.noPeople': 'Ешкім табылмады',
-  'chat.noMessages': 'Әзірге хабарлама жоқ. Бірінші болып жазыңыз.',
-  'chat.sendHint': 'Enter: жіберу, Shift+Enter: жаңа жол',
-  'tasks.todo': 'Орындауға',
-  'tasks.in_progress': 'Жұмыста',
-  'tasks.review': 'Тексеруде',
-  'tasks.done': 'Дайын',
-  'login.title': 'JanaMen-ге кіру',
-  'login.subtitle': 'Jana Post HR-платформасы',
-  'login.tagline': 'Қызметкерге арналған бір платформа: профиль, өтінімдер, оқу және HR-көмек.',
-  'login.step1': 'Кіру және рөл',
-  'login.step2': 'Профиль',
-  'login.step3': 'Өтінім',
-  'login.step4': 'Оқу',
-  'login.step5': 'HR-көмекші',
-  'login.feature1': '1С:ЗУП деректері',
-  'login.feature2': 'Jana Academy',
-  'login.feature3': 'Дереккөзі бар AI Jana',
-  'login.posEmployee': 'Сұрыптау жөніндегі аға оператор',
-  'login.posManager': 'Қойма және сұрыптау басшысы',
-  'login.posHr': 'HR-директор',
-  'login.newbie': 'немесе жаңа қызметкер ретінде кіру (компаниядағы 5-күні)',
-  'login.orEmail': 'немесе пошта арқылы',
-  'login.footer': 'Демо-стенд, барлық деректер ойдан шығарылған. Тест аккаунттарының құпиясөзі: {password}',
-  'login.email': 'Жұмыс поштасы',
-  'login.password': 'Құпиясөз',
-  'login.submit': 'Кіру',
-  'login.demo': 'Демо-қолжетімділік: кіру',
+let current: Lang = 'ru'
+let active: Dict = ru
+
+export function isLang(value: unknown): value is Lang {
+  return LANGS.some((l) => l.code === value)
 }
 
-const dict: Record<Lang, Partial<Record<I18nKey, string>>> = { ru, kk }
-
-let current: Lang = (() => {
+function savedLang(): Lang {
   try {
-    const saved = localStorage.getItem('janamen-lang')
-    return saved === 'kk' ? 'kk' : 'ru'
+    const saved = localStorage.getItem(STORAGE_KEY)
+    return isLang(saved) ? saved : 'ru'
   } catch {
     return 'ru'
   }
-})()
+}
+
+async function loadLang(l: Lang): Promise<void> {
+  if (l !== 'ru' && !dicts[l]) dicts[l] = (await loaders[l]()).default
+}
+
+function apply(l: Lang) {
+  current = l
+  active = dicts[l] ?? ru
+  document.documentElement.lang = l
+  document.title = t('app.title')
+}
+
+/** До первого рендера: подгружаем сохранённый язык; если файл не скачался, остаёмся на русском */
+export function initLang(): Promise<void> {
+  const l = savedLang()
+  return loadLang(l).then(
+    () => apply(l),
+    () => apply('ru'),
+  )
+}
 
 export function getLang(): Lang {
   return current
 }
 
-export function t(key: I18nKey, vars?: Record<string, string | number>): string {
-  let s = dict[current][key] ?? ru[key] ?? key
-  if (vars) for (const [k, v] of Object.entries(vars)) s = s.replace(`{${k}}`, String(v))
-  return s
+/** Локаль для чисел: разделители разрядов и дробной части */
+export function numberLocale(): string {
+  return LANGS.find((l) => l.code === current)?.numberLocale ?? 'ru-RU'
+}
+
+/** Индекс формы слова после числа: в русском одна, две-четыре, пять и больше; в английском одна или много */
+function pluralIndex(n: number, forms: number): number {
+  if (forms <= 1) return 0
+  if (current === 'ru') {
+    if (!Number.isInteger(n)) return Math.min(1, forms - 1)
+    const abs = Math.abs(n) % 100
+    const last = abs % 10
+    if (abs > 10 && abs < 20) return Math.min(2, forms - 1)
+    if (last === 1) return 0
+    if (last > 1 && last < 5) return Math.min(1, forms - 1)
+    return Math.min(2, forms - 1)
+  }
+  return Math.abs(n) === 1 ? 0 : forms - 1
+}
+
+type Vars = Record<string, string | number>
+const TOKEN = /\{(\w+)((?:\|[^{}|]*)+)?\}/g
+
+/** {name} подставляет значение, {name|форма|формы|форм} выбирает форму слова по числу name */
+function fill(s: string, vars: Vars): string {
+  return s.replace(TOKEN, (m, name: string, forms?: string) => {
+    const v = vars[name]
+    if (v === undefined) return m
+    if (!forms) return String(v)
+    const list = forms.slice(1).split('|')
+    return list[pluralIndex(Number(v), list.length)]
+  })
+}
+
+export function t(key: I18nKey, vars?: Vars): string {
+  const s = active[key] ?? ru[key] ?? key
+  return vars ? fill(s, vars) : s
+}
+
+/** Перевод со вставками-элементами: tr('key', { email: <b>{email}</b> }) */
+export function tr(key: I18nKey, vars: Record<string, ReactNode>): ReactNode {
+  const s = active[key] ?? ru[key] ?? key
+  const parts: ReactNode[] = []
+  let last = 0
+  for (const m of s.matchAll(TOKEN)) {
+    const [whole, name, forms] = m
+    const idx = m.index ?? 0
+    if (idx > last) parts.push(s.slice(last, idx))
+    const v = vars[name]
+    if (v === undefined) parts.push(whole)
+    else if (forms && typeof v === 'number') parts.push(fill(whole, { [name]: v }))
+    else parts.push(<Fragment key={idx}>{v}</Fragment>)
+    last = idx + whole.length
+  }
+  if (last < s.length) parts.push(s.slice(last))
+  return <>{parts}</>
 }
 
 interface I18nCtx {
   lang: Lang
-  setLang: (l: Lang) => void
+  setLang: (l: Lang) => Promise<void>
   t: typeof t
 }
 
-const Ctx = createContext<I18nCtx>({ lang: current, setLang: () => {}, t })
+const Ctx = createContext<I18nCtx>({ lang: current, setLang: async () => {}, t })
 
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>(current)
-  const setLang = useCallback((l: Lang) => {
-    current = l
+  const setLang = useCallback(async (l: Lang) => {
     try {
-      localStorage.setItem('janamen-lang', l)
+      await loadLang(l)
     } catch {
-      /* приватный режим — язык не сохранится */
+      toast.error(t('err.langLoad'))
+      return
     }
-    document.documentElement.lang = l === 'kk' ? 'kk' : 'ru'
+    apply(l)
+    try {
+      localStorage.setItem(STORAGE_KEY, l)
+    } catch {
+      /* приватный режим: язык не сохранится */
+    }
     setLangState(l)
   }, [])
   const value = useMemo(() => ({ lang, setLang, t }), [lang, setLang])

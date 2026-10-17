@@ -77,9 +77,9 @@ export default function RequestsPage() {
         onChange={setFilter}
         className="mb-4"
         items={[
-          { value: 'all', label: 'Все', count: data?.length },
-          { value: 'active', label: 'В работе', count: activeCount },
-          { value: 'closed', label: 'Завершённые' },
+          { value: 'all', label: t('common.all'), count: data?.length },
+          { value: 'active', label: t('req.tabActive'), count: activeCount },
+          { value: 'closed', label: t('req.tabClosed') },
         ]}
       />
 
@@ -92,18 +92,18 @@ export default function RequestsPage() {
             ))}
           </div>
         ) : rows.length === 0 ? (
-          <Empty icon={<FileStack className="h-6 w-6" />} title="Заявок нет" text={t('home.noRequests')} action={<Button onClick={() => setCreating(true)}>{t('req.new')}</Button>} />
+          <Empty icon={<FileStack className="h-6 w-6" />} title={t('req.empty')} text={t('home.noRequests')} action={<Button onClick={() => setCreating(true)}>{t('req.new')}</Button>} />
         ) : (
           <>
             {/* Таблица — десктоп */}
             <table className="hidden w-full text-left text-sm md:table">
               <thead className="border-b border-line bg-canvas/60 text-xs tracking-wide text-muted uppercase">
                 <tr>
-                  <th className="px-5 py-3 font-medium">№</th>
-                  <th className="px-5 py-3 font-medium">Тип</th>
-                  <th className="px-5 py-3 font-medium">Детали</th>
-                  <th className="px-5 py-3 font-medium">Создана</th>
-                  <th className="px-5 py-3 font-medium">Статус</th>
+                  <th className="px-5 py-3 font-medium">{t('req.colNo')}</th>
+                  <th className="px-5 py-3 font-medium">{t('req.colType')}</th>
+                  <th className="px-5 py-3 font-medium">{t('req.details')}</th>
+                  <th className="px-5 py-3 font-medium">{t('req.colCreated')}</th>
+                  <th className="px-5 py-3 font-medium">{t('req.colStatus')}</th>
                   <th />
                 </tr>
               </thead>
@@ -121,7 +121,7 @@ export default function RequestsPage() {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <TypeLabel type={r.type} />
-                        <span className="text-xs text-muted">№{r.number}</span>
+                        <span className="text-xs text-muted">{t('req.no', { n: r.number })}</span>
                       </div>
                       <div className="mt-1 truncate text-sm text-muted">{requestSummary(r)}</div>
                       <div className="mt-1.5">

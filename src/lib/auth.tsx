@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { useQueryClient } from '@tanstack/react-query'
+import { t } from './i18n'
 import { errorMessage, supabase } from './supabase'
 import type { Employee, Role } from './types'
 
@@ -86,7 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = useCallback(async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) {
-      throw new Error(error.message === 'Invalid login credentials' ? 'Неверная почта или пароль' : error.message)
+      throw new Error(error.message === 'Invalid login credentials' ? t('err.badLogin') : error.message)
     }
   }, [])
 
@@ -118,13 +119,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth(): AuthCtx {
   const ctx = useContext(Ctx)
-  if (!ctx) throw new Error('useAuth вне AuthProvider')
+  if (!ctx) throw new Error('useAuth outside AuthProvider')
   return ctx
 }
 
 /** Текущий сотрудник (страницы внутри защищённой зоны) */
 export function useMe(): Employee {
   const { me } = useAuth()
-  if (!me) throw new Error('Нет текущего сотрудника')
+  if (!me) throw new Error(t('err.noEmployee'))
   return me
 }

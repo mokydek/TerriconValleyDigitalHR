@@ -5,7 +5,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { toast, Toaster } from 'sonner'
 import { AuthProvider } from '@/lib/auth'
-import { I18nProvider } from '@/lib/i18n'
+import { I18nProvider, initLang, t } from '@/lib/i18n'
 import App from './App'
 import { ErrorBoundary, RELOAD_FLAG } from '@/components/ErrorBoundary'
 import { reloadFresh } from '@/lib/reload'
@@ -42,10 +42,10 @@ document.addEventListener('visibilitychange', () => {
     .then((html) => {
       const latest = /<script[^>]+src="(\/assets\/[^"]+\.js)"/.exec(html)?.[1]
       if (latest && latest !== runningEntry) {
-        toast('Вышла новая версия JanaMen', {
+        toast(t('app.newVersion'), {
           id: 'new-version',
           duration: Infinity,
-          action: { label: 'Обновить', onClick: reloadFresh },
+          action: { label: t('common.refresh'), onClick: reloadFresh },
         })
       }
     })
@@ -61,22 +61,25 @@ const queryClient = new QueryClient({
   },
 })
 
-// Внешний ErrorBoundary ловит сбои вне страниц (провайдеры, уведомления): вместо пустого экрана — сообщение
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <ErrorBoundary>
-      <I18nProvider>
-        <QueryClientProvider client={queryClient}>
-          <BrowserRouter>
-            <AuthProvider>
-              <ErrorBoundary>
-                <App />
-              </ErrorBoundary>
-              <Toaster position="top-center" richColors closeButton toastOptions={{ duration: 4000 }} />
-            </AuthProvider>
-          </BrowserRouter>
-        </QueryClientProvider>
-      </I18nProvider>
-    </ErrorBoundary>
-  </StrictMode>,
-)
+// Внешний ErrorBoundary ловит сбои вне страниц (провайдеры, уведомления): вместо пустого экрана — сообщение.
+// Сначала подгружаем словарь сохранённого языка, чтобы первый же экран был на нём
+void initLang().finally(() => {
+  createRoot(document.getElementById('root')!).render(
+    <StrictMode>
+      <ErrorBoundary>
+        <I18nProvider>
+          <QueryClientProvider client={queryClient}>
+            <BrowserRouter>
+              <AuthProvider>
+                <ErrorBoundary>
+                  <App />
+                </ErrorBoundary>
+                <Toaster position="top-center" richColors closeButton toastOptions={{ duration: 4000 }} />
+              </AuthProvider>
+            </BrowserRouter>
+          </QueryClientProvider>
+        </I18nProvider>
+      </ErrorBoundary>
+    </StrictMode>,
+  )
+})

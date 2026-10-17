@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ClipboardList, GraduationCap, Lock, Mail, Phone, Plus, RefreshCw } from 'lucide-react'
 import { useAuth } from '@/lib/auth'
-import { useI18n } from '@/lib/i18n'
+import { tr, useI18n } from '@/lib/i18n'
 import { useCourses, useEmployee, useEmployeeRequests, useMyAssignments, usePeople, useRequestEvents, useTasks, useVacationBalance } from '@/lib/api'
 import { PRIORITY_META } from '@/lib/constants'
 import { days, fmtDate, fmtDateTime, fullName, money } from '@/lib/format'
@@ -50,7 +50,7 @@ export default function EmployeeCardPage() {
   const person = (people.data ?? []).find((p) => p.employee_id === id)
 
   if (emp.isLoading) return <PageLoader />
-  if (emp.error || !emp.data) return <ErrorBox error={emp.error ?? 'Сотрудник не найден'} />
+  if (emp.error || !emp.data) return <ErrorBox error={emp.error ?? t('emp.notFound')} />
   const e = emp.data.emp
   const priv = emp.data.priv
   const canSeeTeamData = Boolean(person) // people_overview отдаёт только разрешённых (HR — всех, руководителю — команду)
@@ -58,7 +58,7 @@ export default function EmployeeCardPage() {
   return (
     <div>
       <Link to={isHr ? '/employees' : '/team'} className="mb-3 inline-flex items-center gap-1 text-sm text-muted hover:text-brand-700">
-        ← {isHr ? 'Сотрудники' : 'Моя команда'}
+        ← {isHr ? t('nav.employees') : t('nav.team')}
       </Link>
       <Card className="mb-5 p-5">
         <div className="flex flex-col gap-4 md:flex-row md:items-center">
@@ -87,11 +87,11 @@ export default function EmployeeCardPage() {
             {canSeeTeamData && (
               <>
                 <Button variant="outline" icon={<GraduationCap className="h-4 w-4" />} onClick={() => setAssignOpen(true)}>
-                  Назначить курс
+                  {t('emp.assignCourse')}
                 </Button>
                 <Link to="/tasks">
                   <Button variant="outline" icon={<Plus className="h-4 w-4" />}>
-                    Поставить задачу
+                    {t('emp.addTask')}
                   </Button>
                 </Link>
               </>
@@ -103,7 +103,7 @@ export default function EmployeeCardPage() {
       {!canSeeTeamData && (
         <Card className="mb-5 flex items-start gap-3 p-5 text-sm text-muted">
           <Lock className="mt-0.5 h-5 w-5 shrink-0 text-violet-600" />
-          Это не ваш сотрудник: доступен только рабочий профиль. Заявки, обучение и задачи видят сам сотрудник, его руководитель и HR. Это проверяет сервер.
+          {t('emp.notYours')}
         </Card>
       )}
 
@@ -112,10 +112,10 @@ export default function EmployeeCardPage() {
           <Card>
             <CardHeader
               icon={<Lock className="h-[18px] w-[18px]" />}
-              title="Профиль из 1С:ЗУП"
+              title={t('emp.zupProfile')}
               subtitle={
                 <span className="inline-flex items-center gap-1">
-                  только чтение {e.synced_at && <><RefreshCw className="h-3 w-3" /> {fmtDateTime(e.synced_at)}</>}
+                  {t('common.readOnly')} {e.synced_at && <><RefreshCw className="h-3 w-3" /> {fmtDateTime(e.synced_at)}</>}
                 </span>
               }
             />
@@ -138,33 +138,36 @@ export default function EmployeeCardPage() {
               </div>
               {canSeeTeamData && balance.data && (
                 <div className="col-span-2 rounded-xl bg-brand-50 px-3.5 py-2.5">
-                  <dt className="text-brand-800">Остаток отпуска</dt>
+                  <dt className="text-brand-800">{t('vac.balance')}</dt>
                   <dd className="text-lg font-bold text-brand-800">
-                    {days(balance.data.available)} <span className="text-sm font-normal">из {days(balance.data.entitled)}</span>
+                    {tr('emp.balanceOf', {
+                      available: days(balance.data.available),
+                      ofTotal: <span className="text-sm font-normal">{t('emp.ofTotal', { total: days(balance.data.entitled) })}</span>,
+                    })}
                   </dd>
                 </div>
               )}
               {isHr && priv && (
                 <>
                   <div>
-                    <dt className="text-muted">Оклад</dt>
+                    <dt className="text-muted">{t('emp.salary')}</dt>
                     <dd className="font-medium">{money(priv.salary)}</dd>
                   </div>
                   <div>
-                    <dt className="text-muted">Дата рождения</dt>
+                    <dt className="text-muted">{t('profile.birthDate')}</dt>
                     <dd className="font-medium">{fmtDate(priv.birth_date)}</dd>
                   </div>
                 </>
               )}
             </dl>
-            {isHr && <div className="mx-5 mb-5 rounded-lg bg-canvas px-3 py-2 text-xs text-muted">Оклад и персональные данные видит только HR. Руководитель их не получает.</div>}
+            {isHr && <div className="mx-5 mb-5 rounded-lg bg-canvas px-3 py-2 text-xs text-muted">{t('emp.salaryNote')}</div>}
           </Card>
 
           {canSeeTeamData && (
             <Card>
-              <CardHeader icon={<GraduationCap className="h-[18px] w-[18px]" />} title="Курсы и баллы" />
+              <CardHeader icon={<GraduationCap className="h-[18px] w-[18px]" />} title={t('emp.courses')} />
               <ul className="space-y-3 px-5 pb-5">
-                {(assignments.data ?? []).length === 0 && <li className="text-sm text-muted">Курсов нет</li>}
+                {(assignments.data ?? []).length === 0 && <li className="text-sm text-muted">{t('emp.noCourses')}</li>}
                 {(assignments.data ?? []).map((a) => {
                   const overdue = a.status !== 'completed' && a.due_date && new Date(a.due_date) < new Date()
                   return (
@@ -176,13 +179,13 @@ export default function EmployeeCardPage() {
                         {a.status === 'completed' ? (
                           <Badge className="bg-brand-50 text-brand-700 ring-brand-200">{a.score}%</Badge>
                         ) : overdue ? (
-                          <Badge className="bg-rose-50 text-rose-700 ring-rose-200">просрочен</Badge>
+                          <Badge className="bg-rose-50 text-rose-700 ring-rose-200">{t('emp.overdue')}</Badge>
                         ) : (
-                          <span className="text-xs text-muted">до {fmtDate(a.due_date, 'd MMM')}</span>
+                          <span className="text-xs text-muted">{t('emp.until', { date: fmtDate(a.due_date, 'd MMM') })}</span>
                         )}
                       </div>
                       <Progress value={a.progress} className="mt-1.5 h-1.5" tone={overdue ? 'rose' : 'brand'} />
-                      {a.attempts > 1 && <div className="mt-1 text-xs text-muted">попыток теста: {a.attempts}</div>}
+                      {a.attempts > 1 && <div className="mt-1 text-xs text-muted">{t('emp.attempts', { n: a.attempts })}</div>}
                     </li>
                   )
                 })}
@@ -194,25 +197,25 @@ export default function EmployeeCardPage() {
         {canSeeTeamData && (
           <div className="space-y-4">
             <Card>
-              <CardHeader title="Трек заявок" subtitle="Этапы: руководитель → HR → 1С:ЗУП → готово" />
+              <CardHeader title={t('emp.requestTrack')} subtitle={t('emp.trackSteps')} />
               <div className="space-y-2.5 px-5 pb-5">
-                {(requests.data ?? []).length === 0 && <Empty title="Заявок нет" />}
+                {(requests.data ?? []).length === 0 && <Empty title={t('emp.noRequests')} />}
                 {(requests.data ?? []).slice(0, 8).map((r) => (
                   <RequestTrack key={r.id} r={r} onOpen={() => setOpen(r)} />
                 ))}
               </div>
             </Card>
             <Card>
-              <CardHeader icon={<ClipboardList className="h-[18px] w-[18px]" />} title="Задачи" />
+              <CardHeader icon={<ClipboardList className="h-[18px] w-[18px]" />} title={t('nav.tasks')} />
               <ul className="divide-y divide-line border-t border-line">
-                {(tasks.data ?? []).length === 0 && <li className="px-5 py-4 text-sm text-muted">Задач нет</li>}
+                {(tasks.data ?? []).length === 0 && <li className="px-5 py-4 text-sm text-muted">{t('emp.noTasks')}</li>}
                 {(tasks.data ?? []).map((task) => {
                   const overdue = task.status !== 'done' && task.due_date && new Date(task.due_date) < new Date(new Date().toDateString())
                   return (
                     <li key={task.id} className="flex items-center gap-3 px-5 py-2.5 text-sm">
                       <span className="min-w-0 flex-1">
                         <span className="block truncate font-medium">{task.title}</span>
-                        <span className={overdue ? 'text-xs font-medium text-rose-600' : 'text-xs text-muted'}>{task.due_date ? `до ${fmtDate(task.due_date, 'd MMM')}` : 'без срока'}</span>
+                        <span className={overdue ? 'text-xs font-medium text-rose-600' : 'text-xs text-muted'}>{task.due_date ? t('emp.until', { date: fmtDate(task.due_date, 'd MMM') }) : t('emp.noDue')}</span>
                       </span>
                       <Badge className={PRIORITY_META[task.priority].style}>{PRIORITY_META[task.priority].label}</Badge>
                       <Badge className={task.status === 'done' ? 'bg-brand-50 text-brand-700 ring-brand-200' : 'bg-canvas text-ink-soft ring-line'}>{t(`tasks.${task.status}`)}</Badge>

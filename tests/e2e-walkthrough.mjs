@@ -160,6 +160,23 @@ try {
   await page.keyboard.press('Escape')
   log('photo ok')
 
+  // языки: глобус в шапке, все семь языков по очереди, затем снова русский
+  const LANGS = ['en', 'kk', 'ky', 'uz', 'tg', 'mn', 'ru']
+  await page.goto(BASE)
+  await page.waitForSelector('[data-testid="vacation-available"]')
+  for (const lang of LANGS) {
+    await page.getByTestId('lang-menu').click()
+    if (lang === 'en') await shot('32-language-menu')
+    await page.getByTestId(`lang-${lang}`).click()
+    await page.waitForFunction((l) => document.documentElement.lang === l, lang, { timeout: 8000 }).catch(() => errors.push(`язык ${lang} не включился`))
+    await page.waitForSelector('[data-testid="vacation-available"]')
+    await page.waitForTimeout(700)
+    if (lang !== 'ru') await shot(`33-home-${lang}`)
+  }
+  const navProfile = await page.locator('aside nav a[href="/profile"]').count()
+  if (navProfile) errors.push('в левом меню осталась ссылка «Мой профиль»')
+  log('languages ok')
+
   // сообщения: работник пишет руководителю
   await page.getByTestId('chat-button').click()
   await page.waitForSelector('[data-testid="chat-row"]')
@@ -260,6 +277,15 @@ try {
   await m.getByTestId('chat-row').filter({ hasText: 'Ерлан Сапаров' }).first().click()
   await m.waitForTimeout(1500)
   await m.screenshot({ path: path.join(OUT, '31-mobile-chat.png') })
+  await m.goto(BASE)
+  await m.waitForSelector('[data-testid="vacation-available"]')
+  await m.getByTestId('lang-menu').click()
+  await m.getByTestId('lang-en').click()
+  await m.waitForFunction(() => document.documentElement.lang === 'en', null, { timeout: 8000 }).catch(() => errors.push('мобильная версия: английский не включился'))
+  await m.waitForTimeout(1200)
+  const overflow = await m.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+  if (overflow > 1) errors.push(`мобильная версия на английском шире экрана на ${overflow}px`)
+  await m.screenshot({ path: path.join(OUT, '34-mobile-english.png') })
 
   log('errors:', errors.length)
   for (const er of errors.slice(0, 30)) console.log('  ', er.slice(0, 400))

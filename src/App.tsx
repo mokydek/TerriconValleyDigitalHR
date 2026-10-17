@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { useAuth } from '@/lib/auth'
+import { t, tr, useI18n } from '@/lib/i18n'
 import { supabaseConfigured } from '@/lib/supabase'
 import { reloadFresh } from '@/lib/reload'
 import type { Role } from '@/lib/types'
@@ -35,8 +36,8 @@ function RoleGate({ roles, children }: { roles: Role[]; children: ReactNode }) {
   if (!role || !roles.includes(role)) {
     return (
       <div className="card mx-auto mt-10 max-w-lg p-8 text-center">
-        <p className="text-lg font-semibold">Раздел недоступен для вашей роли</p>
-        <p className="mt-2 text-sm text-muted">Права проверяет сервер: данные этого раздела вам не отдаются.</p>
+        <p className="text-lg font-semibold">{t('app.noAccessTitle')}</p>
+        <p className="mt-2 text-sm text-muted">{t('app.noAccessText')}</p>
       </div>
     )
   }
@@ -47,9 +48,9 @@ function NotConfigured() {
   return (
     <div className="grid min-h-dvh place-items-center p-6">
       <div className="card max-w-lg p-8">
-        <h1 className="text-xl font-bold">JanaMen: не настроено подключение к Supabase</h1>
+        <h1 className="text-xl font-bold">{t('app.notConfiguredTitle')}</h1>
         <p className="mt-3 text-muted">
-          Задайте переменные окружения <code>VITE_SUPABASE_URL</code> и <code>VITE_SUPABASE_ANON_KEY</code> (см. <code>.env.example</code>) и перезапустите сборку.
+          {tr('app.notConfiguredText', { url: <code>VITE_SUPABASE_URL</code>, key: <code>VITE_SUPABASE_ANON_KEY</code>, example: <code>.env.example</code> })}
         </p>
       </div>
     </div>
@@ -79,12 +80,12 @@ function StartupLoader() {
         <Spinner className="mx-auto h-7 w-7" />
         {slow && (
           <>
-            <p className="mt-5 font-semibold">Сервер отвечает дольше обычного</p>
-            <p className="mt-2 text-sm text-muted">Проверьте интернет и обновите страницу. Если не помогает, войдите заново.</p>
+            <p className="mt-5 font-semibold">{t('app.slowTitle')}</p>
+            <p className="mt-2 text-sm text-muted">{t('app.slowText')}</p>
             <div className="mt-4 flex justify-center gap-2">
-              <Button onClick={reloadFresh}>Обновить</Button>
+              <Button onClick={reloadFresh}>{t('common.refresh')}</Button>
               <Button variant="outline" onClick={resetSignIn}>
-                Войти заново
+                {t('app.signInAgain')}
               </Button>
             </div>
           </>
@@ -100,7 +101,7 @@ function LoadProblem({ message }: { message: string }) {
   return (
     <div className="grid min-h-dvh place-items-center p-6">
       <div className="card max-w-md p-8 text-center">
-        <h1 className="text-xl font-bold">Не удалось загрузить данные</h1>
+        <h1 className="text-xl font-bold">{t('app.loadFailed')}</h1>
         <p className="mt-3 text-sm text-muted">{message}</p>
         <div className="mt-5 flex justify-center gap-2">
           <Button
@@ -110,10 +111,10 @@ function LoadProblem({ message }: { message: string }) {
               void reloadMe().finally(() => setBusy(false))
             }}
           >
-            Повторить
+            {t('common.retry')}
           </Button>
           <Button variant="outline" onClick={resetSignIn}>
-            Войти заново
+            {t('app.signInAgain')}
           </Button>
         </div>
       </div>
@@ -126,12 +127,10 @@ function Orphan() {
   return (
     <div className="grid min-h-dvh place-items-center p-6">
       <div className="card max-w-md p-8 text-center">
-        <h1 className="text-xl font-bold">Карточка сотрудника не найдена</h1>
-        <p className="mt-3 text-sm text-muted">
-          Аккаунт {session?.user.email} не связан с сотрудником в 1С:ЗУП. Обратитесь в HR: после синхронизации доступ откроется сам.
-        </p>
+        <h1 className="text-xl font-bold">{t('app.orphanTitle')}</h1>
+        <p className="mt-3 text-sm text-muted">{t('app.orphanText', { email: session?.user.email ?? '' })}</p>
         <Button className="mt-5" variant="outline" onClick={() => void signOut()}>
-          Выйти
+          {t('nav.logout')}
         </Button>
       </div>
     </div>
@@ -140,6 +139,7 @@ function Orphan() {
 
 export default function App() {
   const { session, me, loading, orphan, loadError } = useAuth()
+  const { lang } = useI18n()
   const location = useLocation()
 
   if (!supabaseConfigured) return <NotConfigured />
@@ -147,7 +147,7 @@ export default function App() {
   if (!session) {
     return (
       <Routes>
-        <Route path="*" element={<LoginPage />} />
+        <Route path="*" element={<LoginPage key={lang} />} />
       </Routes>
     )
   }
@@ -157,7 +157,8 @@ export default function App() {
 
   return (
     <AssistantProvider>
-      <AppShell>
+      {/* при смене языка страницы собираются заново: все подписи, даты и графики сразу на новом языке */}
+      <AppShell key={lang}>
         <ErrorBoundary resetKey={location.pathname}>
         <Suspense fallback={<PageLoader />}>
           <Routes>

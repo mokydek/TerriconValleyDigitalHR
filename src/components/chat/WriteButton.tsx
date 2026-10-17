@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { MessageCircle } from 'lucide-react'
+import { MessageCircle } from '@/components/icons'
 import { toast } from 'sonner'
 import { useI18n } from '@/lib/i18n'
 import { useOpenDirectChat } from '@/lib/chat'

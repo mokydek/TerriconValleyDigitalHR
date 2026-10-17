@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { BadgeCheck, Building2, ChevronRight, FileText, Loader2, RefreshCw, Search, Zap } from 'lucide-react'
+import { BadgeCheck, Building2, ChevronRight, FileText, Loader2, RefreshCw, Search, Zap } from '@/components/icons'
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/auth'
 import { useDecideRequest, useNudge, useRunIntegrationWorker, useStageSince, useWorkRequests } from '@/lib/api'

@@ -1,7 +1,7 @@
 import { forwardRef, useEffect, type ButtonHTMLAttributes, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
-import { Loader2, X } from 'lucide-react'
+import { Loader2, X } from '@/components/icons'
 import { cn, colorFor } from '@/lib/utils'
 import { initials } from '@/lib/format'
 import { useAvatar } from '@/lib/avatars'
@@ -402,8 +402,10 @@ export function Kpi({
     brand: 'bg-brand-50 text-brand-700',
     amber: 'bg-amber-50 text-amber-700',
     rose: 'bg-rose-50 text-rose-700',
-    sky: 'bg-sky-50 text-sky-700',
-    violet: 'bg-violet-50 text-violet-700',
+    // в палитре Jańa Post один фирменный зелёный: нейтральные показатели тоже зелёные,
+    // цветом выделяются только предупреждения (amber, rose)
+    sky: 'bg-brand-50 text-brand-700',
+    violet: 'bg-brand-50 text-brand-700',
     slate: 'bg-slate-100 text-slate-600',
   }[tone]
   const body = (

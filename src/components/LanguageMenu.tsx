@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Check, ChevronDown, Globe } from 'lucide-react'
+import { Check, ChevronDown, Globe } from '@/components/icons'
 import { LANGS, useI18n } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 

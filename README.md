@@ -294,6 +294,10 @@ flowchart LR
   (`decide_request`, `submit_quiz`, `answer_ticket`, …) с явной проверкой роли, триггеры-«стражи» на официальных данных,
   журнал изменений `audit_log`. Обойти правила, вызывая API напрямую, нельзя.
 - **Фронтенд:** React 19 + TypeScript + Vite, Tailwind CSS v4, TanStack Query, React Router, Recharts, словари на 7 языков (`src/locales`).
+- **Фирменный стиль Jańa Post:** основной зелёный `#1B8918` из логотипа janapost.kz (шкала `brand-*` в `src/index.css`),
+  шрифт Onest (полная кириллица и казахские буквы, хранится в сборке через `@fontsource/onest`), собственный набор
+  контурных иконок `src/components/icons/jana.tsx`. Экраны импортируют иконки из `@/components/icons`: смысловые значки
+  берутся из фирменного набора, служебные (стрелки, крестик, галочка) из lucide.
 - **AI:** Claude API через `@anthropic-ai/sdk` (tool runner), запросы инструментов идут от имени пользователя.
 - **Два способа развёртывания из одного кода:** Supabase Cloud + Vercel или `docker compose` (Postgres + GoTrue +
   PostgREST + Node-шлюз). Конфигурация во время выполнения (`/config.js`) позволяет одной сборке работать в обоих.

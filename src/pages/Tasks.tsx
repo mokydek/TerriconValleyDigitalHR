@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { addDays } from 'date-fns'
-import { CalendarClock, ClipboardList, MessageSquare, Plus, Search, Send } from 'lucide-react'
+import { CalendarClock, ClipboardList, MessageSquare, Plus, Search, Send } from '@/components/icons'
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/auth'
 import { useI18n, type I18nKey } from '@/lib/i18n'

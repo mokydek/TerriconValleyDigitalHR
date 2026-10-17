@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowUp, BookOpenCheck, ChartColumnBig, CircleAlert, ShieldAlert, Sparkles, UserRound, UsersRound } from 'lucide-react'
+import { ArrowUp, BookOpenCheck, ChartColumnBig, CircleAlert, ShieldAlert, Sparkles, UserRound, UsersRound } from '@/components/icons'
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/auth'
 import { useI18n, type I18nKey } from '@/lib/i18n'

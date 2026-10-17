@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { ArrowLeft, Check, CornerUpLeft, MessageCircle, Plus, Search, SendHorizontal, Users, X } from 'lucide-react'
+import { ArrowLeft, Check, CornerUpLeft, MessageCircle, Plus, Search, SendHorizontal, Users, X } from '@/components/icons'
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/auth'
 import { useI18n } from '@/lib/i18n'

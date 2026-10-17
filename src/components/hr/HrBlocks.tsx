@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { AlarmClock, BellRing, Eye, GraduationCap, Palmtree, Star, UserPlus } from 'lucide-react'
+import { AlarmClock, BellRing, Eye, GraduationCap, Palmtree, Star, UserPlus } from '@/components/icons'
 import { toast } from 'sonner'
 import { useAttentionAction, useAttentionZone, usePeople, useToggleFollow } from '@/lib/api'
 import { days, timeAgo } from '@/lib/format'

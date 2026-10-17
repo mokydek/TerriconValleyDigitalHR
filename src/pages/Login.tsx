@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowRight, BadgeCheck, Briefcase, GraduationCap, Sparkles, UserRound, UsersRound } from 'lucide-react'
+import { ArrowRight, BadgeCheck, Briefcase, GraduationCap, Sparkles, UserRound, UsersRound } from '@/components/icons'
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/auth'
 import { useI18n } from '@/lib/i18n'
@@ -24,7 +24,7 @@ const DEMO = [
     name: 'Ерлан Сапаров', // i18n-ignore
     position: 'login.posManager',
     icon: <Briefcase className="h-5 w-5" />,
-    tone: 'from-sky-500 to-sky-700',
+    tone: 'from-brand-700 to-brand-900',
   },
   {
     email: 'hr@jana.test',
@@ -32,7 +32,7 @@ const DEMO = [
     name: 'Айгерим Нурланова', // i18n-ignore
     position: 'login.posHr',
     icon: <UsersRound className="h-5 w-5" />,
-    tone: 'from-violet-500 to-violet-700',
+    tone: 'from-ink-soft to-ink',
   },
 ] as const
 

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Download, Search, Users } from 'lucide-react'
+import { Download, Search, Users } from '@/components/icons'
 import { usePeople } from '@/lib/api'
 import { days } from '@/lib/format'
 import { useI18n, type I18nKey } from '@/lib/i18n'

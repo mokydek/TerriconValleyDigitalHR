@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { BookOpenCheck, MessageCircleQuestion, RotateCcw, ShieldCheck, Sparkles, UserRound } from 'lucide-react'
+import { BookOpenCheck, MessageCircleQuestion, RotateCcw, ShieldCheck, Sparkles, UserRound } from '@/components/icons'
 import { useAuth } from '@/lib/auth'
 import { useI18n } from '@/lib/i18n'
 import { useTickets } from '@/lib/api'
@@ -46,15 +46,15 @@ export default function AssistantPage() {
               {t('ai.how1')}
             </li>
             <li className="flex gap-2.5">
-              <UserRound className="mt-0.5 h-4 w-4 shrink-0 text-sky-600" />
+              <UserRound className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" />
               {t('ai.how2')}
             </li>
             <li className="flex gap-2.5">
-              <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-violet-600" />
+              <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" />
               {isHr ? t('ai.how3Hr') : t('ai.how3')}
             </li>
             <li className="flex gap-2.5">
-              <MessageCircleQuestion className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+              <MessageCircleQuestion className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" />
               {t('ai.how4')}
             </li>
           </ul>

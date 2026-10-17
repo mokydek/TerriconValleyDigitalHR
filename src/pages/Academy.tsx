@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Award, BookOpen, Clock, GraduationCap, Plus, Search, Users } from 'lucide-react'
+import { Award, BookOpen, Clock, GraduationCap, Plus, Search, Users } from '@/components/icons'
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/auth'
 import { tr, useI18n } from '@/lib/i18n'

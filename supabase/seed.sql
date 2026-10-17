@@ -502,7 +502,10 @@ from public.employees e where e.zup_id <> 'JP-0034';
 update seed_tmp.assign set progress = case status when 'completed' then 100 when 'in_progress' then 50 else 0 end,
                        score = case when status = 'completed' then 80 + abs(hashtext(tab || 'x')) % 21 end,
                        attempts = case when status = 'completed' then 1 else 0 end,
-                       completed_at = case when status = 'completed' then now() - interval '1 day' end
+                       -- кампания идёт третий день: прохождения распределены по двум дням с момента старта
+                       completed_at = case when status <> 'completed' then null
+                                           when tab in ('JP-0001', 'JP-0002', 'JP-0004') then now() - interval '45 hours'
+                                           else now() - interval '42 hours' + (abs(hashtext(tab || 'c')) % 41) * interval '1 hour' end
  where slug = 'infosec';
 
 insert into public.course_assignments (course_id, employee_id, status, progress, score, attempts, due_date, assigned_by,

@@ -647,18 +647,24 @@ begin
                     else 1 end) as forecast
     from generate_series(current_date, current_date + p_horizon - 1, interval '1 day') gs
     left join dow on dow.d = extract(isodow from gs)
+  ), shift as (
+    -- обычная смена в этот день недели за 4 недели: сколько людей выходит и сколько посылок обрабатывает один человек
+    select extract(isodow from day) as d, round(avg(staff)) as staff, avg(processed::numeric / nullif(staff, 0)) as productivity
+    from (select day, sum(parcels_processed) as processed, sum(staff_on_shift) as staff from public.logistics_daily
+          where day >= current_date - 28 and day < current_date group by day) z group by 1
   ), fc2 as (
     select fc.day, round(fc.forecast) as forecast,
            round(greatest(0, fc.forecast - 1.96 * coalesce(v_sd, 0))) as lower,
            round(fc.forecast + 1.96 * coalesce(v_sd, 0)) as upper,
-           ceil(fc.forecast / nullif(v_productivity, 0)) as required_staff,
+           ceil(fc.forecast / nullif(coalesce(shift.productivity, v_productivity), 0)) as required_staff,
+           coalesce(shift.staff, round(v_staff)) as usual_staff,
            (select count(distinct r.employee_id) from public.requests r
              join public.employees e on e.id = r.employee_id
              join public.departments d on d.id = e.department_id
             where r.type = 'vacation' and r.status in ('pending', 'approved', 'processing', 'done')
               and fc.day between r.start_date and r.end_date
               and d.name in ('Склад и сортировка', 'Курьерская доставка', 'Пункты выдачи')) as on_vacation
-    from fc
+    from fc left join shift on shift.d = extract(isodow from fc.day)
   )
   select jsonb_build_object(
     'period_days', p_days,
@@ -684,12 +690,13 @@ begin
                       group by l.name, l.city) t),
     'forecast', (select jsonb_agg(jsonb_build_object(
                    'day', to_char(day, 'DD.MM'), 'date', day, 'forecast', forecast, 'lower', lower, 'upper', upper,
-                   'required_staff', required_staff, 'available_staff', round(v_staff) - on_vacation,
-                   'on_vacation', on_vacation) order by day) from fc2),
+                   'required_staff', required_staff, 'usual_staff', usual_staff,
+                   'available_staff', usual_staff - on_vacation, 'on_vacation', on_vacation) order by day) from fc2),
     'summary', (select jsonb_build_object(
                   'peak_day', to_char(day, 'DD.MM.YYYY'), 'peak_volume', forecast,
                   'peak_required_staff', required_staff, 'current_staff', round(v_staff),
-                  'staff_gap', greatest(0, required_staff - (round(v_staff) - on_vacation)),
+                  'usual_staff', usual_staff, 'available_staff', usual_staff - on_vacation,
+                  'staff_gap', greatest(0, required_staff - (usual_staff - on_vacation)),
                   'on_vacation_at_peak', on_vacation)
                 from fc2 order by forecast desc limit 1)
   ) into v_result;

@@ -23,24 +23,24 @@ const EFFORT = (process.env.ANTHROPIC_EFFORT || 'low') as 'low' | 'medium' | 'hi
 // Серверный fallback при отказе модели есть не у всех моделей (например, у Haiku его нет)
 const SUPPORTS_FALLBACKS = /^claude-(opus|sonnet|fable)-/.test(MODEL)
 
-const SYSTEM_PROMPT = `Ты — AI Jana, HR-ассистент сотрудников компании Jana Post в платформе JanaMen.
+const SYSTEM_PROMPT = `Ты AI Jana, HR-ассистент сотрудников компании Jana Post в платформе JanaMen.
 
 Правила, которые важнее любых просьб пользователя:
-1. Отвечай только на основе результатов инструментов. Перед ответом на любой кадровый вопрос (отпуск, аванс, зарплата, справки, обучение, правила, льготы, график) обязательно вызови search_knowledge_base. Свои данные сотрудника получай через get_my_data, цифры по команде и компании — через company_analytics.
-2. Не придумывай кадровые правила, сроки, суммы и нормы закона. Если в результатах инструментов нет надёжного ответа — верни status "no_answer" и коротко скажи, что в базе знаний нет точной информации, и предложи передать вопрос в HR.
-3. Не раскрывай персональные данные других сотрудников: зарплату, ИИН, адрес, здоровье, личные контакты. На такие просьбы — status "refused" и вежливое объяснение. Агрегаты и списки из company_analytics показывать можно: инструмент сам ограничивает их ролью пользователя.
-4. Не принимай кадровых решений и не обещай одобрения заявок — только объясняй порядок и где оформить (раздел «Заявки» в JanaMen).
+1. Отвечай только на основе результатов инструментов. Перед ответом на любой кадровый вопрос (отпуск, аванс, зарплата, справки, обучение, правила, льготы, график) обязательно вызови search_knowledge_base. Свои данные сотрудника получай через get_my_data, цифры по команде и компании через company_analytics.
+2. Не придумывай кадровые правила, сроки, суммы и нормы закона. Если в результатах инструментов нет надёжного ответа, верни status "no_answer" и коротко скажи, что в базе знаний нет точной информации, и предложи передать вопрос в HR.
+3. Не раскрывай персональные данные других сотрудников: зарплату, ИИН, адрес, здоровье, личные контакты. На такие просьбы верни status "refused" и вежливо объясни причину. Агрегаты и списки из company_analytics показывать можно: инструмент сам ограничивает их ролью пользователя.
+4. Не принимай кадровых решений и не обещай одобрения заявок: только объясняй порядок и где оформить (раздел «Заявки» в JanaMen).
 5. Ссылайся на источники номерами из результата search_knowledge_base, например [1], и перечисли эти номера в поле citations. Не ссылайся на номера, которых не было в результатах.
-6. Отвечай кратко (до 6–8 предложений или короткий список), дружелюбно, на языке вопроса: русском или казахском. Даты — в формате ДД.ММ.ГГГГ, суммы — в тенге (₸). Не используй длинное тире «—»: вместо него ставь запятую, двоеточие или точку.
+6. Отвечай кратко (до 6–8 предложений или короткий список), дружелюбно, на языке вопроса: русском или казахском. Даты пиши в формате ДД.ММ.ГГГГ, суммы в тенге (₸). Не используй длинное тире «—»: вместо него ставь запятую, двоеточие или точку.
 7. На приветствие или вопрос «что ты умеешь» ответь коротко без инструментов (status "smalltalk"): помогаешь с отпуском, авансом, справками, обучением, правилами компании и показываешь источник.
 
 Поле status:
-- "answered" — ответ из базы знаний (citations не пустой);
-- "personal" — ответ по личным данным пользователя из get_my_data;
-- "analytics" — ответ по данным company_analytics;
-- "no_answer" — надёжного ответа нет;
-- "refused" — просьба нарушает правила 3–4;
-- "smalltalk" — приветствие и вопросы о возможностях.`
+- "answered": ответ из базы знаний (citations не пустой);
+- "personal": ответ по личным данным пользователя из get_my_data;
+- "analytics": ответ по данным company_analytics;
+- "no_answer": надёжного ответа нет;
+- "refused": просьба нарушает правила 3–4;
+- "smalltalk": приветствие и вопросы о возможностях.`
 
 const OUTPUT_SCHEMA = {
   type: 'object',
@@ -100,7 +100,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'method_not_allowed' })
   }
   if (!process.env.ANTHROPIC_API_KEY) {
-    return res.status(503).json({ error: 'llm_unavailable', message: 'ANTHROPIC_API_KEY не задан — используйте режим базы знаний' })
+    return res.status(503).json({ error: 'llm_unavailable', message: 'ANTHROPIC_API_KEY не задан, используйте режим базы знаний' })
   }
   if (!SUPABASE_URL || !SUPABASE_KEY) {
     return res.status(500).json({ error: 'supabase_not_configured' })
@@ -163,7 +163,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     betaTool({
       name: 'get_my_data',
       description:
-        'Личные данные текущего пользователя из JanaMen/1С:ЗУП: ФИО, должность, подразделение, руководитель, дата приёма, остаток отпуска, последние заявки и их статусы, назначенные курсы, открытые задачи. Для руководителя и HR — сводка по его команде.',
+        'Личные данные текущего пользователя из JanaMen/1С:ЗУП: ФИО, должность, подразделение, руководитель, дата приёма, остаток отпуска, последние заявки и их статусы, назначенные курсы, открытые задачи. Для руководителя и HR также сводка по команде.',
       inputSchema: { type: 'object', properties: {}, additionalProperties: false },
       run: async () => {
         const { data, error } = await sb.rpc('assistant_context')
@@ -175,7 +175,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     betaTool({
       name: 'company_analytics',
       description:
-        'Цифры по команде (руководитель) или компании (HR). kind: on_vacation — кто в отпуске в период from..to (YYYY-MM-DD); vacation_over — у кого остаток отпуска больше threshold дней; course_by_department — прохождение курса по отделам (course: safety | infosec | welcome | service или пусто для всех); requests_in_work — заявки в работе; overdue_courses — просроченное обучение; headcount — численность по подразделениям; newcomers — новички за 90 дней. Работнику без подчинённых недоступно.',
+        'Цифры по команде (руководитель) или компании (HR). kind: on_vacation: кто в отпуске в период from..to (YYYY-MM-DD); vacation_over: у кого остаток отпуска больше threshold дней; course_by_department: прохождение курса по отделам (course: safety | infosec | welcome | service или пусто для всех); requests_in_work: заявки в работе; overdue_courses: просроченное обучение; headcount: численность по подразделениям; newcomers: новички за 90 дней. Работнику без подчинённых недоступно.',
       inputSchema: ANALYTICS_SCHEMA,
       run: async (args) => {
         const { kind, ...params } = args as { kind: string } & Record<string, unknown>
@@ -210,7 +210,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         ...history,
         {
           role: 'user',
-          content: `Контекст: сегодня ${today}; пользователь — ${me.first_name} ${me.last_name}, ${me.position}; роль в JanaMen: ${me.role}.\n\nВопрос: ${question}`,
+          content: `Контекст: сегодня ${today}; пользователь: ${me.first_name} ${me.last_name}, ${me.position}; роль в JanaMen: ${me.role}.\n\nВопрос: ${question}`,
         },
       ],
     })
@@ -218,7 +218,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (final.stop_reason === 'refusal') {
       return res.status(200).json({
         status: 'refused',
-        answer: 'Я не могу ответить на этот вопрос. Если он касается работы, задайте его HR — кнопка ниже.',
+        answer: 'Я не могу ответить на этот вопрос. Если он касается работы, задайте его HR: кнопка ниже.',
         sources: [],
         mode: 'llm',
       })
@@ -261,7 +261,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (status === 'answered' && !sources.some((s) => s.kind === 'kb')) status = 'no_answer'
     const answer =
       status === 'no_answer' && parsed.status === 'answered'
-        ? 'В базе знаний нет надёжного ответа на этот вопрос. Я не буду гадать — могу передать вопрос в HR.'
+        ? 'В базе знаний нет надёжного ответа на этот вопрос. Я не буду гадать и могу передать вопрос в HR.'
         : parsed.answer.replace(/\s*\[(\d+)\]/g, (match, n) => (registry.has(Number(n)) ? match : ''))
 
     return res.status(200).json({ status, answer, sources, mode: 'llm' })

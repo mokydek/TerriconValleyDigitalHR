@@ -2,7 +2,7 @@
   "name": "janamen",
   "private": true,
   "version": "1.0.0",
-  "description": "JanaMen — единая цифровая HR-платформа Jana Post (Digital HR, Terricon Valley Hackathon 2026)",
+  "description": "JanaMen: единая цифровая HR-платформа Jana Post (Digital HR, Terricon Valley Hackathon 2026)",
   "type": "module",
   "engines": {
     "node": ">=20.19"

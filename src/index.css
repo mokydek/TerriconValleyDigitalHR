@@ -276,3 +276,13 @@
   .no-print { display: none !important; }
   .print-sheet { box-shadow: none !important; border: none !important; margin: 0 !important; }
 }
+
+/* Фон переписки: мягкий зелёный с «маршрутами», как на обложке Jana Post */
+.chat-wallpaper {
+  background-color: #eef3ec;
+  background-image:
+    radial-gradient(circle at 12% 18%, rgb(76 173 72 / 0.07) 0 2px, transparent 3px),
+    radial-gradient(circle at 72% 64%, rgb(76 173 72 / 0.06) 0 2px, transparent 3px),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'%3E%3Cg fill='none' stroke='%234cad48' stroke-opacity='0.07' stroke-width='1.2'%3E%3Cpath d='M-20 200 Q 90 120 260 40'/%3E%3Cpath d='M-20 230 Q 110 150 260 80'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 120px 120px, 160px 160px, 240px 240px;
+}

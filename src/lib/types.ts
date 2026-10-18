@@ -314,17 +314,63 @@ export interface AttentionItem {
   last_reminded_at: string | null
 }
 
+export type ChatKind = 'direct' | 'group' | 'channel' | 'saved'
+export type ChatRole = 'owner' | 'admin' | 'member'
+export type ReactionKey = 'like' | 'heart' | 'fire' | 'party' | 'laugh' | 'ok'
+export type AttachmentKind = 'image' | 'video' | 'file' | 'voice' | 'contact'
+
+/** Служебное событие в ленте: текст собирает интерфейс на языке читателя */
+export interface ChatEvent {
+  event: 'created' | 'renamed' | 'photo' | 'photo_removed' | 'added' | 'removed' | 'left' | 'pinned' | 'admin'
+  title?: string
+  targets?: string[]
+  message?: string
+}
+
 export interface ChatListItem {
   id: string
-  kind: 'direct' | 'group'
+  kind: ChatKind
   title: string | null
   peer_id: string | null
   member_count: number
+  avatar: string | null
+  description: string | null
+  my_role: ChatRole
+  muted: boolean
+  pinned: boolean
   last_body: string | null
+  last_kind: ChatMessage['kind'] | null
+  last_meta: ChatEvent | null
+  last_attachment: AttachmentKind | null
+  last_attachments: number
   last_author_id: string | null
   last_author_name: string | null
   last_at: string
   unread: number
+}
+
+/** Вложение без самого файла: файл грузится отдельно (useAttachmentData) */
+export interface ChatAttachment {
+  id: string
+  kind: AttachmentKind
+  name: string
+  mime: string
+  size: number
+  thumb: string | null
+  width: number | null
+  height: number | null
+  duration: number | null
+  waveform: number[] | null
+  contact_id: string | null
+  position: number
+}
+
+export interface ChatPoll {
+  question: string
+  options: { id: number; text: string }[]
+  multiple: boolean
+  anonymous: boolean
+  closed_at: string | null
 }
 
 export interface ChatMessage {
@@ -332,12 +378,42 @@ export interface ChatMessage {
   chat_id: string
   author_id: string
   body: string
+  kind: 'text' | 'system' | 'poll'
+  meta: ChatEvent | null
   reply_to: string | null
+  edited_at: string | null
+  deleted_at: string | null
+  forward_author_id: string | null
+  forward_chat_title: string | null
   created_at: string
+  attachments: ChatAttachment[]
+  reactions: { employee_id: string; reaction: ReactionKey }[]
+  poll: ChatPoll | null
 }
 
 export interface ChatMember {
   employee_id: string
   last_read_at: string
+  joined_at: string
+  role: ChatRole
   employee: Pick<Employee, 'id' | 'first_name' | 'last_name' | 'position'> | null
+}
+
+export interface ChatInfo {
+  id: string
+  kind: ChatKind
+  title: string | null
+  description: string | null
+  avatar: string | null
+  pinned_message_id: string | null
+  created_by: string | null
+  created_at: string
+}
+
+export interface PollState {
+  message_id: string
+  counts: Record<string, number>
+  total: number
+  mine: number[]
+  voters: Record<string, string[]> | null
 }

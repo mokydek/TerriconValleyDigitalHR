@@ -168,7 +168,7 @@ create table if not exists public.courses (
   title            text not null,
   description      text,
   category         text not null default 'general' check (category in ('onboarding', 'safety', 'compliance', 'skills', 'general')),
-  emoji            text not null default '📘',
+  emoji            text not null default '',
   duration_minutes integer not null default 30,
   is_mandatory     boolean not null default false,
   pass_score       integer not null default 70 check (pass_score between 1 and 100),

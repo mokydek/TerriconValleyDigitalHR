@@ -95,7 +95,7 @@ export default {
   'excel.done': 'Excel файл бэлэн боллоо',
   'excel.failed': 'Excel файл үүсгэж чадсангүй',
   'team.subtitle': 'Цалин болон хувийн мэдээлэл удирдагчид харагдахгүй',
-  'employees.subtitle': '⭐ «Хянаж байна» нь тухайн ажилтны мэдэгдлийг асаана',
+  'employees.subtitle': '«Хянаж байна» нь тухайн ажилтны мэдэгдлийг асаана',
   'notif.all': 'Бүх мэдэгдэл',
   'notif.unread': 'Уншаагүй',
   'notif.kind.request': 'Хүсэлт',

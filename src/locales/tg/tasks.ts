@@ -5,7 +5,7 @@ export default {
   'tasks.in_progress': 'Дар кор',
   'tasks.review': 'Дар санҷиш',
   'tasks.done': 'Тайёр',
-  'tasks.doneToast': 'Вазифаи №{n} иҷро шуд 🎉',
+  'tasks.doneToast': 'Вазифаи №{n} иҷро шуд',
   'tasks.dragHint': 'Барои иваз кардани ҳолат кортро кашед',
   'tasks.teamSubtitle': 'Вазифаҳои гурӯҳ',
   'tasks.new': 'Вазифаи нав',

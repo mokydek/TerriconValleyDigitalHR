@@ -223,7 +223,7 @@ export default function ProfilePage() {
                 <Link to={`/academy/${a.course?.slug}`} className="block">
                   <div className="flex items-center justify-between gap-2 text-sm">
                     <span className="min-w-0 truncate font-medium">
-                      {a.course?.emoji} {a.course?.title}
+                      {a.course?.title}
                     </span>
                     <span className="shrink-0 text-xs text-muted">{a.status === 'completed' ? t('profile.testScore', { score: a.score ?? 0 }) : `${a.progress}%`}</span>
                   </div>

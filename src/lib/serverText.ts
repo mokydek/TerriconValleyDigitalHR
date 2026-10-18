@@ -93,7 +93,7 @@ const RULES: [RegExp, I18nKey][] = [
   [/^(?<name>.+?) отменил\(а\) заявку: (?<type>отпуск|аванс|справка с места работы|изменение данных)$/, 'srv.req.withdrawnBody'],
   [/^⏰ Заявка №(?<n>\d+) ждёт вашего решения$/, 'srv.req.nudge'],
   [rx`^(?<name>.+?) · ${T}: висит (?<h>\d+) ч\. HR просит рассмотреть сегодня$`, 'srv.req.nudgeBody'],
-  [/^Заявка №(?<n>\d+) оформлена ✅$/, 'srv.req.done'],
+  [/^Заявка №(?<n>\d+) оформлена(?: ✅)?$/, 'srv.req.done'],
   [/^Отпуск оформлен: (?<doc>.+)\. Ознакомьтесь с приказом в Documentolog$/, 'srv.req.doneVacation'],
   [rx`^Аванс ${amount('amount')} ₸ передан на выплату \((?<doc>.+)\)\. Зачисление до 3 рабочих дней$`, 'srv.req.doneAdvance'],
   [/^Справка готова: (?<doc>.+)$/, 'srv.req.doneCertificate'],
@@ -104,8 +104,8 @@ const RULES: [RegExp, I18nKey][] = [
   [/^1С:ЗУП: (?<doc>.+)$/, 'srv.event.zupDoc'],
   [/^Documentolog: (?<doc>.+)$/, 'srv.event.dlDoc'],
 
-  // ---------- «Слежу»: «👁 Имя: событие» ----------
-  [/^👁 (?<name>[^:]+): (?<title>[\s\S]+)$/, 'srv.follow.title'],
+  // ---------- «Слежу»: «Слежу · Имя: событие» (старые записи начинались со значка глаза) ----------
+  [/^(?:👁|Слежу ·) (?<name>[^:]+): (?<title>[\s\S]+)$/, 'srv.follow.title'],
   [/^новая заявка «(?<type>.+)»$/, 'srv.follow.newRequest'],
   [/^заявка №(?<n>\d+) согласована руководителем$/, 'srv.follow.approved'],
   [/^заявка №(?<n>\d+) отклонена$/, 'srv.follow.rejected'],
@@ -161,7 +161,7 @@ const RULES: [RegExp, I18nKey][] = [
   [rx`^${T} · согласующий: (?<name>.+)$`, 'srv.att.requestDetails'],
   [/^Новичок без онбординга$/, 'srv.att.onboardingTitle'],
   [rx`^В компании ${num('days')} дн\., адаптационный курс не назначен$`, 'srv.att.onboardingDetails'],
-  [/^Запланируйте отпуск 🌴$/, 'srv.att.vacationNotif'],
+  [/^Запланируйте отпуск(?: 🌴)?$/, 'srv.att.vacationNotif'],
   [rx`^У вас накоплено ${num('days')} дн\. отпуска\. Оформите заявку в JanaMen и подберите даты вместе с руководителем\.$`, 'srv.att.vacationNotifBody'],
   [/^Напоминание: курс «(?<title>.+)»$/, 'srv.att.courseNotif'],
   [rx`^Срок прохождения истёк (?<date>${DMY})\. Пройдите курс в Jana Academy, это займёт около (?<min>\d+) минут\.$`, 'srv.att.courseNotifBody'],
@@ -207,7 +207,7 @@ const RULES: [RegExp, I18nKey][] = [
   [/^Заявка оформлена$/, 'srv.seed.done'],
   [/^Справка готова, см\. карточку заявки$/, 'srv.seed.certReady'],
   [/^Новое обращение$/, 'srv.seed.ticketNew'],
-  [/^Добро пожаловать в Jana Post! 👋$/, 'srv.seed.welcome'],
+  [/^Добро пожаловать в Jana Post!(?: 👋)?$/, 'srv.seed.welcome'],
   [/^Начните с курса «(?<title>.+)» в Jana Academy$/, 'srv.seed.welcomeBody'],
 
   // ---------- Типы заявок (в том числе со строчной буквы: «отменил(а) заявку: отпуск») ----------

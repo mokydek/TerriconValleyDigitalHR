@@ -36,6 +36,8 @@ export interface AiSource {
   slug?: string
   heading?: string
   source_title?: string
+  /** значок источника, если это не профиль: производственный календарь или объявления */
+  icon?: 'calendar' | 'news'
 }
 
 export interface AiAction {
@@ -71,6 +73,8 @@ const department = (d: string | null) => (!d ? '–' : d === NO_DEPARTMENT ? t('
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 
 const profileSource = (): AiSource => ({ kind: 'profile', title: t('jana.src.profile') })
+const calendarSource = (): AiSource => ({ kind: 'profile', title: t('jana.src.calendar'), icon: 'calendar' })
+const newsSource = (): AiSource => ({ kind: 'profile', title: t('jana.src.news'), icon: 'news' })
 const analyticsSource = (): AiSource => ({ kind: 'analytics', title: t('jana.src.analytics', { date: fmtDate(new Date(), 'dd.MM.yyyy') }) })
 
 const ACTIONS: Record<'vacation' | 'advance' | 'certificate', { label: I18nKey; to: string }> = {
@@ -263,18 +267,133 @@ async function analyticsAnswer(x: Query, role: Role): Promise<AiAnswer | null> {
 
 /* ---------- Личные данные ---------- */
 
+interface CtxTask {
+  id: string
+  title: string
+  kind: 'simple' | 'course' | 'report' | 'checklist'
+  status: 'todo' | 'in_progress' | 'review' | 'done'
+  priority: 'low' | 'medium' | 'high' | 'urgent'
+  /** местное время Алматы, YYYY-MM-DDTHH:mm */
+  due_at: string | null
+  from: string | null
+  course: { slug: string; title: string } | null
+  steps_done: number
+  steps_total: number
+  review_comment: string | null
+}
+
 interface AssistantContext {
   profile: { full_name: string; company: string; position: string; department: string | null; manager: string | null; hire_date: string }
   vacation: { year: number; entitled: number; used: number; reserved: number; available: number; carryover_from_last_year?: number }
   requests: { number: number; type: string; status: string; start_date: string | null; end_date: string | null; amount: number | null; created_at: string }[]
-  courses: { title: string; status: string; progress: number; score: number | null; due_date: string | null }[]
+  courses: { title: string; slug: string; status: string; progress: number; score: number | null; due_date: string | null; minutes: number }[]
   open_tasks: number
+  tasks: CtxTask[]
+  tasks_done_7d: number
+  to_review: { id: string; title: string; assignee: string; submitted_at: string | null }[]
+  holidays: { day: string; name: string }[]
+  news: { id: string; title: string; summary: string | null; category: string; pinned: boolean; date: string; read: boolean }[]
+}
+
+const PRIO_WEIGHT: Record<CtxTask['priority'], number> = { low: 1, medium: 2, high: 3, urgent: 4 }
+const stars = (p: CtxTask['priority']) => '★'.repeat(PRIO_WEIGHT[p]) + '☆'.repeat(4 - PRIO_WEIGHT[p])
+const dueDate = (task: CtxTask) => (task.due_at ? new Date(`${task.due_at}:00`) : null)
+
+/** Что делать первым: просроченное, затем ближайший дедлайн, при равенстве более приоритетное */
+function pickFirst(tasks: CtxTask[]): CtxTask | null {
+  const now = Date.now()
+  const open = tasks.filter((x) => x.status !== 'review')
+  if (!open.length) return null
+  const score = (x: CtxTask) => {
+    const d = dueDate(x)
+    const hours = d ? (d.getTime() - now) / 3_600_000 : 24 * 30
+    return (hours < 0 ? -1000 : hours) - PRIO_WEIGHT[x.priority] * 12
+  }
+  return [...open].sort((a, b) => score(a) - score(b))[0]
+}
+
+function taskProgress(x: CtxTask) {
+  if (x.status === 'review') return t('tasks.review')
+  if (x.kind === 'checklist' && x.steps_total) return `${t(`tasks.${x.status}` as I18nKey)} · ${x.steps_done}/${x.steps_total}`
+  return t(`tasks.${x.status}` as I18nKey)
 }
 
 async function context(): Promise<AssistantContext> {
   const { data, error } = await supabase.rpc('assistant_context')
   if (error) throw new Error(error.message)
   return data as AssistantContext
+}
+
+/** Мои задачи: всё открытое или за период из вопроса («на завтра», «на следующей неделе») */
+function tasksAnswer(x: Query, ctx: AssistantContext): AiAnswer {
+  const kind = periodKind(x)
+  const now = new Date()
+  let list = ctx.tasks
+  let label = ''
+  if (kind !== 'default') {
+    const p = parsePeriod(x)
+    const from = isoDate(p.from)
+    const to = isoDate(p.to)
+    label = p.label
+    // на «сегодня» добавляем и просроченное: его тоже нужно сделать сегодня
+    list = list.filter((task) => {
+      if (!task.due_at) return false
+      const day = task.due_at.slice(0, 10)
+      return (day >= from && day <= to) || (kind === 'today' && dueDate(task)! < now && task.status !== 'review')
+    })
+  }
+  const source = [profileSource()]
+  const toTasks = { label: t('jana.act.tasks'), to: '/tasks' }
+  if (!list.length) {
+    return {
+      status: 'personal',
+      text: label ? t('jana.tasksNonePeriod', { period: label }) : t('jana.tasksNone', { done: ctx.tasks_done_7d }),
+      sources: source,
+      mode: 'kb',
+      actions: [toTasks],
+    }
+  }
+  const overdue = list.filter((task) => task.status !== 'review' && dueDate(task) && dueDate(task)! < now).length
+  const onReview = list.filter((task) => task.status === 'review').length
+  const first = pickFirst(list)
+  const parts = [
+    label ? t('jana.tasksPeriod', { period: label, n: list.length }) : t('jana.tasks', { n: list.length }),
+    overdue ? t('jana.tasksOverdue', { n: overdue }) : '',
+    onReview ? t('jana.tasksOnReview', { n: onReview }) : '',
+  ].filter(Boolean)
+  if (first) {
+    const d = dueDate(first)
+    parts.push(
+      t('jana.tasksFirst', {
+        title: first.title,
+        why: d && d < now ? t('jana.whyOverdue') : d ? t('jana.whyDue', { date: fmtDate(d, 'd MMM, HH:mm') }) : t('jana.whyPriority'),
+      }),
+    )
+  }
+  const actions: AiAction[] = []
+  if (first?.kind === 'course' && first.course) actions.push({ label: t('t2.goCourse'), to: `/academy/${first.course.slug}` })
+  else if (first) actions.push({ label: t('jana.act.openTask'), to: `/tasks?open=${first.id}` })
+  actions.push(toTasks)
+  return {
+    status: 'personal',
+    text: parts.join(' '),
+    table: {
+      columns: [t('jana.col.task'), t('jana.col.deadline'), t('jana.col.priority'), t('req.colStatus')],
+      rows: list.map((task) => {
+        const d = dueDate(task)
+        const late = d && d < now && task.status !== 'review'
+        return [
+          task.from ? `${task.title} · ${t('jana.fromWho', { name: task.from })}` : task.title,
+          d ? `${fmtDate(d, 'd MMM, HH:mm')}${late ? ` · ${t('jana.late')}` : ''}` : '–',
+          stars(task.priority),
+          taskProgress(task),
+        ]
+      }),
+    },
+    sources: source,
+    mode: 'kb',
+    actions,
+  }
 }
 
 async function tryPersonal(x: Query): Promise<AiAnswer | null> {
@@ -340,6 +459,57 @@ async function tryPersonal(x: Query): Promise<AiAnswer | null> {
       sources: [profileSource()],
       mode: 'kb',
       actions: [{ label: t('jana.act.academy'), to: '/academy' }],
+    }
+  }
+  if (intent === 'tasks') return tasksAnswer(x, ctx)
+  if (intent === 'review') {
+    if (!ctx.to_review.length) {
+      return { status: 'personal', text: t('jana.reviewNone'), sources: [profileSource()], mode: 'kb', actions: [{ label: t('jana.act.tasks'), to: '/tasks' }] }
+    }
+    return {
+      status: 'personal',
+      text: t('jana.review', { n: ctx.to_review.length }),
+      table: {
+        columns: [t('jana.col.task'), t('jana.col.assignee'), t('jana.col.submitted')],
+        rows: ctx.to_review.map((r) => [r.title, r.assignee, r.submitted_at ? fmtDate(r.submitted_at, 'd MMM') : '–']),
+      },
+      sources: [profileSource()],
+      mode: 'kb',
+      actions: [{ label: t('jana.act.review'), to: `/tasks?open=${ctx.to_review[0].id}` }],
+    }
+  }
+  if (intent === 'holiday') {
+    const [next, ...rest] = ctx.holidays
+    if (!next) return { status: 'personal', text: t('jana.holidayNone'), sources: [calendarSource()], mode: 'kb' }
+    const days = Math.round((new Date(next.day).getTime() - new Date(isoDate(new Date())).getTime()) / 86_400_000)
+    return {
+      status: 'personal',
+      text: t('jana.holiday', {
+        name: next.name,
+        date: fmtDate(next.day, 'EEEE, d MMMM'),
+        when: days === 0 ? t('jana.period.today') : days === 1 ? t('jana.period.tomorrow') : t('jana.inDays', { n: days }),
+      }),
+      table: rest.length ? { columns: [t('jana.col.date'), t('jana.col.holiday')], rows: rest.map((h) => [fmtDate(h.day, 'EEEE, d MMMM'), h.name]) } : undefined,
+      sources: [calendarSource()],
+      mode: 'kb',
+      actions: [action('vacation')],
+    }
+  }
+  if (intent === 'news') {
+    if (!ctx.news.length) return { status: 'personal', text: t('jana.newsNone'), sources: [profileSource()], mode: 'kb' }
+    const unread = ctx.news.filter((a) => !a.read).length
+    return {
+      status: 'personal',
+      text: [
+        unread ? t('jana.newsUnread', { n: unread }) : t('jana.news'),
+        ...ctx.news.map((a) => `**${a.title}** (${fmtDate(a.date, 'd MMM')})${a.summary ? `\n${a.summary}` : ''}`),
+      ].join('\n\n'),
+      sources: [newsSource()],
+      mode: 'kb',
+      actions: [
+        { label: t('jana.act.readFirst'), to: `/announcements?open=${ctx.news[0].id}` },
+        { label: t('jana.act.news'), to: '/announcements' },
+      ],
     }
   }
   if (intent === 'manager') {
@@ -433,6 +603,9 @@ export async function answerLocally(question: string, opts: { role: Role; firstN
 /** Подписи источников «профиль» и «аналитика» сервер пишет по-русски: заменяем на язык интерфейса */
 const localSource = (s: AiSource): AiSource => (s.kind === 'profile' ? profileSource() : s.kind === 'analytics' ? analyticsSource() : s)
 
+/** Сервер ответил, что LLM не настроен (503): до перезагрузки страницы сразу отвечаем во встроенном режиме */
+let llmUnavailable = false
+
 export async function askJana(
   question: string,
   history: { role: 'user' | 'assistant'; content: string }[],
@@ -441,12 +614,13 @@ export async function askJana(
   try {
     const { data } = await supabase.auth.getSession()
     const token = data.session?.access_token
-    if (token) {
+    if (token && !llmUnavailable) {
       const res = await fetch('/api/ai-jana', {
         method: 'POST',
         headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
         body: JSON.stringify({ question, history, lang: getLang() }),
       })
+      if (res.status === 503 || res.status === 404) llmUnavailable = true
       if (res.ok && res.headers.get('content-type')?.includes('application/json')) {
         const json = (await res.json()) as { status: AiAnswer['status']; answer: string; sources: AiSource[]; canned?: 'refused' | 'no_answer' }
         // Готовые фразы сервера (отказ модели, ответ без источника) показываем из словаря

@@ -1,7 +1,7 @@
-import { forwardRef, useEffect, type ButtonHTMLAttributes, type ReactNode } from 'react'
+import { forwardRef, useEffect, useLayoutEffect, useRef, useState, type ButtonHTMLAttributes, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
-import { Loader2, X } from '@/components/icons'
+import { ArrowLeft, Loader2, X } from '@/components/icons'
 import { cn, colorFor } from '@/lib/utils'
 import { initials } from '@/lib/format'
 import { useAvatar } from '@/lib/avatars'
@@ -13,7 +13,7 @@ type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'soft' | 'outline'
 type Size = 'sm' | 'md' | 'lg' | 'icon'
 
 const variants: Record<Variant, string> = {
-  primary: 'bg-brand-600 text-white hover:bg-brand-700 active:bg-brand-800 shadow-sm',
+  primary: 'bg-brand-600 text-white hover:bg-brand-700 hover:shadow-md hover:shadow-brand-600/20 active:bg-brand-800 shadow-sm',
   secondary: 'bg-ink text-white hover:bg-ink/90 shadow-sm',
   ghost: 'text-ink-soft hover:bg-canvas hover:text-ink',
   danger: 'bg-rose-600 text-white hover:bg-rose-700 shadow-sm',
@@ -42,7 +42,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
     <button
       ref={ref}
       className={cn(
-        'inline-flex shrink-0 items-center justify-center font-medium whitespace-nowrap transition disabled:pointer-events-none disabled:opacity-50',
+        'inline-flex shrink-0 items-center justify-center font-medium whitespace-nowrap transition-[transform,background-color,border-color,color,box-shadow] duration-150 ease-out select-none active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50',
         variants[variant],
         sizes[size],
         className,
@@ -139,18 +139,35 @@ export function Avatar({ name, size = 36, className, id }: { name: string; size?
 
 /* ---------- Progress ---------- */
 
+/** true после первого кадра: прогресс-бары и кольца «доезжают» до значения, а не появляются сразу */
+export function useMounted() {
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setMounted(true))
+    return () => cancelAnimationFrame(id)
+  }, [])
+  return mounted
+}
+
 export function Progress({ value, className, tone = 'brand' }: { value: number; className?: string; tone?: 'brand' | 'amber' | 'rose' | 'sky' }) {
+  const mounted = useMounted()
   const color = { brand: 'bg-brand-500', amber: 'bg-amber-500', rose: 'bg-rose-500', sky: 'bg-sky-500' }[tone]
+  const v = Math.min(100, Math.max(0, value))
   return (
     <div className={cn('h-2 w-full overflow-hidden rounded-full bg-canvas', className)} role="progressbar" aria-valuenow={value}>
-      <div className={cn('h-full rounded-full transition-all duration-500', color)} style={{ width: `${Math.min(100, Math.max(0, value))}%` }} />
+      <div
+        className={cn('h-full rounded-full transition-[width] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]', color)}
+        style={{ width: `${mounted ? v : 0}%` }}
+      />
     </div>
   )
 }
 
 export function ProgressRing({ value, size = 64, stroke = 7, children }: { value: number; size?: number; stroke?: number; children?: ReactNode }) {
+  const mounted = useMounted()
   const r = (size - stroke) / 2
   const c = 2 * Math.PI * r
+  const v = mounted ? Math.min(100, Math.max(0, value)) : 0
   return (
     <div className="relative grid shrink-0 place-items-center" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90">
@@ -164,12 +181,47 @@ export function ProgressRing({ value, size = 64, stroke = 7, children }: { value
           fill="none"
           strokeLinecap="round"
           strokeDasharray={c}
-          strokeDashoffset={c - (Math.min(100, Math.max(0, value)) / 100) * c}
-          className="transition-all duration-700"
+          strokeDashoffset={c - (v / 100) * c}
+          className="transition-[stroke-dashoffset] duration-1000 ease-[cubic-bezier(0.22,1,0.36,1)]"
         />
       </svg>
       <div className="absolute inset-0 grid place-items-center text-sm font-semibold">{children ?? `${Math.round(value)}%`}</div>
     </div>
+  )
+}
+
+/** Число «досчитывает» до значения: 0 → 35 за полсекунды. Понимает строки вида «13,5 ч», «60%». */
+export function CountUp({ value }: { value: ReactNode }) {
+  const text = typeof value === 'number' ? String(value) : typeof value === 'string' ? value : null
+  const m = text?.match(/^(\D*?)(\d[\d\s]*(?:[.,]\d+)?)(.*)$/)
+  const target = m ? Number(m[2].replace(/\s/g, '').replace(',', '.')) : NaN
+  const decimals = m && /[.,]\d+/.test(m[2]) ? m[2].split(/[.,]/)[1].length : 0
+  const [shown, setShown] = useState(Number.isFinite(target) ? 0 : target)
+  useEffect(() => {
+    if (!Number.isFinite(target)) return
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      setShown(target)
+      return
+    }
+    let raf = 0
+    const start = performance.now()
+    const tick = (now: number) => {
+      const p = Math.min(1, (now - start) / 650)
+      setShown(target * (1 - Math.pow(1 - p, 3)))
+      if (p < 1) raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [target])
+  if (!m || !Number.isFinite(target)) return <>{value}</>
+  const sep = m[2].includes(',') ? ',' : '.'
+  const num = shown.toFixed(decimals).replace('.', sep).replace(/\B(?=(\d{3})+(?!\d))/g, m[2].includes(' ') ? ' ' : '')
+  return (
+    <span className="tabular-nums">
+      {m[1]}
+      {num}
+      {m[3]}
+    </span>
   )
 }
 
@@ -188,13 +240,18 @@ export function PageLoader() {
 }
 
 export function Skeleton({ className }: { className?: string }) {
-  return <div className={cn('animate-pulse rounded-xl bg-line/70', className)} />
+  return (
+    <div
+      className={cn('animate-shimmer rounded-xl bg-[length:200%_100%]', className)}
+      style={{ backgroundImage: 'linear-gradient(90deg, #e9efea 0%, #f6f9f6 45%, #e9efea 90%)' }}
+    />
+  )
 }
 
 export function Empty({ icon, title, text, action }: { icon?: ReactNode; title: string; text?: string; action?: ReactNode }) {
   return (
     <div className="flex flex-col items-center justify-center px-6 py-10 text-center">
-      {icon && <div className="mb-3 grid h-12 w-12 place-items-center rounded-2xl bg-brand-50 text-brand-600">{icon}</div>}
+      {icon && <div className="mb-3 grid h-12 w-12 animate-float place-items-center rounded-2xl bg-brand-50 text-brand-600">{icon}</div>}
       <p className="font-medium text-ink">{title}</p>
       {text && <p className="mt-1 max-w-sm text-sm text-muted">{text}</p>}
       {action && <div className="mt-4">{action}</div>}
@@ -234,8 +291,8 @@ export function PageHeader({
     <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0">
         {back && (
-          <Link to={back.to} className="mb-2 inline-flex items-center gap-1 text-sm text-muted hover:text-brand-700">
-            ← {back.label}
+          <Link to={back.to} className="group mb-2 inline-flex items-center gap-1 text-sm text-muted hover:text-brand-700">
+            <ArrowLeft className="h-4 w-4 transition group-hover:-translate-x-0.5" /> {back.label}
           </Link>
         )}
         <h1 className="text-2xl font-bold tracking-tight text-ink sm:text-[28px]">{title}</h1>
@@ -356,9 +413,23 @@ export function Tabs<T extends string>({
   items: { value: T; label: ReactNode; count?: number }[]
   className?: string
 }) {
+  const wrap = useRef<HTMLDivElement>(null)
+  const [pill, setPill] = useState<{ left: number; width: number } | null>(null)
+  // Зелёная «пилюля» переезжает к выбранной вкладке, а не перескакивает
+  useLayoutEffect(() => {
+    const el = wrap.current?.querySelector<HTMLElement>('[aria-selected="true"]')
+    if (el) setPill({ left: el.offsetLeft, width: el.offsetWidth })
+  }, [value, items.length, items.map((i) => i.count).join()])
   return (
     <div className={cn('scrollbar-thin -mx-1 flex gap-1 overflow-x-auto px-1', className)} role="tablist">
-      <div className="inline-flex gap-1 rounded-xl bg-white p-1 ring-1 ring-line">
+      <div ref={wrap} className="relative inline-flex gap-1 rounded-xl bg-white p-1 ring-1 ring-line">
+        {pill && (
+          <span
+            aria-hidden
+            className="absolute top-1 bottom-1 rounded-lg bg-brand-600 shadow-sm transition-[left,width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
+            style={{ left: pill.left, width: pill.width }}
+          />
+        )}
         {items.map((it) => (
           <button
             key={it.value}
@@ -366,13 +437,16 @@ export function Tabs<T extends string>({
             aria-selected={value === it.value}
             onClick={() => onChange(it.value)}
             className={cn(
-              'inline-flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-sm font-medium whitespace-nowrap transition',
-              value === it.value ? 'bg-brand-600 text-white shadow-sm' : 'text-ink-soft hover:bg-canvas',
+              'relative z-10 inline-flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-sm font-medium whitespace-nowrap transition-colors duration-200 active:scale-[0.97]',
+              value === it.value ? 'text-white' : 'text-ink-soft hover:bg-canvas',
+              !pill && value === it.value && 'bg-brand-600',
             )}
           >
             {it.label}
             {it.count !== undefined && it.count > 0 && (
-              <span className={cn('rounded-full px-1.5 text-xs', value === it.value ? 'bg-white/25' : 'bg-canvas text-muted')}>{it.count}</span>
+              <span key={it.count} className={cn('animate-bump rounded-full px-1.5 text-xs', value === it.value ? 'bg-white/25' : 'bg-canvas text-muted')}>
+                {it.count}
+              </span>
             )}
           </button>
         ))}
@@ -409,12 +483,14 @@ export function Kpi({
     slate: 'bg-slate-100 text-slate-600',
   }[tone]
   const body = (
-    <div className="card h-full p-4 transition hover:border-brand-200">
+    <div className={cn('card h-full p-4 transition hover:border-brand-200', to && 'lift')}>
       <div className="flex items-center justify-between gap-2">
         <span className="text-[13px] font-medium text-muted">{label}</span>
         {icon && <span className={cn('grid h-8 w-8 place-items-center rounded-lg', toneCls)}>{icon}</span>}
       </div>
-      <div className="mt-2 text-2xl font-bold tracking-tight text-ink">{value}</div>
+      <div className="mt-2 text-2xl font-bold tracking-tight text-ink">
+        <CountUp value={value} />
+      </div>
       {hint && <div className="mt-1 text-xs text-muted">{hint}</div>}
     </div>
   )
@@ -457,7 +533,7 @@ export function Segmented<T extends string>({
           type="button"
           onClick={() => onChange(o.value)}
           className={cn(
-            'rounded-lg px-3 py-1.5 text-sm font-medium transition',
+            'rounded-lg px-3 py-1.5 text-sm font-medium transition active:scale-[0.97]',
             value === o.value ? 'bg-white text-ink shadow-sm' : 'text-muted hover:text-ink',
           )}
         >

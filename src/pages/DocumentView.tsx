@@ -1,6 +1,6 @@
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Printer } from '@/components/icons'
+import { ArrowLeft, Printer } from '@/components/icons'
 import { must, supabase } from '@/lib/supabase'
 import { CERT_PURPOSES, certPurposeLabel, dataFieldLabel } from '@/lib/constants'
 import { days, fmtDate, money } from '@/lib/format'
@@ -56,8 +56,8 @@ export default function DocumentViewPage() {
   return (
     <div className="mx-auto max-w-3xl">
       <div className="no-print mb-3 flex items-center justify-between">
-        <Link to="/requests" className="text-sm text-muted hover:text-brand-700">
-          ← {t('common.back')}
+        <Link to="/requests" className="group inline-flex items-center gap-1 text-sm text-muted hover:text-brand-700">
+          <ArrowLeft className="h-4 w-4 transition group-hover:-translate-x-0.5" /> {t('common.back')}
         </Link>
         <Button variant="outline" size="sm" icon={<Printer className="h-4 w-4" />} onClick={() => window.print()}>
           {t('doc.print')}

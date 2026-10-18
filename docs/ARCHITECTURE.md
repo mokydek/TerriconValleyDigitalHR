@@ -125,6 +125,9 @@ erDiagram
   employees ||--o{ notifications : "получает"
   courses ||--o{ course_lessons : "уроки"
   courses ||--o{ course_questions : "тест"
+  course_lessons ||--o{ lesson_checks : "практика"
+  lesson_checks ||--|| lesson_check_keys : "ключи, скрыты"
+  employees ||--o{ lesson_check_answers : "ответы практики"
   course_questions ||--|| course_answer_keys : "ключи, скрыты"
   courses ||--o{ course_assignments : "назначения"
   employees ||--o{ course_assignments : "проходит"
@@ -134,6 +137,8 @@ erDiagram
   employees ||--o{ hr_tickets : "эскалации"
   employees ||--o{ tasks : "исполняет"
   tasks ||--o{ task_comments : "комментарии"
+  tasks ||--o{ task_attachments : "результат: фото, файлы"
+  courses ||--o{ tasks : "задача «пройти курс»"
   employees ||--o{ announcements : "публикует"
   employees ||--o{ watchlist : "HR следит"
   employees ||--o| employee_avatars : "фото"
@@ -146,9 +151,9 @@ erDiagram
 |---|---|
 | Оргструктура (из 1С:ЗУП, только чтение) | `employees`, `employee_private`, `departments`, `locations`, `holidays` |
 | HR-сервис | `requests`, `request_events`, `integration_events`, `notifications` |
-| Jana Academy | `courses`, `course_lessons`, `course_questions`, `course_answer_keys`, `course_assignments`, `lesson_progress`, `course_attempts` |
+| Jana Academy | `courses`, `course_lessons` (статья / видео / практика), `lesson_checks`, `lesson_check_keys`, `lesson_check_answers`, `course_questions`, `course_answer_keys`, `course_assignments`, `lesson_progress`, `course_attempts` |
 | AI Jana | `kb_articles`, `kb_chunks` (tsvector, русская морфология + триграммы), `ai_queries`, `hr_tickets` |
-| Работа команды | `tasks`, `task_comments`, `announcements`, `announcement_reads` |
+| Работа команды | `tasks` (тип, дедлайн `due_at`, чек-лист, результат, отзыв проверяющего), `task_comments`, `task_attachments`, `announcements` (анонс, обложка, фото), `announcement_reads` |
 | HR-аналитика | `watchlist`, `reminders`, `logistics_daily`, `audit_log` |
 | Профиль и сообщения | `employee_avatars` (фото 256×256 data URL), `chats`, `chat_members`, `chat_messages` |
 
@@ -168,8 +173,8 @@ erDiagram
 |---|---|
 | RLS `select` | свои данные; команда руководителю; всё HR; статьи базы знаний по уровню доступа |
 | RLS `insert/update/delete` | создать заявку можно только от своего имени; задачи себе, команде или (HR) кому угодно; объявления публикует HR или руководитель для своего подразделения |
-| RPC с проверками | `decide_request`, `cancel_request`, `submit_quiz`, `complete_lesson`, `assign_course`, `answer_ticket`, `sync_from_zup`, `attention_action`, аналитика (`require_analytics_access`) |
-| Триггеры-стражи | официальные поля сотрудника, ИИН, оклад и дата рождения не меняются через API; исполнитель задачи меняет только её статус |
+| RPC с проверками | `decide_request`, `cancel_request`, `submit_quiz`, `complete_lesson` (практика только после верных ответов), `answer_lesson_check`, `assign_course`, `assign_tasks`, `review_task`, `answer_ticket`, `sync_from_zup`, `attention_action`, `attention_bulk`, `send_reminder`, аналитика (`require_analytics_access`) |
+| Триггеры-стражи | официальные поля сотрудника, ИИН, оклад и дата рождения не меняются через API; исполнитель задачи меняет только ход выполнения: статус, отметки чек-листа и результат; задачу с отчётом закрывает только постановщик, задачу «пройти курс» только сдача теста, чек-лист только когда отмечены все шаги |
 | Привилегии | ключи ответов тестов, служебные функции (`notify`, адаптеры, воркер outbox) недоступны клиенту |
 | Аудит | изменения карточек сотрудников пишутся в `audit_log` |
 
@@ -253,6 +258,10 @@ flowchart LR
   Обрабатывается отказ модели (`stop_reason: refusal`), включены серверные fallback-модели, системный промпт кешируется.
 - **Права:** инструменты вызывают Supabase с JWT пользователя, поэтому RLS и проверки в RPC действуют для модели так же,
   как для человека.
+- **Личный контекст:** `assistant_context` отдаёт только данные текущего пользователя: профиль, остаток и ближайший
+  отпуск, заявки, курсы со сроками, открытые задачи с дедлайном (время Алматы), приоритетом, постановщиком и прогрессом
+  чек-листа, задачи на проверке у постановщика, ближайшие праздники и свежие объявления его подразделения. Поэтому
+  AI Jana отвечает «что горит и с чего начать» без доступа к чужим задачам.
 - **Журнал:** каждый вопрос пишется в `ai_queries` (статус, источники), на этом строится аналитика HR
   «что спрашивают и чего не хватает в базе знаний».
 

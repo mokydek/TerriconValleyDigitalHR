@@ -70,7 +70,7 @@ export default {
   'srv.req.withdrawnBody': '{name} отменил(а) заявку: {type}',
   'srv.req.nudge': '⏰ Заявка №{n} ждёт вашего решения',
   'srv.req.nudgeBody': '{name} · {type}: висит {h} ч. HR просит рассмотреть сегодня',
-  'srv.req.done': 'Заявка №{n} оформлена ✅',
+  'srv.req.done': 'Заявка №{n} оформлена',
   'srv.req.doneVacation': 'Отпуск оформлен: {doc}. Ознакомьтесь с приказом в Documentolog',
   'srv.req.doneAdvance': 'Аванс {amount} ₸ передан на выплату ({doc}). Зачисление до 3 рабочих дней',
   'srv.req.doneCertificate': 'Справка готова: {doc}',
@@ -82,7 +82,7 @@ export default {
   'srv.event.dlDoc': 'Documentolog: {doc}',
 
   // «Слежу»: уведомления HR о сотруднике (👁 Имя: …)
-  'srv.follow.title': '👁 {name}: {title}',
+  'srv.follow.title': '{name}: {title}',
   'srv.follow.newRequest': 'новая заявка «{type}»',
   'srv.follow.approved': 'заявка №{n} согласована руководителем',
   'srv.follow.rejected': 'заявка №{n} отклонена',
@@ -140,7 +140,7 @@ export default {
   'srv.att.requestDetails': '{type} · согласующий: {name}',
   'srv.att.onboardingTitle': 'Новичок без онбординга',
   'srv.att.onboardingDetails': 'В компании {days} дн., адаптационный курс не назначен',
-  'srv.att.vacationNotif': 'Запланируйте отпуск 🌴',
+  'srv.att.vacationNotif': 'Запланируйте отпуск',
   'srv.att.vacationNotifBody': 'У вас накоплено {days} дн. отпуска. Оформите заявку в JanaMen и подберите даты вместе с руководителем.',
   'srv.att.courseNotif': 'Напоминание: курс «{title}»',
   'srv.att.courseNotifBody': 'Срок прохождения истёк {date}. Пройдите курс в Jana Academy, это займёт около {min} минут.',
@@ -188,7 +188,7 @@ export default {
   'srv.seed.done': 'Заявка оформлена',
   'srv.seed.certReady': 'Справка готова, см. карточку заявки',
   'srv.seed.ticketNew': 'Новое обращение',
-  'srv.seed.welcome': 'Добро пожаловать в Jana Post! 👋',
+  'srv.seed.welcome': 'Добро пожаловать в Jana Post!',
   'srv.seed.welcomeBody': 'Начните с курса «{title}» в Jana Academy',
 
   // Даты и числа внутри текстов сервера (в каждом языке свой порядок и разделители)

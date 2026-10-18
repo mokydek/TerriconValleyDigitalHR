@@ -22,7 +22,6 @@ import {
   MessageCircle,
   MessagesSquare,
   Plug,
-  Sparkles,
   Trash2,
   UserRound,
   Users,
@@ -66,7 +65,6 @@ const NAV: NavGroup[] = [
       { to: '/', key: 'nav.pulse', icon: <HeartPulse className={ICON} />, roles: ['hr'], end: true },
       { to: '/requests', key: 'nav.requests', icon: <FileStack className={ICON} /> },
       { to: '/academy', key: 'nav.academy', icon: <GraduationCap className={ICON} /> },
-      { to: '/assistant', key: 'nav.assistant', icon: <Sparkles className={ICON} /> },
       { to: '/tasks', key: 'nav.tasks', icon: <ClipboardList className={ICON} /> },
       { to: '/announcements', key: 'nav.announcements', icon: <Megaphone className={ICON} /> },
     ],
@@ -136,8 +134,8 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                       onClick={onNavigate}
                       className={({ isActive }) =>
                         cn(
-                          'flex items-center gap-3 rounded-xl px-3 py-2 text-[14.5px] font-medium transition',
-                          isActive ? 'bg-brand-50 text-brand-700' : 'text-ink-soft hover:bg-canvas hover:text-ink',
+                          'group/nav flex items-center gap-3 rounded-xl px-3 py-2 text-[14.5px] font-medium transition active:scale-[0.98]',
+                          isActive ? 'bg-brand-50 text-brand-700' : 'text-ink-soft hover:translate-x-0.5 hover:bg-canvas hover:text-ink',
                         )
                       }
                     >
@@ -423,9 +421,9 @@ function MobileTabBar() {
     role === 'employee'
       ? { to: '/requests', key: 'nav.tab.requests', icon: <FileStack className="h-5 w-5" /> }
       : { to: '/approvals', key: role === 'hr' ? 'nav.hrRequests' : 'nav.tab.approvals', icon: <Inbox className="h-5 w-5" /> },
-    { to: '/academy', key: 'nav.tab.academy', icon: <GraduationCap className="h-5 w-5" /> },
-    { to: '/assistant', key: 'nav.assistant', icon: <Sparkles className="h-5 w-5" /> },
     { to: '/tasks', key: 'nav.tab.tasks', icon: <ClipboardList className="h-5 w-5" /> },
+    { to: '/academy', key: 'nav.tab.academy', icon: <GraduationCap className="h-5 w-5" /> },
+    { to: '/announcements', key: 'nav.announcements', icon: <Megaphone className="h-5 w-5" /> },
   ]
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
@@ -436,7 +434,7 @@ function MobileTabBar() {
               to={it.to}
               end={it.end}
               className={({ isActive }) =>
-                cn('flex flex-col items-center gap-0.5 py-2 text-[10.5px] font-medium', isActive ? 'text-brand-700' : 'text-muted')
+                cn('flex flex-col items-center gap-0.5 py-2 text-[10.5px] font-medium transition active:scale-90', isActive ? 'text-brand-700 [&>svg]:animate-bump' : 'text-muted')
               }
             >
               {it.icon}

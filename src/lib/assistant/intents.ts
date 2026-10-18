@@ -143,7 +143,7 @@ export function asksForOthersData(x: Query, myFirstName: string): boolean {
 
 const BALANCE_RU = /(сколько|остат|осталось|баланс|доступно).*(отпуск|дней отдыха|демалыс)|(отпуск|демалыс).*(осталось|остаток|сколько у меня|мне положено еще)/
 const MY_REQUESTS_RU = /(статус|где|что с|как там).*(заявк|отпуск|аванс|справк)|(мои|моя|моих|моей) заяв(к|ок)/
-const MY_COURSES_RU = /(мои|мой|мне назначен|назначенн).*(курс|обучени)|какие (у меня )?курсы|что (мне )?(нужно )?пройти/
+const MY_COURSES_RU = /(мои|мой|мне назначен|назначенн).*(курс|обучени)|какие (у меня )?курсы|что (мне )?(нужно )?пройти|(дедлайн|срок)[а-я ]*(курс|обучени)/
 const MY_MANAGER_RU = /(кто|мой|моя).*(руководител|начальник)/
 const SALARY_RU = /зарплат|оклад/
 const MY_HIRE_RU = /(когда|дата).*(принят|приема|трудоустро)|мой стаж|сколько я работаю/
@@ -198,12 +198,68 @@ const MY_HIRE = [
   /(хэзээ|огноо).*ажилд орсон|ажилд орсон (огноо|өдөр)|миний (ажилласан|ажлын) (жил|хугацаа|стаж)|миний стаж|хэдэн жил ажилла/, // mn
 ].map(ml)
 
-export function personalIntent(x: Query): 'balance' | 'requests' | 'courses' | 'manager' | 'hire' | null {
+/* ---------- Задачи, проверка, праздники, новости ---------- */
+
+// Вопрос про курсы отдаём разделу обучения, даже если в нём есть «дедлайн» или «что сделать»
+const COURSE_WORD = ml(/курс|обучени|тест|оқу|окуу|kurs|omuzish|омӯзиш|сургалт|\b(course|courses|training|lesson|quiz)\b/)
+
+const MY_TASKS_RU = /(мои|моих|мне|у меня|мой).*(задач|задани|поручени|дедлайн)|(какие|что за|сколько|покажи|список|ближайш|будущ|предстоящ|следующ)[а-я ]*(задач|задани|дедлайн|поручени)|дедлайн|что (мне )?(нужно|надо|осталось|важно) (сделать|доделать|успеть|закрыть)|что (горит|просрочено|срочно)|(задач|задани)[а-я]* на (сегодня|завтра|неделю|эт|следующ)|что у меня (сегодня|завтра|на (этой|следующей) неделе|на неделе)|план на (день|сегодня|завтра|неделю)|с чего (мне )?начать/
+const MY_TASKS = [
+  /тапсырма(лар)?(ым|ыңыз|ың)|менің тапсырма|қандай тапсырма|(не|нені) (істеуім|жасауым) керек|дедлайн|мерзімі (жақын|өткен) тапсырма/, // kk
+  /\bmy (tasks?|to-?dos?|assignments?|deadlines?)\b|\bwhat (do|should) i (need to |have to )?do\b|\b(tasks?|deadlines?|to-?dos?)\b.*\b(today|tomorrow|this week|next week|due|upcoming|overdue|pending|open)\b|\bwhat is (due|overdue|urgent)\b|\bupcoming (tasks?|deadlines?)\b|\bwhere (do|should) i start\b|\bplan for (today|the day|tomorrow|the week)\b|\bhow many (open )?(tasks|to-?dos)\b|\b(tasks|to-?dos) (do i have|i have|for me)\b/, // en
+  /тапшырма(лар)?(ым|ыңыз)|менин тапшырма|кандай тапшырма|эмне (кылышым|жасашым) керек|дедлайн/, // ky
+  /vazifa(lar)?im|topshiriq(lar)?im|mening (vazifa|topshiriq)|qanday (vazifa|topshiriq)|nima qilishim kerak|dedlayn/, // uz
+  /вазифа(ҳо)?(и ман|ям)|кадом вазифа|чӣ кор (кунам|бояд кунам)|дедлайн/, // tg
+  /миний даалгавар|даалгавр(ууд)? (маань|минь)|ямар даалгавар|юу хийх (ёстой|хэрэгтэй)|дедлайн/, // mn
+].map(ml)
+
+const TO_REVIEW_RU = /(на проверк|жд(е|у)т (моей )?проверки|что (мне )?(нужно |надо )?проверить|кто сдал|сданн[а-я]* (отчет|результат|задач))/
+const TO_REVIEW = [
+  /тексеруге (жіберілген|тапсырылған)|тексеруді күтіп|не(ні)? тексеру(ім)? керек/, // kk
+  /\b(to review|awaiting (my )?review|pending (my )?review|needs? my review|waiting for (my )?(review|approval of (the )?results?)|what should i (check|review)|who (has )?submitted)\b/, // en
+  /текшерүүгө (жиберилген|тапшырылган)|текшерүүнү күтүп|эмнени текшерүү(м)? керек/, // ky
+  /tekshiruvga (yuborilgan|topshirilgan)|tekshiruvni kut|nimani tekshirishim kerak/, // uz
+  /барои санҷиш (фиристода|супурда)|чиро (санҷам|тафтиш кунам)/, // tg
+  /шалгалтад (илгээсэн|тушаасан)|юуг шалгах (ёстой|хэрэгтэй)/, // mn
+].map(ml)
+
+const VACATION_WORD = ml(/отпуск|демалыс|өргүү|tatil|рухсат|\b(vacation|leave)\b/)
+const HOLIDAY_RU = /(ближайш|следующ|когда|какой|какие|скоро|сколько)[а-я ]*(праздник|праздничн|выходн[а-я]* (дн|ден))|праздник[а-я]* (в|на) (этом|следующем|ближайш)|производственн[а-я]* календар|когда (отдыхаем|не работаем)/
+const HOLIDAY = [
+  /(жақын|келесі|қашан|қандай).*мереке|мереке(лік)? күн(дер)?|өндірістік күнтізбе/, // kk
+  /\b(next|upcoming|nearest|coming) (public |bank |national )?holidays?\b|\bwhen is the next (public |national )?holiday\b|\bpublic holidays?\b|\bproduction calendar\b/, // en
+  /(жакынкы|кийинки|качан|кандай).*майрам|майрам күн|өндүрүштүк календар/, // ky
+  /(yaqin|keyingi|qachon|qanday).*bayram|bayram kun|ishlab chiqarish kalendar/, // uz
+  /(наздиктарин|ояндаи|кай) (ид|ҷашн)|рӯзи ид|рӯзҳои ид|ҷашни (наздик|оянда)/, // tg
+  /(ойрын|дараагийн|хэзээ).*баяр|баярын өдөр|үндэсний баяр/, // mn
+].map(ml)
+
+const NEWS_RU = /((какие|есть ли|покажи)[а-я ]*(объявлени|новост)|что нового|какие новости|последние (новости|объявлени)|новые объявлени|свежие (новости|объявлени)|что (происходит|случилось) в компании|важные объявлени)/
+const NEWS = [
+  /не жаңалық|қандай жаңалық|соңғы (жаңалық|хабарландыру)|жаңа хабарландыру/, // kk
+  /\bwhat is new\b|\bwhats new\b|\b(latest|recent|new|fresh|important) (news|announcements?|updates)\b|\bany (news|announcements?)\b|\bcompany news\b/, // en
+  /эмне жаңылык|кандай жаңылык|акыркы (жаңылык|кулактандыру)|жаңы кулактандыру/, // ky
+  /qanday yangilik|nima yangilik|soʻnggi (yangilik|eʼlon)|yangi eʼlon/, // uz
+  /чӣ нав|кадом хабар|охирин (хабар|эълон)|эълонҳои нав|хабарҳои нав/, // tg
+  /юу шинэ|ямар мэдээ|сүүлийн (мэдээ|зарлал)|шинэ зарлал/, // mn
+].map(ml)
+
+// «Как сдать задачу», «что делать, если…»: это вопросы о правилах, на них отвечает база знаний
+const HOWTO_RU = /^(как(?![а-я])|каким образом|можно ли|что делать|почему|зачем|кто должен|куда)|(^|[^а-я])(если|когда нужно)([^а-я]|$)/
+const HOWTO = ml(/^(қалай|неге|не істеу керек)|^(how(?! many| much)|why|can i|could i|may i|is it possible)\b|\bwhat (should|do) i do (if|when|in case)\b|\bif\b|^(кантип|эмне үчүн)|^(qanday qilib|nega|nima uchun)|^(чӣ тавр|чаро)|^(яаж|яагаад)/)
+
+export type PersonalIntent = 'balance' | 'requests' | 'courses' | 'manager' | 'hire' | 'tasks' | 'review' | 'holiday' | 'news'
+
+export function personalIntent(x: Query): PersonalIntent | null {
   if (BALANCE_RU.test(x.q) || some(BALANCE, x.f)) return 'balance'
   if (MY_REQUESTS_RU.test(x.q) || some(MY_REQUESTS, x.f)) return 'requests'
+  if (TO_REVIEW_RU.test(x.q) || some(TO_REVIEW, x.f)) return 'review'
+  if (!COURSE_WORD.test(x.f) && !HOWTO_RU.test(x.q) && !HOWTO.test(x.f) && (MY_TASKS_RU.test(x.q) || some(MY_TASKS, x.f))) return 'tasks'
   if (MY_COURSES_RU.test(x.q) || some(MY_COURSES, x.f)) return 'courses'
   if ((MY_MANAGER_RU.test(x.q) && !SALARY_RU.test(x.q)) || (some(MY_MANAGER, x.f) && !SALARY.test(x.f))) return 'manager'
   if (MY_HIRE_RU.test(x.q) || some(MY_HIRE, x.f)) return 'hire'
+  if (!VACATION_WORD.test(x.f) && (HOLIDAY_RU.test(x.q) || some(HOLIDAY, x.f))) return 'holiday'
+  if (NEWS_RU.test(x.q) || some(NEWS, x.f)) return 'news'
   return null
 }
 

@@ -95,7 +95,7 @@ export default {
   'excel.done': 'Файл Excel сформирован',
   'excel.failed': 'Не удалось сформировать Excel',
   'team.subtitle': 'Зарплаты и персональные данные руководителю недоступны',
-  'employees.subtitle': '⭐ «Слежу» включает уведомления по сотруднику',
+  'employees.subtitle': '«Слежу» включает уведомления по сотруднику',
   'notif.all': 'Все уведомления',
   'notif.unread': 'Непрочитанные',
   'notif.kind.request': 'Заявки',

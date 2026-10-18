@@ -13,6 +13,7 @@ import profile from './profile'
 import assistant from './assistant'
 import jana from './jana'
 import server from './server'
+import v2 from './v2'
 
 const kk: Dict = {
   ...core,
@@ -29,6 +30,7 @@ const kk: Dict = {
   ...assistant,
   ...jana,
   ...server,
+  ...v2,
 }
 
 export default kk

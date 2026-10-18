@@ -234,7 +234,7 @@ begin
                           || coalesce(v_zup ->> 'document', '1С:ЗУП') || '). Зачисление до 3 рабочих дней'
       when 'certificate' then 'Справка готова: ' || coalesce(v_dl ->> 'document', 'Documentolog')
       else 'Изменения переданы в 1С:ЗУП: ' || coalesce(v_zup ->> 'document', '') end;
-    perform public.notify(r.employee_id, 'Заявка №' || r.number || ' оформлена ✅', v_msg, '/requests', 'success');
+    perform public.notify(r.employee_id, 'Заявка №' || r.number || ' оформлена', v_msg, '/requests', 'success');
     perform public.notify_followers(r.employee_id, 'заявка №' || r.number || ' оформлена',
       public.request_type_label(r.type), '/approvals', 'success');
   end if;

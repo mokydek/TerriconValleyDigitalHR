@@ -51,7 +51,7 @@ export default {
   'academy.dueField': 'Мӯҳлати гузаштан',
   'academy.employees': 'Кормандон',
   'academy.selectAll': 'Ҳамаро интихоб кардан ({n})',
-  'course.passedToast': 'Аз санҷиш гузаштед: {score}% 🎉',
+  'course.passedToast': 'Аз санҷиш гузаштед: {score}%',
   'course.failedToast': 'Натиҷа {score}%, {pass}% лозим аст',
   'course.passScore': 'холи гузариш {n}%',
   'course.certificate': 'Сертификат',

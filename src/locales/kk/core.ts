@@ -95,7 +95,7 @@ export default {
   'excel.done': 'Excel файлы дайын',
   'excel.failed': 'Excel файлын жасау мүмкін болмады',
   'team.subtitle': 'Жалақы мен дербес деректер басшыға қолжетімсіз',
-  'employees.subtitle': '⭐ «Бақылауда» қызметкер бойынша хабарламаларды қосады',
+  'employees.subtitle': '«Бақылауда» қызметкер бойынша хабарламаларды қосады',
   'notif.all': 'Барлық хабарламалар',
   'notif.unread': 'Оқылмағандар',
   'notif.kind.request': 'Өтінімдер',

@@ -94,9 +94,36 @@ try {
   await page.goto(BASE + '/academy/infosec')
   await page.waitForSelector('[data-testid="lesson-view"]')
   await shot('06-course-lesson')
-  for (let i = 0; i < 4; i++) {
-    await page.getByTestId('lesson-next').click()
-    await page.waitForTimeout(700)
+  // Уроки по порядку: статья и видео отмечаются кнопкой, практика проходится вопрос за вопросом
+  let practiceShot = false
+  for (let step = 0; step < 40; step++) {
+    if (await page.locator('[data-testid="quiz-view"]').isVisible()) break
+    const kind = await page.locator('[data-testid="lesson-view"]').getAttribute('data-kind')
+    if (kind !== 'practice') {
+      await page.getByTestId('lesson-next').click()
+      await page.waitForTimeout(700)
+      continue
+    }
+    if (await page.getByTestId('practice-next').isVisible()) {
+      await page.getByTestId('practice-next').click()
+      await page.waitForTimeout(700)
+      continue
+    }
+    // ключи ответов скрыты: пробуем варианты, сервер отвечает «верно / неверно»
+    for (let k = 0; k < 4; k++) {
+      await page.getByTestId(`check-option-${k}`).click()
+      await page.getByTestId('check-submit').click()
+      await page.waitForTimeout(600)
+      if (!practiceShot) {
+        await shot('06b-practice')
+        practiceShot = true
+      }
+      if (await page.getByTestId('check-next').isVisible()) {
+        await page.getByTestId('check-next').click()
+        await page.waitForTimeout(400)
+        break
+      }
+    }
   }
   await page.waitForSelector('[data-testid="quiz-view"]')
   const groups = await page.locator('[data-testid="quiz-view"] li').count()

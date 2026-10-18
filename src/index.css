@@ -41,6 +41,43 @@
     0% { transform: scale(0.96); opacity: 0; }
     100% { transform: scale(1); opacity: 1; }
   }
+
+  --animate-rise: rise 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-shimmer: shimmer 1.4s linear infinite;
+  --animate-star: star-pop 0.38s cubic-bezier(0.34, 1.56, 0.64, 1);
+  --animate-float: float 4s ease-in-out infinite;
+  --animate-wiggle: wiggle 0.5s ease-in-out;
+  --animate-bump: bump 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes shimmer {
+    from { background-position: 200% 0; }
+    to { background-position: -200% 0; }
+  }
+  @keyframes star-pop {
+    0% { transform: scale(0.6) rotate(-15deg); }
+    60% { transform: scale(1.25) rotate(6deg); }
+    100% { transform: scale(1) rotate(0); }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+  }
+  @keyframes wiggle {
+    0%, 100% { transform: rotate(0); }
+    20% { transform: rotate(-12deg); }
+    40% { transform: rotate(10deg); }
+    60% { transform: rotate(-6deg); }
+    80% { transform: rotate(3deg); }
+  }
+  @keyframes bump {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.18); }
+    100% { transform: scale(1); }
+  }
 }
 
 /* Safari до 16 не знает overflow: clip — на телефонах страхуемся обычным hidden */
@@ -106,6 +143,131 @@
   .prose-jana ol { @apply my-2.5 list-decimal space-y-1 pl-5; }
   .prose-jana strong { @apply font-semibold text-ink; }
   .prose-jana a { @apply font-medium text-brand-700 underline underline-offset-2; }
+}
+
+/* ---------- Микроанимации ---------- */
+
+/* Появление списков «лесенкой»: style={{ '--i': index }} */
+.stagger > * {
+  animation: rise 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(min(var(--i, 0), 12) * 40ms);
+}
+
+/* Карточка, на которую можно нажать: приподнимается при наведении и «вжимается» при нажатии */
+.lift {
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.18s ease, border-color 0.18s ease;
+}
+.lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-pop);
+}
+.lift:active {
+  transform: translateY(0) scale(0.985);
+}
+
+/* Галочка рисуется линией */
+.check-draw path {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: check-draw 0.32s 0.05s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+@keyframes check-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+/* Частицы «успеха» (задача принята, тест сдан) */
+.burst {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  pointer-events: none;
+}
+.burst i {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  background: var(--color-brand-500);
+  animation: burst 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  transform: rotate(var(--a)) translateY(0);
+}
+.burst i:nth-child(3n) { background: var(--color-brand-300); width: 5px; height: 5px; border-radius: 50%; }
+.burst i:nth-child(3n + 1) { background: #f5b83d; }
+@keyframes burst {
+  from { opacity: 1; transform: rotate(var(--a)) translateY(0) scale(1); }
+  to { opacity: 0; transform: rotate(var(--a)) translateY(calc(-1 * var(--d, 46px))) scale(0.4); }
+}
+
+@keyframes road { to { background-position: 16px 0; } }
+
+/* Экран входа: переливающийся фон и маршруты */
+.login-art { --mx: 0; --my: 0; background: #0b2310; }
+.login-blob {
+  position: absolute;
+  width: 70%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  filter: blur(70px);
+  opacity: 0.75;
+  mix-blend-mode: screen;
+  will-change: transform;
+}
+.login-blob-a { background: radial-gradient(circle, #1b8918 0%, transparent 65%); top: -10%; left: -15%; animation: blob-a 18s ease-in-out infinite; }
+.login-blob-b { background: radial-gradient(circle, #2b9a6f 0%, transparent 62%); bottom: -25%; right: -20%; animation: blob-b 22s ease-in-out infinite; }
+.login-blob-c { background: radial-gradient(circle, #8fd14f 0%, transparent 60%); top: 35%; left: 30%; width: 45%; opacity: 0.4; animation: blob-c 16s ease-in-out infinite; }
+@keyframes blob-a {
+  0%, 100% { transform: translate(calc(var(--mx) * 30px), calc(var(--my) * 30px)) scale(1); }
+  50% { transform: translate(calc(18% + var(--mx) * 30px), calc(12% + var(--my) * 30px)) scale(1.15); }
+}
+@keyframes blob-b {
+  0%, 100% { transform: translate(calc(var(--mx) * -40px), calc(var(--my) * -40px)) scale(1.1); }
+  50% { transform: translate(calc(-16% + var(--mx) * -40px), calc(-14% + var(--my) * -40px)) scale(0.95); }
+}
+@keyframes blob-c {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.3; }
+  33% { transform: translate(-20%, 10%) scale(1.25); opacity: 0.5; }
+  66% { transform: translate(15%, -15%) scale(0.9); opacity: 0.35; }
+}
+.login-routes { transform: translate(calc(var(--mx) * -14px), calc(var(--my) * -14px)); transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1); }
+.login-flow { animation: login-flow linear infinite; }
+@keyframes login-flow { to { stroke-dashoffset: -240; } }
+.login-hub { transform-box: fill-box; transform-origin: center; animation: login-hub 3.2s ease-in-out infinite; }
+@keyframes login-hub { 0%, 100% { transform: scale(0.7); opacity: 0.1; } 50% { transform: scale(1.6); opacity: 0.3; } }
+.login-word { background: linear-gradient(100deg, #ffffff 20%, #acdca9 40%, #ffffff 60%); background-size: 220% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: login-shine 7s ease-in-out infinite; }
+@keyframes login-shine { 0%, 100% { background-position: 100% 0; } 50% { background-position: 0 0; } }
+
+/* Иллюстрации обложек объявлений: живут, но не отвлекают */
+.cover-art svg g, .cover-art svg path, .cover-art svg circle { transform-box: fill-box; }
+.cover-float { animation: cover-float 5s ease-in-out infinite; }
+.cover-float-slow { animation: cover-float 7s ease-in-out infinite reverse; }
+.cover-bounce { animation: cover-bounce 2.4s cubic-bezier(0.5, 0, 0.5, 1) infinite; }
+.cover-drive { animation: cover-drive 6s ease-in-out infinite; }
+.cover-road { animation: cover-road 1.2s linear infinite; }
+.cover-blink { animation: cover-blink 2s ease-in-out infinite; }
+.cover-spin { animation: cover-spin 30s linear infinite; transform-box: view-box !important; }
+.cover-twinkle { animation: cover-twinkle 2.2s ease-in-out infinite; transform-origin: center; }
+.cover-sway { animation: cover-sway 5s ease-in-out infinite; transform-box: view-box !important; }
+.cover-pulse { animation: cover-pulse 1.8s ease-in-out infinite; transform-box: view-box !important; }
+.cover-steam { animation: cover-steam 2.6s ease-in-out infinite; }
+.cover-wiggle-slow { animation: cover-sway 3s ease-in-out infinite; transform-box: view-box !important; }
+@keyframes cover-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@keyframes cover-bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+@keyframes cover-drive { 0%, 100% { transform: translateX(-24px); } 50% { transform: translateX(24px); } }
+@keyframes cover-road { to { stroke-dashoffset: -50; } }
+@keyframes cover-blink { 0%, 100% { opacity: 0.25; } 50% { opacity: 0.9; } }
+@keyframes cover-spin { to { transform: rotate(360deg); } }
+@keyframes cover-twinkle { 0%, 100% { opacity: 0.4; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.15); } }
+@keyframes cover-sway { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
+@keyframes cover-pulse { 0%, 100% { transform: scale(1); } 15% { transform: scale(1.06); } 30% { transform: scale(1); } 45% { transform: scale(1.04); } }
+@keyframes cover-steam { 0% { opacity: 0; transform: translateY(6px); } 50% { opacity: 0.9; } 100% { opacity: 0; transform: translateY(-8px); } }
+
+/* Кто попросил меньше движения: оставляем только мгновенные смены состояний */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Печать документов (справка, приказ) */

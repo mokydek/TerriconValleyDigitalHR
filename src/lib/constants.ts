@@ -1,3 +1,4 @@
+import { AlertTriangle, Newspaper, PartyPopper, Truck, Users } from '@/components/icons'
 import { t } from './i18n'
 import type { RequestStatus, RequestType, Task } from './types'
 
@@ -5,30 +6,26 @@ import type { RequestStatus, RequestType, Task } from './types'
 
 export const REQUEST_TYPES: RequestType[] = ['vacation', 'advance', 'certificate', 'data_change']
 
-export const REQUEST_TYPE_META: Record<RequestType, { emoji: string; color: string; readonly hint: string }> = {
+export const REQUEST_TYPE_META: Record<RequestType, { color: string; readonly hint: string }> = {
   vacation: {
-    emoji: '🌴',
     color: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
     get hint() {
       return t('typeHint.vacation')
     },
   },
   advance: {
-    emoji: '💳',
     color: 'bg-sky-50 text-sky-700 ring-sky-200',
     get hint() {
       return t('typeHint.advance')
     },
   },
   certificate: {
-    emoji: '📄',
     color: 'bg-violet-50 text-violet-700 ring-violet-200',
     get hint() {
       return t('typeHint.certificate')
     },
   },
   data_change: {
-    emoji: '✏️',
     color: 'bg-amber-50 text-amber-800 ring-amber-200',
     get hint() {
       return t('typeHint.data_change')
@@ -77,11 +74,11 @@ export const TASK_CATEGORIES = labels(
 )
 
 const ANNOUNCEMENT_STYLE = {
-  news: { style: 'bg-sky-50 text-sky-700 ring-sky-200', emoji: '📰' },
-  logistics: { style: 'bg-brand-50 text-brand-700 ring-brand-200', emoji: '🚚' },
-  hr: { style: 'bg-violet-50 text-violet-700 ring-violet-200', emoji: '👥' },
-  event: { style: 'bg-amber-50 text-amber-800 ring-amber-200', emoji: '🎉' },
-  urgent: { style: 'bg-rose-50 text-rose-700 ring-rose-200', emoji: '⚠️' },
+  news: { style: 'bg-brand-50 text-brand-700 ring-brand-200', icon: Newspaper },
+  logistics: { style: 'bg-brand-50 text-brand-700 ring-brand-200', icon: Truck },
+  hr: { style: 'bg-brand-50 text-brand-700 ring-brand-200', icon: Users },
+  event: { style: 'bg-amber-50 text-amber-800 ring-amber-200', icon: PartyPopper },
+  urgent: { style: 'bg-rose-50 text-rose-700 ring-rose-200', icon: AlertTriangle },
 } as const
 
 export const ANNOUNCEMENT_CATEGORIES = Object.fromEntries(
@@ -94,7 +91,7 @@ export const ANNOUNCEMENT_CATEGORIES = Object.fromEntries(
       },
     },
   ]),
-) as Record<string, { readonly label: string; style: string; emoji: string }>
+) as Record<string, { readonly label: string; style: string; icon: typeof Newspaper }>
 
 export const COURSE_CATEGORIES = labels(['onboarding', 'safety', 'compliance', 'skills', 'general'] as const, (c) => `courseCat.${c}`)
 

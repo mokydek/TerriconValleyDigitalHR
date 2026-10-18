@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { BookOpenCheck, MessageCircleQuestion, RotateCcw, ShieldCheck, Sparkles, UserRound } from '@/components/icons'
+import { ArrowRight, BookOpenCheck, MessageCircleQuestion, RotateCcw, ShieldCheck, Sparkles, UserRound } from '@/components/icons'
 import { useAuth } from '@/lib/auth'
 import { useI18n } from '@/lib/i18n'
 import { useTickets } from '@/lib/api'
@@ -14,8 +14,8 @@ export default function AssistantPage() {
   const tickets = useTickets('mine')
 
   return (
-    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_320px]">
-      <Card className="flex h-[calc(100dvh-170px)] min-h-[520px] flex-col p-4 sm:p-5">
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <Card className="flex h-[calc(100dvh-170px)] min-h-[520px] min-w-0 flex-col p-4 sm:p-5">
         <div className="mb-3 flex items-center justify-between gap-3 border-b border-line pb-3">
           <div className="flex items-center gap-3">
             <div className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 text-white">
@@ -59,7 +59,7 @@ export default function AssistantPage() {
             </li>
           </ul>
           <Link to="/knowledge" className="mt-4 inline-block text-sm font-medium text-brand-700 hover:underline">
-            {t('ai.openKb')} →
+            {t('ai.openKb')} <ArrowRight className="inline h-4 w-4" />
           </Link>
         </Card>
 

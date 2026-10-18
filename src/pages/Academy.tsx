@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Link } from 'react-router-dom'
-import { Award, BookOpen, Clock, GraduationCap, Plus, Search, Users } from '@/components/icons'
+import { Award, BookOpen, CheckCircle2, Clock, GraduationCap, Plus, Search, Users } from '@/components/icons'
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/auth'
 import { tr, useI18n } from '@/lib/i18n'
-import { useAnalytics, useAssignCourse, useCourseLessonCounts, useCourses, useEmployeesLite, useMyAssignments } from '@/lib/api'
+import { useAnalytics, useAssignCourse, useCourseLessonCounts, useCourses, useDepartments, useEmployeesLite, useMyAssignments } from '@/lib/api'
 import { COURSE_CATEGORIES } from '@/lib/constants'
 import { fmtDate, fullName, isoDate } from '@/lib/format'
 import { serverText } from '@/lib/serverText'
@@ -12,6 +13,7 @@ import type { Assignment, Course } from '@/lib/types'
 import { addDays } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { Badge, Button, Card, CardHeader, Empty, Field, Modal, PageHeader, Progress, Skeleton, Tabs } from '@/components/ui'
+import { CourseIcon } from '@/components/academy/CourseIcon'
 
 type Tab = 'mine' | 'catalog' | 'manage'
 
@@ -20,14 +22,19 @@ function CourseCard({ course, assignment, lessons }: { course: Course; assignmen
   const overdue = assignment && assignment.status !== 'completed' && assignment.due_date && new Date(assignment.due_date) < new Date(new Date().toDateString())
   const cta = !assignment || assignment.status === 'assigned' ? t('academy.start') : assignment.status === 'in_progress' ? t('academy.continue') : t('common.open')
   return (
-    <Card className="flex flex-col overflow-hidden transition hover:border-brand-300" data-testid={`course-${course.slug}`}>
+    <Card className="lift flex flex-col overflow-hidden hover:border-brand-300" data-testid={`course-${course.slug}`}>
       <div className="flex items-start gap-3 p-5">
-        <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-brand-50 text-2xl">{course.emoji}</div>
+        <CourseIcon name={course.icon} className="h-12 w-12" />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap gap-1.5">
             <Badge className="bg-canvas text-ink-soft ring-line">{COURSE_CATEGORIES[course.category] ?? course.category}</Badge>
             {course.is_mandatory && <Badge className="bg-amber-50 text-amber-800 ring-amber-200">{t('academy.mandatory')}</Badge>}
-            {assignment?.status === 'completed' && <Badge className="bg-brand-50 text-brand-700 ring-brand-200">✓ {t('academy.completed')}</Badge>}
+            {assignment?.status === 'completed' && (
+              <Badge className="bg-brand-50 text-brand-700 ring-brand-200">
+                <CheckCircle2 className="mr-1 inline h-3 w-3" />
+                {t('academy.completed')}
+              </Badge>
+            )}
             {overdue && <Badge className="bg-rose-50 text-rose-700 ring-rose-200">{t('academy.overdue')}</Badge>}
           </div>
           <h3 className="mt-2 font-semibold text-ink">{course.title}</h3>
@@ -66,7 +73,10 @@ export default function AcademyPage() {
   const courses = useCourses()
   const mine = useMyAssignments()
   const lessonCounts = useCourseLessonCounts()
-  const [tab, setTab] = useState<Tab>('mine')
+  // ?assign=1: сразу вкладка управления и форма назначения курса (быстрые действия на главной)
+  const [params, setParams] = useSearchParams()
+  const autoAssign = params.get('assign') === '1' && role !== 'employee'
+  const [tab, setTab] = useState<Tab>(autoAssign ? 'manage' : 'mine')
   const byCourse = useMemo(() => new Map((mine.data ?? []).map((a) => [a.course_id, a])), [mine.data])
   const assigned = (mine.data ?? []).filter((a) => a.course)
   const completed = assigned.filter((a) => a.status === 'completed').length
@@ -131,7 +141,18 @@ export default function AcademyPage() {
         </div>
       )}
 
-      {tab === 'manage' && <ManageLearning courses={courses.data ?? []} />}
+      {tab === 'manage' && (
+        <ManageLearning
+          courses={courses.data ?? []}
+          autoAssign={autoAssign}
+          onAssignClosed={() => {
+            if (!params.get('assign')) return
+            const next = new URLSearchParams(params)
+            next.delete('assign')
+            setParams(next, { replace: true })
+          }}
+        />
+      )}
     </div>
   )
 }
@@ -145,13 +166,13 @@ interface CourseStat {
   avg_score: number | null
 }
 
-function ManageLearning({ courses }: { courses: Course[] }) {
+function ManageLearning({ courses, autoAssign, onAssignClosed }: { courses: Course[]; autoAssign?: boolean; onAssignClosed?: () => void }) {
   const { role } = useAuth()
   const { t } = useI18n()
   const funnel = useAnalytics<{ assigned: number; started: number; lessons_done: number; passed: number }>('learning_funnel')
   const stats = useAnalytics<{ learning_by_course?: CourseStat[] }>('hr_charts')
   const forecast = useAnalytics<{ total: number; completed: number; pct: number; rate_per_week: number; eta: string | null }>('learning_forecast')
-  const [assignOpen, setAssignOpen] = useState(false)
+  const [assignOpen, setAssignOpen] = useState(Boolean(autoAssign))
   const byCourse = useAnalytics<{ rows: { department: string; course: string; assigned: number; completed: number; pct: number; overdue: number }[] }>(
     'analytics_query',
     { p_kind: 'course_by_department', p_params: {} },
@@ -253,7 +274,14 @@ function ManageLearning({ courses }: { courses: Course[] }) {
           </table>
         </div>
       </Card>
-      <AssignCourseModal open={assignOpen} onClose={() => setAssignOpen(false)} courses={courses} />
+      <AssignCourseModal
+        open={assignOpen}
+        onClose={() => {
+          setAssignOpen(false)
+          onAssignClosed?.()
+        }}
+        courses={courses}
+      />
     </div>
   )
 }
@@ -277,8 +305,15 @@ export function AssignCourseModal({
   const [selected, setSelected] = useState<Set<string>>(new Set(presetEmployeeIds ?? []))
   const [due, setDue] = useState(isoDate(addDays(new Date(), 14)))
   const [q, setQ] = useState('')
+  // HR назначает курс целому отделу: фильтр подразделения + «Выбрать всех»
+  const departments = useDepartments()
+  const [dept, setDept] = useState('all')
   const candidates = (people.data ?? []).filter((p) => p.id !== me?.id && (role === 'hr' || p.manager_id === me?.id))
-  const visible = candidates.filter((p) => !q || fullName(p, true).toLowerCase().includes(q.toLowerCase()) || p.position.toLowerCase().includes(q.toLowerCase()))
+  const visible = candidates.filter(
+    (p) =>
+      (dept === 'all' || p.department_id === dept) &&
+      (!q || fullName(p, true).toLowerCase().includes(q.toLowerCase()) || p.position.toLowerCase().includes(q.toLowerCase())),
+  )
   const courseList = courses.length ? courses : []
   const effectiveCourse = courseId || courseList[0]?.id || ''
 
@@ -318,7 +353,7 @@ export function AssignCourseModal({
             <select className="field" value={effectiveCourse} onChange={(e) => setCourseId(e.target.value)}>
               {courseList.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.emoji} {c.title}
+                  {c.title}
                 </option>
               ))}
             </select>
@@ -328,11 +363,26 @@ export function AssignCourseModal({
           </Field>
         </div>
         <div>
-          <div className="mb-2 flex items-center justify-between">
-            <span className="label mb-0">{t('academy.employees')}</span>
-            <button className="text-sm font-medium text-brand-700" onClick={() => setSelected(new Set(visible.map((p) => p.id)))}>
-              {t('academy.selectAll', { n: visible.length })}
-            </button>
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <span className="label mb-0">
+              {t('academy.employees')}
+              {selected.size > 0 && <span className="ml-1.5 rounded-full bg-brand-50 px-2 py-0.5 text-xs text-brand-700">{selected.size}</span>}
+            </span>
+            <div className="flex items-center gap-2">
+              {role === 'hr' && (
+                <select className="field h-9 w-auto py-1 text-sm" value={dept} onChange={(e) => setDept(e.target.value)} data-testid="assign-dept">
+                  <option value="all">{t('ann.wholeCompany')}</option>
+                  {(departments.data ?? []).map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+              <Button size="sm" variant="soft" onClick={() => setSelected(new Set([...selected, ...visible.map((p) => p.id)]))}>
+                {t('academy.selectAll', { n: visible.length })}
+              </Button>
+            </div>
           </div>
           <div className="relative mb-2">
             <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted" />

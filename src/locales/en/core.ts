@@ -95,7 +95,7 @@ export default {
   'excel.done': 'Excel file created',
   'excel.failed': 'Couldn’t create the Excel file',
   'team.subtitle': 'Salaries and personal data aren’t visible to managers',
-  'employees.subtitle': '⭐ “Watching” turns on notifications about the employee',
+  'employees.subtitle': '“Watching” turns on notifications about the employee',
   'notif.all': 'All notifications',
   'notif.unread': 'Unread',
   'notif.kind.request': 'Requests',

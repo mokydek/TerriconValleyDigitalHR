@@ -459,7 +459,7 @@ begin
 
   if p_action = 'remind_vacation' then
     select * into v_bal from public.vacation_balance(p_employee);
-    perform public.notify(p_employee, 'Запланируйте отпуск 🌴',
+    perform public.notify(p_employee, 'Запланируйте отпуск',
       'У вас накоплено ' || v_bal.available || ' дн. отпуска. Оформите заявку в JanaMen и подберите даты вместе с руководителем.',
       '/requests?new=vacation', 'warning');
     insert into public.reminders (kind, employee_id, ref_id, sent_by) values ('vacation', p_employee, null, v_me);
@@ -507,9 +507,9 @@ begin
   loop
     if not exists (select 1 from public.notifications n
                    where n.employee_id = v_me and n.created_at::date = current_date
-                     and n.title = '👁 ' || public.employee_name(x.employee_id) || ': ' || x.title) then
+                     and n.title = 'Слежу · ' || public.employee_name(x.employee_id) || ': ' || x.title) then
       insert into public.notifications (employee_id, title, body, link, kind)
-      values (v_me, '👁 ' || public.employee_name(x.employee_id) || ': ' || x.title, x.body, '/employees/' || x.employee_id, 'warning');
+      values (v_me, 'Слежу · ' || public.employee_name(x.employee_id) || ': ' || x.title, x.body, '/employees/' || x.employee_id, 'warning');
       v_count := v_count + 1;
     end if;
   end loop;

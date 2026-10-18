@@ -38,7 +38,7 @@ create or replace function public.notify_followers(p_employee uuid, p_title text
 returns void language plpgsql security definer set search_path = public as $$
 begin
   insert into public.notifications (employee_id, title, body, link, kind)
-  select w.added_by, '👁 ' || public.employee_name(p_employee) || ': ' || p_title, p_body, p_link, coalesce(p_kind, 'info')
+  select w.added_by, 'Слежу · ' || public.employee_name(p_employee) || ': ' || p_title, p_body, p_link, coalesce(p_kind, 'info')
   from public.watchlist w
   where w.employee_id = p_employee
     and w.added_by is distinct from public.current_employee_id()

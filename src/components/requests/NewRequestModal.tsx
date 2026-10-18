@@ -14,6 +14,7 @@ import type { HrRequest, RequestType } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { Button, Field, Modal } from '@/components/ui'
 import { TypeIcon } from '@/components/requests/RequestParts'
+import { TeamOverlap } from '@/components/requests/TeamOverlap'
 
 /** Языки, на которых выдаётся справка (в заявку записывается код языка) */
 const CERT_LANGS: readonly string[] = ['ru', 'kk', 'en']
@@ -217,6 +218,7 @@ export function NewRequestModal({
               )}
             </div>
           )}
+          {vacation && 'count' in vacation && <TeamOverlap start={start} end={end} />}
           <Field label={t('req.comment')} hint={t('req.optional')}>
             <textarea className="field min-h-[72px]" value={comment} onChange={(e) => setComment(e.target.value)} placeholder={t('req.vacCommentPh')} />
           </Field>

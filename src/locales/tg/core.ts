@@ -95,7 +95,7 @@ export default {
   'excel.done': 'Файли Excel омода шуд',
   'excel.failed': 'Файли Excel сохта нашуд',
   'team.subtitle': 'Маош ва маълумоти шахсӣ ба роҳбар дастрас нестанд',
-  'employees.subtitle': '⭐ «Дар назорат» огоҳиномаҳоро оид ба корманд фаъол мекунад',
+  'employees.subtitle': '«Дар назорат» огоҳиномаҳоро оид ба корманд фаъол мекунад',
   'notif.all': 'Ҳамаи огоҳиномаҳо',
   'notif.unread': 'Хонданашуда',
   'notif.kind.request': 'Дархостҳо',

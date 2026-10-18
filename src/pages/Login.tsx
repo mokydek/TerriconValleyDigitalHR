@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { ArrowRight, BadgeCheck, Briefcase, GraduationCap, Sparkles, UserRound, UsersRound } from '@/components/icons'
+import { ArrowRight, Briefcase, UserRound, UsersRound } from '@/components/icons'
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/auth'
 import { useI18n } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { Button, Field } from '@/components/ui'
 import { LanguageMenu } from '@/components/LanguageMenu'
+import { LoginArt } from '@/components/LoginArt'
 
 const DEMO_PASSWORD = 'Jana2026!'
 
@@ -36,8 +37,6 @@ const DEMO = [
   },
 ] as const
 
-const PATH = ['login.step1', 'login.step2', 'login.step3', 'login.step4', 'login.step5'] as const
-
 export default function LoginPage() {
   const { signIn } = useAuth()
   const { t } = useI18n()
@@ -59,45 +58,22 @@ export default function LoginPage() {
   return (
     // grid-cols-1 (minmax(0, 1fr)): без него колонка на телефоне растягивается по строке с truncate и страница шире экрана
     <div className="grid min-h-dvh grid-cols-1 lg:grid-cols-[1.05fr_1fr]">
-      {/* Бренд-панель */}
-      <div className="relative hidden overflow-hidden bg-[#0f2a12] text-white lg:flex lg:flex-col lg:justify-between lg:p-12">
-        <svg className="pointer-events-none absolute inset-0 h-full w-full opacity-40" viewBox="0 0 800 800" preserveAspectRatio="none" aria-hidden>
-          {Array.from({ length: 9 }).map((_, i) => (
-            <path key={i} d={`M ${-200 + i * 40} 900 Q ${300 + i * 30} ${420 - i * 25} ${1000} ${-100 + i * 35}`} stroke="#4eb34a" strokeWidth="1" fill="none" opacity={0.25 + i * 0.06} />
-          ))}
-        </svg>
-        <div className="relative">
+      {/* Бренд-панель: живой фон с маршрутами, без лишнего текста */}
+      <div className="relative hidden overflow-hidden text-white lg:flex lg:flex-col lg:justify-between lg:p-12">
+        <LoginArt />
+        <div className="relative animate-fade-in">
           <div className="text-[32px] leading-none font-extrabold tracking-tight">
             JANA <span className="text-brand-300">POST</span>
           </div>
-          <div className="mt-1 text-sm text-white/60">× Terricon Valley Hackathon · Digital HR</div>
         </div>
-        <div className="relative max-w-xl">
-          <h1 className="text-5xl leading-[1.05] font-extrabold tracking-tight">
-            Jana<span className="text-brand-300">Men</span>
+        <div className="relative max-w-xl animate-rise">
+          <h1 className="text-6xl leading-[1.02] font-extrabold tracking-tight">
+            <span className="login-word">Jana</span>
+            <span className="text-brand-300">Men</span>
           </h1>
-          <p className="mt-4 text-xl text-white/85">{t('login.tagline')}</p>
-          <ol className="mt-10 grid grid-cols-5 gap-3">
-            {PATH.map((p, i) => (
-              <li key={p}>
-                <div className="text-3xl font-extrabold text-brand-300">{String(i + 1).padStart(2, '0')}</div>
-                <div className="mt-2 h-px bg-white/25" />
-                <div className="mt-2 text-xs font-semibold tracking-wide text-white/80 uppercase">{t(p)}</div>
-              </li>
-            ))}
-          </ol>
+          <p className="mt-5 max-w-md text-xl leading-relaxed text-white/85">{t('login.tagline')}</p>
         </div>
-        <div className="relative flex flex-wrap gap-x-6 gap-y-2 text-sm text-white/70">
-          <span className="inline-flex items-center gap-2">
-            <BadgeCheck className="h-4 w-4 text-brand-300" /> {t('login.feature1')}
-          </span>
-          <span className="inline-flex items-center gap-2">
-            <GraduationCap className="h-4 w-4 text-brand-300" /> {t('login.feature2')}
-          </span>
-          <span className="inline-flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-brand-300" /> {t('login.feature3')}
-          </span>
-        </div>
+        <div className="relative text-sm text-white/55">{t('login.footerBrand')}</div>
       </div>
 
       {/* Форма */}
@@ -123,7 +99,7 @@ export default function LoginPage() {
                   key={d.email}
                   onClick={() => void login(d.email, DEMO_PASSWORD)}
                   disabled={Boolean(busy)}
-                  className="group flex w-full items-center gap-3.5 rounded-2xl border border-line bg-white p-3.5 text-left shadow-[var(--shadow-card)] transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-[var(--shadow-pop)] disabled:opacity-60"
+                  className="lift group flex w-full items-center gap-3.5 rounded-2xl border border-line bg-white p-3.5 text-left shadow-[var(--shadow-card)] hover:border-brand-300 disabled:opacity-60"
                   data-testid={`demo-${d.email.split('@')[0]}`}
                 >
                   <div className={cn('grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br text-white', d.tone)}>{d.icon}</div>

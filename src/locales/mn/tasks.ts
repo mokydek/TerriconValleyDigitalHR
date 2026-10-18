@@ -5,7 +5,7 @@ export default {
   'tasks.in_progress': 'Хийгдэж буй',
   'tasks.review': 'Хянагдаж буй',
   'tasks.done': 'Дууссан',
-  'tasks.doneToast': '№{n} даалгавар биелэгдлээ 🎉',
+  'tasks.doneToast': '№{n} даалгавар биелэгдлээ',
   'tasks.dragHint': 'Төлөв солихын тулд картыг чирнэ үү',
   'tasks.teamSubtitle': 'Багийн даалгавар',
   'tasks.new': 'Шинэ даалгавар',

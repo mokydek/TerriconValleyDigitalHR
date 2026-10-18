@@ -14,6 +14,7 @@ import assistant from './assistant'
 import jana from './jana'
 import server from './server'
 import v2 from './v2'
+import messenger from './messenger'
 
 const mn: Dict = {
   ...core,
@@ -31,6 +32,7 @@ const mn: Dict = {
   ...jana,
   ...server,
   ...v2,
+  ...messenger,
 }
 
 export default mn

@@ -300,6 +300,80 @@ ok('HR publishes an announcement with a video', !vidErr && vidAnn?.video === 'wl
 const { error: empVidErr } = await emp.from('announcements').insert({ title: 'Тест: работник', body: 'текст', category: 'news', video: 'wln_JddiqUA' })
 ok('employee cannot publish announcements', !!empVidErr, empVidErr?.message)
 
+// --- мессенджер: вложения, упоминания, реакции, правка и удаление, пересылка, каналы, роли, опросы
+{
+  const png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+  const mgrEmp = (await mgr.from('employees').select('id').eq('user_id', (await mgr.auth.getUser()).data.user.id).single()).data.id
+  const hrEmp = (await hr.from('employees').select('id').eq('user_id', (await hr.auth.getUser()).data.user.id).single()).data.id
+  const { data: g2, error: g2e } = await mgr.rpc('create_group_chat', { p_title: 'Тест мессенджера', p_members: [me.id], p_description: 'проверка' })
+  ok('messenger: group with one colleague and description', !g2e && !!g2, g2e?.message)
+  const { data: roles } = await emp.from('chat_members').select('employee_id,role').eq('chat_id', g2)
+  ok('messenger: creator is the owner', roles?.find((r) => r.employee_id === mgrEmp)?.role === 'owner', JSON.stringify(roles))
+  const { data: photoMsg, error: pmErr } = await mgr.rpc('send_message', {
+    p_chat: g2, p_body: 'Фото зоны C', p_mentions: [me.id],
+    p_attachments: [{ kind: 'image', name: 'zona.png', mime: 'image/png', size: 70, data: png, thumb: png, width: 1, height: 1 }],
+  })
+  ok('messenger: message with a photo', !pmErr && !!photoMsg?.id, pmErr?.message)
+  const { data: att } = await emp.from('chat_attachments').select('id,kind,data').eq('message_id', photoMsg.id)
+  ok('messenger: member downloads the attachment', att?.length === 1 && att[0].data.startsWith('data:image/png'), JSON.stringify(att?.map((a) => a.kind)))
+  const { data: hrAtt } = await hr.from('chat_attachments').select('id').eq('message_id', photoMsg.id)
+  ok('messenger: outsiders cannot read attachments, even HR', (hrAtt ?? []).length === 0, `rows=${hrAtt?.length}`)
+  const { error: linkErr } = await mgr.rpc('send_message', { p_chat: g2, p_attachments: [{ kind: 'file', name: 'x.txt', mime: 'text/plain', size: 1, data: 'https://example.com/x' }] })
+  ok('messenger: attachment must be an uploaded file, not a link', !!linkErr, linkErr?.message)
+  const { data: mention } = await emp.from('notifications').select('title,link').eq('link', `/messages?chat=${g2}`)
+  ok('messenger: @mention notifies the colleague', mention?.some((n) => n.title === 'Вас упомянули в чате «Тест мессенджера»'), JSON.stringify(mention))
+  const { data: r1 } = await emp.rpc('toggle_reaction', { p_message: photoMsg.id, p_reaction: 'fire' })
+  const { data: r2 } = await emp.rpc('toggle_reaction', { p_message: photoMsg.id, p_reaction: 'fire' })
+  const { error: hrReactErr } = await hr.rpc('toggle_reaction', { p_message: photoMsg.id, p_reaction: 'like' })
+  ok('messenger: reaction toggles, outsiders cannot react', r1 === 'fire' && r2 === null && !!hrReactErr, `${r1}/${r2}/${hrReactErr?.message}`)
+  const { error: editOther } = await emp.rpc('edit_message', { p_message: photoMsg.id, p_body: 'подмена' })
+  const { data: edited } = await mgr.rpc('edit_message', { p_message: photoMsg.id, p_body: 'Фото зоны C после перемаркировки' })
+  ok('messenger: only the author edits, edit is marked', !!editOther && !!edited?.edited_at, editOther?.message)
+  const saved = (await emp.rpc('open_saved_chat')).data
+  const { data: fwdN, error: fwdErr } = await emp.rpc('forward_messages', { p_messages: [photoMsg.id], p_to: saved })
+  const { data: fwd } = await emp.from('chat_messages').select('forward_author_id,attachments:chat_attachments(kind)').eq('chat_id', saved).order('created_at', { ascending: false }).limit(1).single()
+  ok('messenger: forward to Saved keeps author and photo', !fwdErr && fwdN === 1 && fwd?.forward_author_id === mgrEmp && fwd?.attachments?.length === 1, fwdErr?.message)
+  const { error: delOther } = await emp.rpc('delete_message', { p_message: photoMsg.id })
+  ok('messenger: member cannot delete others\' messages', !!delOther, delOther?.message)
+  const { error: pinMember } = await emp.rpc('pin_message', { p_chat: g2, p_message: photoMsg.id })
+  ok('messenger: only owner and admins pin in a group', !!pinMember, pinMember?.message)
+  await mgr.rpc('set_chat_member_role', { p_chat: g2, p_member: me.id, p_role: 'admin' })
+  const { error: delAdmin } = await emp.rpc('delete_message', { p_message: photoMsg.id })
+  const { data: gone } = await mgr.from('chat_messages').select('id').eq('id', photoMsg.id).is('deleted_at', null)
+  const { data: goneAtt } = await mgr.from('chat_attachments').select('id').eq('message_id', photoMsg.id)
+  ok('messenger: group admin deletes a message with its files', !delAdmin && gone?.length === 0 && goneAtt?.length === 0, delAdmin?.message)
+  const { error: addDirect } = await emp.rpc('add_chat_members', { p_chat: chatId, p_members: [hrEmp] })
+  ok('messenger: no members can be added to a personal chat', !!addDirect, addDirect?.message)
+
+  const { data: chan } = await hr.rpc('create_group_chat', { p_title: 'Тест канала', p_members: [me.id, mgrEmp], p_kind: 'channel' })
+  const { error: subPost } = await emp.rpc('send_message', { p_chat: chan, p_body: 'я тоже напишу' })
+  const { data: post, error: hrPost } = await hr.rpc('send_message', { p_chat: chan, p_body: 'Новости канала' })
+  ok('messenger: in a channel only admins post', !!subPost && !hrPost, `${subPost?.message} / ${hrPost?.message}`)
+  const { error: subFwd } = await emp.rpc('forward_messages', { p_messages: [post.id], p_to: chan })
+  const { error: subAdd } = await emp.rpc('add_chat_members', { p_chat: chan, p_members: [hrEmp] })
+  ok('messenger: subscribers cannot forward into or add to a channel', !!subFwd && !!subAdd, `${subFwd?.message} / ${subAdd?.message}`)
+  const { data: subReact } = await emp.rpc('toggle_reaction', { p_message: post.id, p_reaction: 'like' })
+  ok('messenger: subscribers react to channel posts', subReact === 'like')
+  const { data: poll, error: pollErr } = await hr.rpc('create_poll', { p_chat: chan, p_question: 'Формат корпоратива?', p_options: ['Ресторан', 'За городом', ''], p_anonymous: true })
+  ok('messenger: poll with two options (empty skipped)', !pollErr && !!poll?.id, pollErr?.message)
+  await emp.rpc('vote_poll', { p_message: poll.id, p_options: [0] })
+  await mgr.rpc('vote_poll', { p_message: poll.id, p_options: [1] })
+  const { error: twoVotes } = await emp.rpc('vote_poll', { p_message: poll.id, p_options: [0, 1] })
+  ok('messenger: single-choice poll rejects two options', !!twoVotes, twoVotes?.message)
+  const { data: seenVotes } = await emp.from('chat_poll_votes').select('employee_id').eq('message_id', poll.id)
+  const { data: st } = await emp.rpc('chat_poll_state', { p_messages: [poll.id] })
+  ok('messenger: anonymous poll hides voters but counts all votes', seenVotes?.length === 1 && st?.[0]?.total === 2 && st?.[0]?.voters === null, JSON.stringify(st?.[0]))
+  const { error: closeSub } = await emp.rpc('close_poll', { p_message: poll.id })
+  ok('messenger: a subscriber cannot close someone else\'s poll', !!closeSub, closeSub?.message)
+
+  const { error: leaveErr } = await mgr.rpc('leave_chat', { p_chat: g2 })
+  const { data: heir } = await emp.from('chat_members').select('role').eq('chat_id', g2).eq('employee_id', me.id).single()
+  ok('messenger: when the owner leaves, the admin becomes owner', !leaveErr && heir?.role === 'owner', leaveErr?.message ?? heir?.role)
+  const { data: list } = await emp.rpc('chat_list')
+  const savedRow = list?.find((c) => c.id === saved)
+  ok('messenger: chat list knows kinds, roles and last attachment', savedRow?.kind === 'saved' && savedRow?.last_attachment === 'image' && list.some((c) => c.kind === 'channel' && c.my_role === 'member'), JSON.stringify(savedRow))
+}
+
 for (const r of results) console.log(r[0], '|', r[1], '|', String(r[2]).slice(0, 220))
 const passed = results.filter((r) => r[0] === 'PASS').length
 console.log('\nTOTAL', passed, '/', results.length)

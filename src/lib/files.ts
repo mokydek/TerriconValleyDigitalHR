@@ -2,7 +2,7 @@
 
 export const MAX_FILE_BYTES = 3 * 1024 * 1024
 
-function readAsDataUrl(file: Blob): Promise<string> {
+export function readAsDataUrl(file: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const r = new FileReader()
     r.onload = () => resolve(String(r.result))
@@ -11,7 +11,7 @@ function readAsDataUrl(file: Blob): Promise<string> {
   })
 }
 
-function loadImage(src: string): Promise<HTMLImageElement> {
+export function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image()
     img.onload = () => resolve(img)

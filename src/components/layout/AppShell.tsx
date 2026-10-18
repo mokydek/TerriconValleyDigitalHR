@@ -318,6 +318,7 @@ function ProfileMenu() {
         aria-expanded={open}
         aria-label={t('menu.open')}
         data-testid="profile-menu"
+        data-role={me.role}
       >
         <Avatar id={me.id} name={fullName(me)} size={36} />
         {photo.busy && (

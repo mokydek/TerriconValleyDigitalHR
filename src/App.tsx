@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { useAuth } from '@/lib/auth'
 import { t, tr, useI18n } from '@/lib/i18n'
 import { supabaseConfigured } from '@/lib/supabase'
+import { clearAllSessions } from '@/lib/authStorage'
 import { reloadFresh } from '@/lib/reload'
 import type { Role } from '@/lib/types'
 import { AppShell } from '@/components/layout/AppShell'
@@ -59,11 +60,7 @@ function NotConfigured() {
 
 /** Сбросить сохранённый вход (если старая сессия мешает запуску) и открыть страницу входа */
 function resetSignIn() {
-  try {
-    for (const key of Object.keys(localStorage)) if (key.startsWith('janamen-auth')) localStorage.removeItem(key)
-  } catch {
-    /* хранилище недоступно */
-  }
+  clearAllSessions()
   window.location.replace('/')
 }
 

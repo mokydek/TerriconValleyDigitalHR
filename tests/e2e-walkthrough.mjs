@@ -46,7 +46,11 @@ try {
     await page.waitForTimeout(1500)
   }
   async function logout() {
-    await page.evaluate(() => localStorage.removeItem('janamen-auth'))
+    // вход хранится по вкладкам (src/lib/authStorage.ts): стираем сессии аккаунтов и привязку вкладки
+    await page.evaluate(() => {
+      for (const key of Object.keys(localStorage)) if (key.startsWith('janamen-auth')) localStorage.removeItem(key)
+      sessionStorage.clear()
+    })
     await page.goto(BASE)
   }
 

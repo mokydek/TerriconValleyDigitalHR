@@ -3,6 +3,7 @@ import type { Session } from '@supabase/supabase-js'
 import { useQueryClient } from '@tanstack/react-query'
 import { t } from './i18n'
 import { errorMessage, supabase } from './supabase'
+import { accountOpenElsewhere, detachTab, onSessionsChanged, tabHasSession } from './authStorage'
 import type { Employee, Role } from './types'
 
 export const EMPLOYEE_SELECT =
@@ -84,6 +85,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [loadMe])
 
+  // Сессия этой вкладки поменялась в другой вкладке того же аккаунта: там вышли или обновили токен.
+  // Сверяемся с хранилищем при таких изменениях и когда вкладка снова становится видимой.
+  useEffect(() => {
+    if (!session) return
+    const signedOutElsewhere = () => {
+      qc.clear()
+      setSession(null)
+      setMe(null)
+    }
+    const sync = () => {
+      if (!tabHasSession()) return signedOutElsewhere()
+      void supabase.auth.getSession().then(({ data }) => {
+        if (data.session && data.session.access_token !== session.access_token) setSession(data.session)
+      })
+    }
+    const off = onSessionsChanged(sync)
+    const onVisible = () => document.visibilityState === 'visible' && sync()
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      off()
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+  }, [session, qc])
+
   const signIn = useCallback(async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) {
@@ -91,11 +116,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  // Выход из вкладки. Если этот аккаунт открыт в других вкладках, отвязываем только эту:
+  // так можно перейти на другую роль, не выкидывая соседние вкладки. Иначе завершаем сессию.
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut()
+    const uid = session?.user.id
+    if (uid && (await accountOpenElsewhere(uid))) detachTab()
+    else await supabase.auth.signOut({ scope: 'local' })
     qc.clear()
+    setSession(null)
     setMe(null)
-  }, [qc])
+  }, [qc, session])
 
   const value = useMemo<AuthCtx>(() => {
     const role = me?.role ?? null

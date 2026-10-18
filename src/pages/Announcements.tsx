@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
-import { ChevronDown, Clock, ImagePlus, LayoutGrid, Megaphone, Pin, Plus, X } from '@/components/icons'
+import { ChevronDown, Clock, ExternalLink, ImagePlus, LayoutGrid, Megaphone, Pin, Play, PlayCircle, Plus, X } from '@/components/icons'
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/auth'
 import { useI18n, type I18nKey } from '@/lib/i18n'
@@ -11,6 +11,7 @@ import { fmtDateTime, fullName, timeAgo } from '@/lib/format'
 import { prepareFile } from '@/lib/files'
 import type { Announcement } from '@/lib/types'
 import { cn } from '@/lib/utils'
+import { isYouTubeThumb, parseYouTubeId, youTubeEmbed, youTubeThumb, youTubeWatch } from '@/lib/youtube'
 import { Avatar, Badge, Button, Card, Empty, Field, Modal, PageHeader, Skeleton } from '@/components/ui'
 import { AnnouncementCover, COVERS } from '@/components/announcements/AnnouncementCover'
 
@@ -112,9 +113,9 @@ export default function AnnouncementsPage() {
       )}
 
       {hero && <AnnouncementCard a={hero} big open={openId === hero.id} onToggle={() => toggle(hero)} />}
-      <div className="stagger mt-4 grid gap-4 sm:grid-cols-2">
+      <div className="stagger mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
         {rest.map((a, i) => (
-          <div key={a.id} style={{ ['--i' as string]: i }} className={cn(openId === a.id && 'sm:col-span-2')}>
+          <div key={a.id} style={{ ['--i' as string]: i }} className={cn('min-w-0', openId === a.id && 'sm:col-span-2')}>
             <AnnouncementCard a={a} open={openId === a.id} onToggle={() => toggle(a)} />
           </div>
         ))}
@@ -161,7 +162,20 @@ function AnnouncementCard({ a, big, open, onToggle }: { a: Item; big?: boolean; 
           <Badge className={cn(cat.style, 'shadow-sm')}>
             <cat.icon className="h-3 w-3" /> {cat.label}
           </Badge>
+          {a.video && (
+            <Badge className="bg-ink/80 text-white ring-transparent shadow-sm backdrop-blur-sm" data-testid="announcement-video-badge">
+              <PlayCircle className="h-3 w-3" /> {t('a2.videoBadge')}
+            </Badge>
+          )}
         </div>
+        {/* Ролик приложен: кнопка «играть» поверх обложки, по клику объявление раскрывается с плеером */}
+        {a.video && !open && (
+          <span className="pointer-events-none absolute inset-0 grid place-items-center">
+            <span className="grid h-14 w-14 place-items-center rounded-full bg-white/95 text-brand-700 shadow-[var(--shadow-pop)] ring-8 ring-white/30 transition duration-300 group-hover:scale-110">
+              <Play className="ml-0.5 h-6 w-6 fill-current" />
+            </span>
+          </span>
+        )}
         {!a.read && <span className="absolute top-3 right-3 h-3 w-3 animate-pulse rounded-full bg-brand-500 ring-4 ring-white" title={t('home.unread')} />}
       </button>
 
@@ -182,6 +196,7 @@ function AnnouncementCard({ a, big, open, onToggle }: { a: Item; big?: boolean; 
             {open && (
               <div className="prose-jana mt-3 max-w-2xl animate-fade-in" data-testid="announcement-body">
                 {a.summary && <p className="text-[17px] font-medium text-ink">{a.summary}</p>}
+                {a.video && <AnnouncementVideo id={a.video} title={a.title} />}
                 <ReactMarkdown>{a.body}</ReactMarkdown>
               </div>
             )}
@@ -211,6 +226,34 @@ function AnnouncementCard({ a, big, open, onToggle }: { a: Item; big?: boolean; 
   )
 }
 
+/** Ролик к объявлению: плеер YouTube без cookie до запуска и ссылка, если видео хочется открыть отдельно */
+function AnnouncementVideo({ id, title }: { id: string; title: string }) {
+  const { t } = useI18n()
+  return (
+    <figure className="not-prose my-5" data-testid="announcement-video">
+      <div className="relative aspect-video overflow-hidden rounded-2xl bg-ink shadow-[var(--shadow-pop)]">
+        <iframe
+          className="absolute inset-0 h-full w-full"
+          src={youTubeEmbed(id)}
+          title={title}
+          loading="lazy"
+          allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+          referrerPolicy="strict-origin-when-cross-origin"
+        />
+      </div>
+      <figcaption className="mt-2 flex flex-wrap items-center justify-between gap-2 text-sm text-muted">
+        <span className="inline-flex items-center gap-1.5">
+          <PlayCircle className="h-4 w-4 text-brand-600" /> {t('a2.videoCaption')}
+        </span>
+        <a href={youTubeWatch(id)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-medium text-brand-700 hover:underline">
+          {t('c2.openYoutube')} <ExternalLink className="h-3.5 w-3.5" />
+        </a>
+      </figcaption>
+    </figure>
+  )
+}
+
 function NewAnnouncement({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { role, me } = useAuth()
   const { t } = useI18n()
@@ -222,9 +265,18 @@ function NewAnnouncement({ open, onClose }: { open: boolean; onClose: () => void
   const [category, setCategory] = useState('news')
   const [cover, setCover] = useState<string>('news')
   const [image, setImage] = useState<string | null>(null)
+  const [videoUrl, setVideoUrl] = useState('')
   const [pinned, setPinned] = useState(false)
   const [audience, setAudience] = useState<string>(role === 'manager' ? me?.department_id ?? '' : '')
   const file = useRef<HTMLInputElement>(null)
+  const video = parseYouTubeId(videoUrl)
+  const videoBad = videoUrl.trim() !== '' && !video
+
+  // Приложили ролик и своей картинки нет: обложкой становится его превью (можно сменить на иллюстрацию)
+  useEffect(() => {
+    if (video && (!image || isYouTubeThumb(image))) setImage(youTubeThumb(video))
+    if (!video && isYouTubeThumb(image)) setImage(null)
+  }, [video])
 
   return (
     <Modal
@@ -240,7 +292,7 @@ function NewAnnouncement({ open, onClose }: { open: boolean; onClose: () => void
           </Button>
           <Button
             loading={create.isPending}
-            disabled={!title.trim() || !body.trim()}
+            disabled={!title.trim() || !body.trim() || videoBad}
             onClick={async () => {
               try {
                 await create.mutateAsync({
@@ -250,6 +302,7 @@ function NewAnnouncement({ open, onClose }: { open: boolean; onClose: () => void
                   category,
                   cover,
                   image,
+                  video,
                   pinned,
                   audience_department_id: audience || null,
                 })
@@ -258,6 +311,7 @@ function NewAnnouncement({ open, onClose }: { open: boolean; onClose: () => void
                 setSummary('')
                 setBody('')
                 setImage(null)
+                setVideoUrl('')
                 onClose()
               } catch (e) {
                 toast.error((e as Error).message)
@@ -280,6 +334,36 @@ function NewAnnouncement({ open, onClose }: { open: boolean; onClose: () => void
           </Field>
           <Field label={t('ann.body')} hint={t('a2.bodyHint')}>
             <textarea className="field min-h-[180px] font-mono text-[13.5px]" value={body} onChange={(e) => setBody(e.target.value)} data-testid="ann-body" />
+          </Field>
+          <Field label={t('a2.video')} hint={t('a2.videoHint')} error={videoBad ? t('a2.videoBad') : null}>
+            <div className="relative">
+              <PlayCircle className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted" />
+              <input
+                className={cn('field pl-9', videoBad && 'border-rose-300 focus:border-rose-400')}
+                value={videoUrl}
+                onChange={(e) => setVideoUrl(e.target.value)}
+                placeholder="https://youtu.be/…"
+                inputMode="url"
+                data-testid="ann-video"
+              />
+            </div>
+            {video && (
+              <div className="mt-2 flex animate-fade-in items-center gap-3 rounded-xl bg-brand-50/60 p-2 ring-1 ring-brand-100" data-testid="ann-video-preview">
+                <span className="relative h-12 w-20 shrink-0 overflow-hidden rounded-lg bg-ink">
+                  <img src={youTubeThumb(video)} alt="" className="h-full w-full object-cover" />
+                  <Play className="absolute inset-0 m-auto h-4 w-4 fill-white text-white" />
+                </span>
+                <span className="min-w-0 flex-1 text-sm">
+                  <span className="block font-medium text-ink">{t('a2.videoAttached')}</span>
+                  <a href={youTubeWatch(video)} target="_blank" rel="noreferrer" className="text-xs text-brand-700 hover:underline">
+                    {t('c2.openYoutube')}
+                  </a>
+                </span>
+                <button type="button" onClick={() => setVideoUrl('')} className="rounded-full p-1 text-muted hover:bg-white hover:text-ink" aria-label={t('common.delete')}>
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            )}
           </Field>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field label={t('ann.category')}>

@@ -289,6 +289,17 @@ ok('create group chat', !grpErr && !!grp, grpErr?.message)
 const empGroups = (await emp.rpc('chat_list')).data?.filter((c) => c.id === grp)
 ok('group members see the group', empGroups?.length === 1 && empGroups[0].member_count === 3, JSON.stringify(empGroups))
 
+// --- объявления с видео: ролики из сида на месте, в базу пишется только корректный id YouTube
+const { data: withVideo } = await emp.from('announcements').select('title, video').not('video', 'is', null)
+ok('seeded announcements carry YouTube videos', (withVideo ?? []).length >= 5 && withVideo.every((a) => /^[A-Za-z0-9_-]{11}$/.test(a.video)), JSON.stringify((withVideo ?? []).map((a) => a.video)))
+const hrId = (await hr.from('employees').select('id').eq('user_id', (await hr.auth.getUser()).data.user.id).single()).data.id
+const { error: badVideoErr } = await hr.from('announcements').insert({ title: 'Тест: битое видео', body: 'текст', category: 'news', author_id: hrId, video: 'https://youtu.be/x' })
+ok('announcement rejects a malformed video id', !!badVideoErr, badVideoErr?.message)
+const { data: vidAnn, error: vidErr } = await hr.from('announcements').insert({ title: 'Тест: объявление с видео', body: 'текст', category: 'news', author_id: hrId, video: 'wln_JddiqUA' }).select('id, video').single()
+ok('HR publishes an announcement with a video', !vidErr && vidAnn?.video === 'wln_JddiqUA', vidErr?.message)
+const { error: empVidErr } = await emp.from('announcements').insert({ title: 'Тест: работник', body: 'текст', category: 'news', video: 'wln_JddiqUA' })
+ok('employee cannot publish announcements', !!empVidErr, empVidErr?.message)
+
 for (const r of results) console.log(r[0], '|', r[1], '|', String(r[2]).slice(0, 220))
 const passed = results.filter((r) => r[0] === 'PASS').length
 console.log('\nTOTAL', passed, '/', results.length)

@@ -125,6 +125,13 @@ export default {
   'a2.cover.wellbeing': 'Self-care',
   'a2.cover.it': 'IT',
   'a2.cover.news': 'News',
+  'a2.video': 'YouTube video',
+  'a2.videoHint': 'Paste a link to the video: it will appear in the announcement under the summary',
+  'a2.videoBad': "This doesn't look like a link to a YouTube video",
+  'a2.videoAttached': 'Video attached',
+  'a2.videoBadge': 'Video',
+  'a2.videoCaption': 'Video for this announcement',
+  'login.tabsHint': 'Each tab keeps its own sign-in: open several tabs and sign in with a different role in each',
 
   // ---------- Вход ----------
   'login.footerBrand': '© Jańa Post · HR platform for employees',

@@ -125,6 +125,13 @@ export default {
   'a2.cover.wellbeing': 'Oʻzingizga gʻamxoʻrlik',
   'a2.cover.it': 'IT',
   'a2.cover.news': 'Yangiliklar',
+  'a2.video': 'YouTube video',
+  'a2.videoHint': 'Videoga havolani qoʻying: u eʼlonda qisqacha mazmun ostida chiqadi',
+  'a2.videoBad': 'Bu YouTube video havolasiga oʻxshamaydi',
+  'a2.videoAttached': 'Video biriktirildi',
+  'a2.videoBadge': 'Video',
+  'a2.videoCaption': 'Eʼlonga video',
+  'login.tabsHint': 'Har bir varaq oʻz kirishini eslab qoladi: bir nechta varaq ochib, har birida boshqa rol bilan kirish mumkin',
 
   // ---------- Вход ----------
   'login.footerBrand': '© Jańa Post · Xodimlar uchun HR platformasi',

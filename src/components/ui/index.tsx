@@ -95,9 +95,10 @@ export function CardHeader({
 
 /* ---------- Badge ---------- */
 
-export function Badge({ className, children, dot }: { className?: string; children: ReactNode; dot?: boolean }) {
+export function Badge({ className, children, dot, ...rest }: { className?: string; children: ReactNode; dot?: boolean; title?: string; 'data-testid'?: string }) {
   return (
     <span
+      {...rest}
       className={cn(
         'inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap ring-1 ring-inset',
         className ?? 'bg-slate-100 text-slate-700 ring-slate-200',

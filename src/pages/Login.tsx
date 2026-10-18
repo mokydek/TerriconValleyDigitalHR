@@ -92,7 +92,8 @@ export default function LoginPage() {
           <p className="mt-1.5 text-muted">{t('login.subtitle')}</p>
 
           <div className="mt-7">
-            <div className="mb-2.5 text-sm font-semibold text-ink-soft">{t('login.demo')}</div>
+            <div className="text-sm font-semibold text-ink-soft">{t('login.demo')}</div>
+            <p className="mt-0.5 mb-2.5 text-xs text-muted" data-testid="login-tabs-hint">{t('login.tabsHint')}</p>
             <div className="space-y-2.5">
               {DEMO.map((d) => (
                 <button

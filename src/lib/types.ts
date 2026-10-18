@@ -256,6 +256,8 @@ export interface Announcement {
   body: string
   cover: string
   image: string | null
+  /** Идентификатор ролика YouTube, приложенного к объявлению */
+  video: string | null
   category: string
   pinned: boolean
   audience_department_id: string | null

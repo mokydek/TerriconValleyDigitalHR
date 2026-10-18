@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { t } from './i18n'
 import { serverText } from './serverText'
+import { AUTH_STORAGE_KEY, tabAuthStorage } from './authStorage'
 
 // Значения из /config.js (Docker) имеют приоритет над переменными сборки (Vercel, dev)
 const runtime = window.__JANAMEN__ ?? {}
@@ -11,8 +12,9 @@ export const supabaseConfigured = Boolean(url && key)
 /** Realtime есть в Supabase Cloud; в локальном Docker-стеке уведомления обновляются опросом */
 export const realtimeEnabled = runtime.realtime !== false
 
+// Вход хранится по вкладкам: в соседних вкладках можно работать под разными ролями (см. authStorage)
 export const supabase = createClient(url ?? 'http://localhost:54321', key ?? 'missing-key', {
-  auth: { persistSession: true, autoRefreshToken: true, storageKey: 'janamen-auth' },
+  auth: { persistSession: true, autoRefreshToken: true, storageKey: AUTH_STORAGE_KEY, storage: tabAuthStorage },
 })
 
 /** Сообщение об ошибке PostgREST/RPC в человекочитаемом виде */

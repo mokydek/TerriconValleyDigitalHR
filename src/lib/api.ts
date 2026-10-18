@@ -570,6 +570,7 @@ export function useCreateAnnouncement() {
       category: string
       cover: string
       image: string | null
+      video: string | null
       pinned: boolean
       audience_department_id: string | null
     }) => must(supabase.from('announcements').insert(a)),
